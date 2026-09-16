@@ -216,6 +216,9 @@ def default_config():
         "piece_set": "tournament",
         "board_mode": "3D",
         "two_d_flipped": False,
+        "two_d_scale": 1.0,
+        "two_d_pan_x": 0.0,
+        "two_d_pan_z": 0.0,
         "show_coordinates": True,
         "show_move_indicator": True,
         "sound_enabled": True,
@@ -498,6 +501,9 @@ class Chess3D:
         if self.board_mode not in ("2D", "3D"):
             self.board_mode = "3D"
         self.two_d_flipped = bool(self.cfg.get("two_d_flipped", False))
+        self.two_d_scale = max(0.4, min(2.5, float(self.cfg.get("two_d_scale", 1.0))))
+        self.two_d_pan_x = float(self.cfg.get("two_d_pan_x", 0.0))
+        self.two_d_pan_z = float(self.cfg.get("two_d_pan_z", 0.0))
         self.flat_piece_renderer = FlatPieceRenderer()
         self.piece_sets = discover_sets(PIECE_DIR)
         self.piece_set = self.cfg.get("piece_set", "tournament")
@@ -592,8 +598,9 @@ class Chess3D:
     def _scroll(w, dx, dy):
         s = Chess3D._s(w)
         if s.board_mode == "2D":
-            return
-        s.distance = max(7, min(22, s.distance - dy * 0.7))
+            s.two_d_scale = max(0.4, min(2.5, s.two_d_scale * math.exp(-max(-10, min(10, dy)) * 0.1)))
+        else:
+            s.distance = max(7, min(22, s.distance - dy * 0.7))
         s.mark_camera_dirty()
 
     @staticmethod
@@ -679,8 +686,8 @@ class Chess3D:
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         if self.board_mode == "2D":
-            half_x = 4.65 * max(1, aspect)
-            half_z = 4.65 * max(1, 1 / aspect)
+            half_x = 4.65 * self.two_d_scale * max(1, aspect)
+            half_z = 4.65 * self.two_d_scale * max(1, 1 / aspect)
             glOrtho(-half_x, half_x, -half_z, half_z, 0.1, 80)
         else:
             gluPerspective(40, aspect, 0.1, 80)
@@ -826,7 +833,7 @@ class Chess3D:
             self.piece_renderer.draw(spec, piece, x, z, lifted)
 
     def view_pan(self):
-        return (0, 0) if self.board_mode == "2D" else (self.pan_x, self.pan_z)
+        return (self.two_d_pan_x, self.two_d_pan_z) if self.board_mode == "2D" else (self.pan_x, self.pan_z)
 
     def view_yaw(self):
         if self.board_mode == "2D":
@@ -1026,9 +1033,9 @@ class Chess3D:
             self.drag_world = self.ray_to_board(*pos)
             self.board_pan_drag = False
         else:
-            self.board_pan_drag = self.board_mode == "3D"
-            self.pan_start_world = None
-            self.pan_start_offset = (self.pan_x, self.pan_z)
+            self.board_pan_drag = True
+            self.pan_start_world = self.ray_to_board(*pos)
+            self.pan_start_offset = self.view_pan()
 
     def left_motion(self, pos):
         if self.left_down_pos:
@@ -1043,14 +1050,18 @@ class Chess3D:
             if cur:
                 if self.pan_start_world is None:
                     self.pan_start_world = cur
-                    self.pan_start_offset = (self.pan_x, self.pan_z)
+                    self.pan_start_offset = self.view_pan()
                 else:
-                    self.pan_x = self.pan_start_offset[0] + (
+                    pan_x = self.pan_start_offset[0] + (
                         cur[0] - self.pan_start_world[0]
                     )
-                    self.pan_z = self.pan_start_offset[1] + (
+                    pan_z = self.pan_start_offset[1] + (
                         cur[2] - self.pan_start_world[2]
                     )
+                    if self.board_mode == "2D":
+                        self.two_d_pan_x, self.two_d_pan_z = pan_x, pan_z
+                    else:
+                        self.pan_x, self.pan_z = pan_x, pan_z
                     self.mark_camera_dirty()
 
     def left_release(self, pos):
@@ -1123,6 +1134,8 @@ class Chess3D:
     def reset_view(self):
         if self.board_mode == "2D":
             self.two_d_flipped = False
+            self.two_d_scale = 1.0
+            self.two_d_pan_x = self.two_d_pan_z = 0.0
             self.persist()
             self.result_text = "View reset"
             return
@@ -1138,6 +1151,8 @@ class Chess3D:
     def flip_board(self):
         if self.board_mode == "2D":
             self.two_d_flipped = not self.two_d_flipped
+            self.two_d_pan_x = -self.two_d_pan_x
+            self.two_d_pan_z = -self.two_d_pan_z
             self.persist()
             return
         self.yaw = (self.yaw + math.pi) % math.tau
@@ -1582,6 +1597,9 @@ class Chess3D:
                 "piece_set": self.piece_set,
                 "board_mode": self.board_mode,
                 "two_d_flipped": self.two_d_flipped,
+                "two_d_scale": self.two_d_scale,
+                "two_d_pan_x": self.two_d_pan_x,
+                "two_d_pan_z": self.two_d_pan_z,
                 "show_coordinates": self.show_coordinates,
                 "show_move_indicator": self.show_move_indicator,
                 "sound_enabled": self.sound_enabled,

@@ -227,6 +227,55 @@ class LiveSwitchTests(unittest.TestCase):
             app.board_mode_var.set("3D")
             app.change_board_mode()
 
+    def test_zoom_and_2d_pan_follow_pointer_and_preserve_3d_camera(self):
+        app = self.app
+        camera = (app.yaw, app.pitch, app.distance, app.pan_x, app.pan_z)
+        with tempfile.TemporaryDirectory() as folder, \
+             patch.object(main, "CONFIG_PATH", Path(folder) / "config.json"):
+            app.board = chess.Board()
+            app.selected = None
+            app.board_mode_var.set("2D")
+            app.change_board_mode()
+            app.reset_view()
+            main.Chess3D._scroll(app.window, 0, 1)
+            self.assertLess(app.two_d_scale, 1)
+            main.Chess3D._scroll(app.window, 0, -1)
+            self.assertAlmostEqual(app.two_d_scale, 1)
+            for flipped in (False, True):
+                app.two_d_flipped = flipped
+                main.Chess3D._scroll(app.window, 0, 2)
+                start = self.screen_square(chess.D4)
+                before = app.view_pan()
+                app.left_press(start)
+                app.left_motion((start[0]+1,start[1]+1))
+                self.assertEqual(app.view_pan(), before)
+                end = (start[0]+60,start[1]+35)
+                app.left_motion(end)
+                app.left_release(end)
+                actual = self.screen_square(chess.D4)
+                self.assertAlmostEqual(actual[0],end[0],places=4)
+                self.assertAlmostEqual(actual[1],end[1],places=4)
+                app.draw()
+                for square in chess.SQUARES:
+                    self.assertEqual(app.square_at_mouse(self.screen_square(square)),square)
+                self.assertEqual(app.board.fen(),chess.STARTING_FEN)
+            app.persist()
+            saved = main.load_config()
+            self.assertEqual(saved["two_d_scale"],app.two_d_scale)
+            self.assertEqual(saved["two_d_pan_x"],app.two_d_pan_x)
+            self.assertEqual(saved["two_d_pan_z"],app.two_d_pan_z)
+            app.reset_view()
+            self.assertEqual(app.view_pan(),(0,0))
+            self.assertEqual(app.two_d_scale,1)
+            app.board_mode_var.set("3D")
+            app.change_board_mode()
+            self.assertEqual(camera,(app.yaw,app.pitch,app.distance,app.pan_x,app.pan_z))
+            app.distance = 12.4
+            main.Chess3D._scroll(app.window,0,1)
+            self.assertLess(app.distance,12.4)
+            main.Chess3D._scroll(app.window,0,-1)
+            self.assertAlmostEqual(app.distance,12.4)
+
 
 if __name__ == "__main__":
     unittest.main()

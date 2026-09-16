@@ -1,6 +1,6 @@
 # OTBMaster3D
 
-**Version 7.3.0** - desktop chess with a tournament-style 3D board, a flat 2D view,
+**Version 7.3.1** - desktop chess with a tournament-style 3D board, a flat 2D view,
 UCI engine support and over-the-board clock controls. Built for Windows with
 Python, GLFW, OpenGL, Tkinter and python-chess.
 
@@ -31,7 +31,10 @@ The app opens a board window and a separate controls window.
 ## Board and pieces
 
 Use **Board view: 3D / 2D** above the Piece set dropdown to change views instantly.
-The 2D board fits the window and supports clicking, dragging and flipping.
+The 2D board initially fits the window and supports clicking, dragging and flipping.
+Scroll up to zoom in or down to zoom out in either view. Left-drag an empty area
+to reposition the board. Each view remembers its own zoom and pan; Reset View
+restores the current view's defaults without changing the game.
 Switching back restores your 3D camera. View, piece set and appearance preferences
 are saved locally in `config.json`.
 
@@ -54,8 +57,8 @@ The previous Original option has been removed; saved selections migrate automati
 | --- | --- |
 | Move a piece | Click source then destination, or drag and drop. |
 | Rotate the 3D board | Right-drag or Ctrl + left-drag. |
-| Pan the 3D board | Left-drag an empty area. |
-| Zoom the 3D board | Mouse wheel. |
+| Pan the board (2D or 3D) | Left-drag an empty area; dragging a movable piece moves that piece. |
+| Zoom the board (2D or 3D) | Mouse wheel up to zoom in; down to zoom out. |
 | Flip the board | Flip Board button or Ctrl + F. |
 | Take back a move | Takeback button or U. |
 | Restore the view | Reset View button; the chess position is preserved. |
@@ -90,9 +93,9 @@ saves preferences, not the current game.
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-The seven tests cover complete assets, custom-set loading, live switching,
+The eight tests cover complete assets, custom-set loading, live switching,
 configuration persistence, 2D click/drag moves and all 64 squares in both
-orientations and landscape/portrait windows. Rendering tests create hidden
+orientations and landscape/portrait windows, plus wheel zoom and 2D panning. Rendering tests create hidden
 OpenGL and Tk windows and require a working graphics environment. They do not
 write to the user's configuration.
 

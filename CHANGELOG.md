@@ -1,5 +1,12 @@
 # Changelog
 
+## 7.3.1 - 2026-09-16
+
+- Enable wheel zoom in 2D as well as 3D: up zooms in, down zooms out.
+- Enable left-drag panning on empty areas in 2D, with accurate picking after zooming and panning.
+- Remember separate 2D zoom/pan preferences; Reset View restores the fitted board.
+- Preserve the board's screen position when flipping a panned 2D view.
+
 ## 7.3.0 - 2026-09-16
 
 ### Added
