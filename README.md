@@ -1,6 +1,6 @@
 # OTBMaster3D
 
-**Version 8.1.0** - desktop chess with a tournament-style 3D board,
+**Version 8.2.0** - desktop chess with a tournament-style 3D board,
 a flat 2D view, UCI engine support and over-the-board clock controls. The main
 interface uses PySide6 and an embedded OpenGL board.
 
@@ -14,7 +14,7 @@ The previous zoom/pan release is available on GitHub as **v7.3.1**.
 - Engine output collapses below the move table; it shows evaluation, depth and the best line.
 - Focus mode keeps just the board and clocks. The sidebar can also be hidden entirely.
 - Window size, sidebar width, Focus mode and engine-panel visibility are remembered.
-- Five interface themes: Light, Dark, Blue, Cyberpunk and Pink/Lollipop.
+- Twelve interface themes, including Forest, Midnight Ocean, Ember and Warm Paper.
 - New-game clocks wait for the first move; paused clocks can be adjusted independently.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
@@ -134,7 +134,8 @@ settings apply to the next game; Reset clock applies the selected time control.
 - The sidebar Start/Pause button controls play; Game ? Reset clock resets the timers.
 - Colours, board themes, backgrounds and sound are in Settings.
 - **Settings → Interface theme** switches instantly between Light, Dark, Blue,
-  Cyberpunk and Pink/Lollipop. Your choice is remembered independently of board colours.
+  Cyberpunk, Pink/Lollipop, Forest, Midnight Ocean, Amethyst, Ember, Nordic Frost,
+  Warm Paper and High Contrast. Your choice is remembered independently of board colours.
 - Colour dialogs preview changes live on the board. Cancel restores the original
   colour and keeps any background image; OK saves the new colour.
 

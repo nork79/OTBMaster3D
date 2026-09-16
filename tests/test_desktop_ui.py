@@ -87,7 +87,7 @@ class DesktopTests(unittest.TestCase):
             self.assertEqual(settings.load_config()["interface_theme"],name)
             self.assertEqual(sum(a.isChecked() for a in w.interface_theme_actions.values()),1)
             self.assertEqual((g.board.fen(),g.light_square,g.dark_square,g.background_color),original)
-        self.assertEqual(len(styles),5)
+        self.assertEqual(len(styles),12)
         restored = MainWindow()
         try:
             self.assertEqual(restored.interface_theme,"Pink/Lollipop")

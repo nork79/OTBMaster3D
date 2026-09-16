@@ -1,5 +1,13 @@
 # Changelog
 
+## 8.2.0 - 2026-09-16
+
+- Add seven interface themes: Forest, Midnight Ocean, Amethyst, Ember, Nordic Frost,
+  Warm Paper and High Contrast.
+- Add ten board colour themes: Ivory & Onyx, Walnut & Maple, Rosewood, Sage,
+  Ocean, Amethyst, Terracotta, Slate & Silver, Honey & Espresso and Blush.
+- Centralise board colour presets so menus and rendering use the same definitions.
+
 ## 8.1.0 - 2026-09-16
 
 - Rename Board theme to Board Color Theme and add a separate remembered Board Type menu.

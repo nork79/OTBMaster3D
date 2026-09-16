@@ -5,6 +5,7 @@ from PIL import ImageOps
 from pathlib import Path
 from tkinter import messagebox
 from otb_chess.services.settings import default_config, save_config
+from otb_chess.graphics.board_colors import BOARD_COLOR_THEMES
 from OpenGL.GL import GL_CLAMP_TO_EDGE, GL_LINEAR, GL_MAX_TEXTURE_SIZE, GL_RGB, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER, GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, GL_UNPACK_ALIGNMENT, GL_UNSIGNED_BYTE, glBindTexture, glDeleteTextures, glGenTextures, glGetIntegerv, glPixelStorei, glTexImage2D, glTexParameteri
 
 
@@ -128,17 +129,7 @@ class AppearanceSettings:
         return True
 
     def apply_preset(self, name):
-        presets = {
-            "Wood": ((0.77, 0.68, 0.53), (0.31, 0.20, 0.12), (0.22, 0.11, 0.05)),
-            "Tournament Green": (
-                (0.92, 0.90, 0.78),
-                (0.30, 0.48, 0.34),
-                (0.16, 0.22, 0.14),
-            ),
-            "Blue": ((0.88, 0.90, 0.92), (0.31, 0.43, 0.57), (0.14, 0.18, 0.24)),
-            "Grey": ((0.82, 0.82, 0.82), (0.35, 0.35, 0.35), (0.18, 0.18, 0.18)),
-        }
-        self.light_square, self.dark_square, self.frame_color = presets[name]
+        self.light_square, self.dark_square, self.frame_color = BOARD_COLOR_THEMES[name]
         self.persist()
 
     def persist(self):

@@ -14,6 +14,7 @@ from tkinter import messagebox
 import tkinter as tk
 from tkinter import ttk
 from otb_chess.services.settings import BOOK_DIR, ENGINE_DIR, TIME_CONTROLS
+from otb_chess.graphics.board_colors import BOARD_COLOR_THEMES
 
 
 class LegacyUI:
@@ -417,7 +418,7 @@ class LegacyUI:
         preset = ttk.Combobox(
             settings,
             state="readonly",
-            values=["Wood", "Tournament Green", "Blue", "Grey"],
+            values=list(BOARD_COLOR_THEMES),
         )
         preset.set("Wood")
         preset.pack(fill="x", padx=6)

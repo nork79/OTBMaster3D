@@ -27,6 +27,7 @@ from otb_chess.version import __version__
 from otb_chess.ui.interface_themes import THEMES, themed_stylesheet
 from otb_chess.ui.document_actions import DocumentActions
 from otb_chess.graphics.board_types import BOARD_TYPES
+from otb_chess.graphics.board_colors import BOARD_COLOR_THEMES
 
 
 STYLE = """
@@ -517,7 +518,7 @@ class MainWindow(DocumentActions, QMainWindow):
             type_group.addAction(action)
             self.board_type_actions[key] = action
         themes = settings.addMenu("Board Color Theme")
-        for name in ("Wood","Tournament Green","Blue","Grey"):
+        for name in BOARD_COLOR_THEMES:
             self.action(themes,name,lambda n=name:g.apply_preset(n))
         colors = settings.addMenu("Colours")
         for name,key in (("Light squares","light"),("Dark squares","dark"),("Board frame","frame"),("Background","background")):
