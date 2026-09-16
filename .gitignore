@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .venv/
+.tmp/
 
 # User-specific application state
 config.json
@@ -9,4 +10,3 @@ config.json
 # User-provided engines and opening books
 engines/*.exe
 books/*.bin
-

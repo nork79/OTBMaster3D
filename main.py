@@ -20,6 +20,9 @@ import glfw
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from PIL import Image, ImageOps, ImageTk
+from piece_sets import PieceRenderer, discover_sets
+from board_2d import FlatPieceRenderer, flat_square
+from version import __version__
 
 try:
     import winsound
@@ -31,6 +34,7 @@ CONFIG_PATH = APP_DIR / "config.json"
 ENGINE_DIR = APP_DIR / "engines"
 BOOK_DIR = APP_DIR / "books"
 SOUND_DIR = APP_DIR / "sounds"
+PIECE_DIR = APP_DIR / "assets" / "pieces"
 
 WIDTH, HEIGHT = 1180, 800
 BOARD_Y = 0.0
@@ -39,68 +43,10 @@ DEFAULT_LIGHT = (0.77, 0.68, 0.53)
 DEFAULT_DARK = (0.31, 0.20, 0.12)
 DEFAULT_FRAME = (0.22, 0.11, 0.05)
 DEFAULT_BACKGROUND = (0.055, 0.055, 0.065)
-WHITE_PIECE = (0.88, 0.82, 0.68)
-BLACK_PIECE = (0.16, 0.14, 0.12)
 SELECT = (0.25, 0.63, 0.92)
 LEGAL = (0.24, 0.78, 0.38)
 COORD = (0.88, 0.84, 0.72)
 TURN_INDICATOR = (1.00, 0.42, 0.08)
-
-PROFILES = {
-    chess.PAWN: [
-        (0.30, 0.00),
-        (0.34, 0.06),
-        (0.31, 0.12),
-        (0.23, 0.17),
-        (0.18, 0.25),
-        (0.15, 0.50),
-        (0.18, 0.60),
-        (0.14, 0.67),
-    ],
-    chess.ROOK: [
-        (0.35, 0.00),
-        (0.38, 0.06),
-        (0.34, 0.13),
-        (0.25, 0.19),
-        (0.21, 0.63),
-        (0.28, 0.68),
-        (0.31, 0.78),
-    ],
-    chess.KNIGHT: [
-        (0.35, 0.00),
-        (0.38, 0.06),
-        (0.33, 0.14),
-        (0.24, 0.20),
-        (0.20, 0.47),
-    ],
-    chess.BISHOP: [
-        (0.35, 0.00),
-        (0.39, 0.06),
-        (0.34, 0.14),
-        (0.24, 0.20),
-        (0.18, 0.54),
-        (0.22, 0.63),
-        (0.15, 0.72),
-    ],
-    chess.QUEEN: [
-        (0.38, 0.00),
-        (0.41, 0.07),
-        (0.36, 0.15),
-        (0.25, 0.22),
-        (0.19, 0.62),
-        (0.28, 0.70),
-        (0.31, 0.80),
-    ],
-    chess.KING: [
-        (0.40, 0.00),
-        (0.43, 0.07),
-        (0.38, 0.15),
-        (0.26, 0.22),
-        (0.20, 0.67),
-        (0.30, 0.75),
-        (0.27, 0.84),
-    ],
-}
 
 GLYPHS = {
     "1": [((0.5, 0.05), (0.5, 0.95)), ((0.35, 0.8), (0.5, 0.95))],
@@ -267,6 +213,9 @@ def default_config():
         "frame_color": list(DEFAULT_FRAME),
         "background_color": list(DEFAULT_BACKGROUND),
         "background_image": "",
+        "piece_set": "tournament",
+        "board_mode": "3D",
+        "two_d_flipped": False,
         "show_coordinates": True,
         "show_move_indicator": True,
         "sound_enabled": True,
@@ -406,8 +355,11 @@ def setup_gl(w, h):
     glEnable(GL_MULTISAMPLE)
     glEnable(GL_LIGHTING)
     glEnable(GL_LIGHT0)
+    glEnable(GL_LIGHT1)
     glLightfv(GL_LIGHT0, GL_AMBIENT, (0.28, 0.28, 0.28, 1))
     glLightfv(GL_LIGHT0, GL_DIFFUSE, (0.92, 0.92, 0.92, 1))
+    glLightfv(GL_LIGHT1, GL_AMBIENT, (0, 0, 0, 1))
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, (0.22, 0.25, 0.30, 1))
     glClearColor(0.055, 0.055, 0.065, 1)
 
 
@@ -449,81 +401,6 @@ def draw_disc(x, y, z, radius, color, segments=32):
         glVertex3f(x + radius * math.cos(angle), y, z - radius * math.sin(angle))
     glEnd()
     glEnable(GL_LIGHTING)
-
-
-def lathe(profile, color, segments=30):
-    material(color, 70)
-    for j in range(len(profile) - 1):
-        r0, y0 = profile[j]
-        r1, y1 = profile[j + 1]
-        dr = r1 - r0
-        dy = y1 - y0
-        glBegin(GL_QUAD_STRIP)
-        for i in range(segments + 1):
-            a = 2 * math.pi * i / segments
-            ca, sa = math.cos(a), math.sin(a)
-            nx, ny, nz = dy * ca, -dr, dy * sa
-            ln = math.sqrt(nx * nx + ny * ny + nz * nz) or 1
-            glNormal3f(nx / ln, ny / ln, nz / ln)
-            glVertex3f(r0 * ca, y0, r0 * sa)
-            glVertex3f(r1 * ca, y1, r1 * sa)
-        glEnd()
-
-
-def sphere(r, y, color, slices=22, stacks=12):
-    material(color, 72)
-    q = gluNewQuadric()
-    glPushMatrix()
-    glTranslatef(0, y, 0)
-    gluSphere(q, r, slices, stacks)
-    glPopMatrix()
-    gluDeleteQuadric(q)
-
-
-def draw_piece_shape(pt, color):
-    lathe(PROFILES[pt], color)
-    if pt == chess.PAWN:
-        sphere(0.16, 0.79, color)
-    elif pt == chess.ROOK:
-        for a in (0, 90, 180, 270):
-            glPushMatrix()
-            glRotatef(a, 0, 1, 0)
-            glTranslatef(0.20, 0.84, 0)
-            draw_box(0, 0, 0, 0.17, 0.16, 0.18, color)
-            glPopMatrix()
-    elif pt == chess.KNIGHT:
-        glPushMatrix()
-        glTranslatef(0, 0.55, 0.02)
-        glRotatef(-18, 1, 0, 0)
-        draw_box(0, 0.12, 0, 0.30, 0.43, 0.22, color)
-        glTranslatef(0, 0.27, -0.06)
-        glRotatef(-28, 1, 0, 0)
-        draw_box(0, 0, 0, 0.25, 0.30, 0.25, color)
-        glPopMatrix()
-    elif pt == chess.BISHOP:
-        sphere(0.19, 0.84, color)
-        sphere(0.075, 1.02, color)
-    elif pt == chess.QUEEN:
-        sphere(0.18, 0.86, color)
-        for a in range(0, 360, 60):
-            glPushMatrix()
-            glRotatef(a, 0, 1, 0)
-            glTranslatef(0.19, 0.98, 0)
-            sphere(0.055, 0, color, 10, 8)
-            glPopMatrix()
-    elif pt == chess.KING:
-        sphere(0.17, 0.91, color)
-        draw_box(0, 1.08, 0, 0.09, 0.32, 0.09, color)
-        draw_box(0, 1.16, 0, 0.27, 0.08, 0.09, color)
-
-
-def draw_piece(piece, x, z, lifted=False):
-    glPushMatrix()
-    glTranslatef(x, 0.045 + (0.20 if lifted else 0), z)
-    if piece.color == chess.BLACK:
-        glRotatef(180, 0, 1, 0)
-    draw_piece_shape(piece.piece_type, WHITE_PIECE if piece.color else BLACK_PIECE)
-    glPopMatrix()
 
 
 def draw_glyph(ch, x, y, z, view_yaw, scale=0.18):
@@ -608,7 +485,7 @@ class Chess3D:
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 1)
         glfw.window_hint(glfw.SAMPLES, 4)
         glfw.window_hint(glfw.RESIZABLE, glfw.TRUE)
-        self.window = glfw.create_window(WIDTH, HEIGHT, "OTBMaster3D", None, None)
+        self.window = glfw.create_window(WIDTH, HEIGHT, f"OTBMaster3D v{__version__}", None, None)
         if not self.window:
             glfw.terminate()
             raise RuntimeError("Could not create OpenGL window.")
@@ -617,6 +494,23 @@ class Chess3D:
         self.width, self.height = WIDTH, HEIGHT
         setup_gl(WIDTH, HEIGHT)
         self.board = chess.Board()
+        self.board_mode = self.cfg.get("board_mode", "3D")
+        if self.board_mode not in ("2D", "3D"):
+            self.board_mode = "3D"
+        self.two_d_flipped = bool(self.cfg.get("two_d_flipped", False))
+        self.flat_piece_renderer = FlatPieceRenderer()
+        self.piece_sets = discover_sets(PIECE_DIR)
+        self.piece_set = self.cfg.get("piece_set", "tournament")
+        if self.piece_set not in self.piece_sets:
+            self.piece_set = "tournament"
+        self.piece_renderer = PieceRenderer()
+        self.piece_load_error = None
+        try:
+            self.piece_renderer.prepare(self.piece_sets[self.piece_set])
+        except (OSError, ValueError, RuntimeError) as exc:
+            self.piece_load_error = f"Could not load saved pieces: {exc}"
+            self.piece_set = "club"
+            self.piece_renderer.prepare(self.piece_sets[self.piece_set])
         self.light_square = tuple(self.cfg["light_square"])
         self.dark_square = tuple(self.cfg["dark_square"])
         self.frame_color = tuple(self.cfg["frame_color"])
@@ -697,6 +591,8 @@ class Chess3D:
     @staticmethod
     def _scroll(w, dx, dy):
         s = Chess3D._s(w)
+        if s.board_mode == "2D":
+            return
         s.distance = max(7, min(22, s.distance - dy * 0.7))
         s.mark_camera_dirty()
 
@@ -740,6 +636,8 @@ class Chess3D:
     def _cursor(w, x, y):
         s = Chess3D._s(w)
         if s.right_drag or s.ctrl_left_rotate:
+            if s.board_mode == "2D":
+                return
             dx = x - s.last_mouse[0]
             dy = y - s.last_mouse[1]
             s.yaw += dx * 0.009
@@ -777,8 +675,20 @@ class Chess3D:
             self.persist()
 
     def camera(self):
+        aspect = self.width / max(1, self.height)
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        if self.board_mode == "2D":
+            half_x = 4.65 * max(1, aspect)
+            half_z = 4.65 * max(1, 1 / aspect)
+            glOrtho(-half_x, half_x, -half_z, half_z, 0.1, 80)
+        else:
+            gluPerspective(40, aspect, 0.1, 80)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
+        if self.board_mode == "2D":
+            gluLookAt(0, 10, 0, 0, 0, 0, 0, 0, -1 if self.two_d_flipped else 1)
+            return
         cp = math.cos(self.pitch)
         eye = (
             math.sin(self.yaw) * cp * self.distance,
@@ -787,6 +697,7 @@ class Chess3D:
         )
         gluLookAt(*eye, 0, self.target_y, 0, 0, 1, 0)
         glLightfv(GL_LIGHT0, GL_POSITION, (4, 9, -6, 1))
+        glLightfv(GL_LIGHT1, GL_POSITION, (-5, 5, 5, 1))
 
     def draw_background(self):
         glClearColor(*self.background_color, 1)
@@ -842,20 +753,28 @@ class Chess3D:
         glEnable(GL_LIGHTING)
 
     def draw_board(self):
-        draw_box(0, -0.14, 0, 8.72, 0.28, 8.72, self.frame_color)
+        flat = self.board_mode == "2D"
+        yaw = self.view_yaw()
+        if flat:
+            flat_square(0, 0, 8.72, 8.72, self.frame_color, y=0)
+        else:
+            draw_box(0, -0.14, 0, 8.72, 0.28, 8.72, self.frame_color)
         legal = self.legal_targets()
         for r in range(8):
             for f in range(8):
                 sq = chess.square(f, r)
-                col = self.light_square if (f + r) % 2 == 0 else self.dark_square
+                col = self.dark_square if (f + r) % 2 == 0 else self.light_square
                 if sq == self.selected:
                     col = SELECT
                 elif sq in legal:
                     col = tuple(0.60 * c + 0.40 * l for c, l in zip(col, LEGAL))
-                draw_box(f - 3.5, 0.005, r - 3.5, 0.995, 0.025, 0.995, col)
+                if flat:
+                    flat_square(3.5 - f, r - 3.5, 1, 1, col)
+                else:
+                    draw_box(3.5 - f, 0.005, r - 3.5, 0.995, 0.025, 0.995, col)
 
         if self.show_move_indicator:
-            indicator_x = 4.17 if math.cos(self.yaw) >= 0 else -4.17
+            indicator_x = 4.17 if math.cos(yaw) >= 0 else -4.17
             indicator_z = -4.17 if self.board.turn == chess.WHITE else 4.17
             draw_disc(indicator_x, 0.04, indicator_z, 0.055, TURN_INDICATOR)
 
@@ -863,25 +782,27 @@ class Chess3D:
             # Screen-left is +X from White's initial view, so files are stored in
             # reverse world-X order. Keep them on the edge nearest the viewer so
             # White sees A..H and Black sees H..A after the board is flipped.
-            file_label_z = -4.12 if math.cos(self.yaw) >= 0 else 4.12
+            file_label_z = -4.12 if math.cos(yaw) >= 0 else 4.12
             for f, ch in enumerate("HGFEDCBA"):
-                draw_glyph(ch, f - 3.5, 0.035, file_label_z, self.yaw, 0.18)
+                draw_glyph(ch, f - 3.5, 0.035, file_label_z, yaw, 0.18)
             # Rank 1 belongs at the near-left corner and increases away from White.
             for r, ch in enumerate("12345678"):
-                draw_glyph(ch, 4.12, 0.035, r - 3.5, self.yaw, 0.18)
+                rank_label_x = -4.12 if flat and self.two_d_flipped else 4.12
+                draw_glyph(ch, rank_label_x, 0.035, r - 3.5, yaw, 0.18)
 
     def draw(self):
         self.draw_background()
         self.camera()
         glPushMatrix()
-        glTranslatef(self.pan_x, 0, self.pan_z)
+        pan_x, pan_z = self.view_pan()
+        glTranslatef(pan_x, 0, pan_z)
         self.draw_board()
         for sq, p in self.board.piece_map().items():
             if self.drag_piece == sq and self.was_drag and self.drag_world:
                 continue
-            draw_piece(
+            self.draw_game_piece(
                 p,
-                chess.square_file(sq) - 3.5,
+                3.5 - chess.square_file(sq),
                 chess.square_rank(sq) - 3.5,
                 sq == self.selected,
             )
@@ -889,15 +810,70 @@ class Chess3D:
             p = self.board.piece_at(self.drag_piece)
             if p:
                 x, _, z = self.drag_world
-                draw_piece(
+                self.draw_game_piece(
                     p,
-                    max(-3.85, min(3.85, x - self.pan_x)),
-                    max(-3.85, min(3.85, z - self.pan_z)),
+                    max(-3.85, min(3.85, x - pan_x)),
+                    max(-3.85, min(3.85, z - pan_z)),
                     True,
                 )
         glPopMatrix()
 
+    def draw_game_piece(self, piece, x, z, lifted=False):
+        spec = self.piece_sets[self.piece_set]
+        if self.board_mode == "2D":
+            self.flat_piece_renderer.draw(spec, piece, x, z, self.view_yaw(), lifted)
+        else:
+            self.piece_renderer.draw(spec, piece, x, z, lifted)
+
+    def view_pan(self):
+        return (0, 0) if self.board_mode == "2D" else (self.pan_x, self.pan_z)
+
+    def view_yaw(self):
+        if self.board_mode == "2D":
+            return math.pi if self.two_d_flipped else 0
+        return self.yaw
+
+    def change_board_mode(self):
+        mode = self.board_mode_var.get()
+        if mode not in ("2D", "3D") or mode == self.board_mode:
+            return
+        self.board_mode = mode
+        # Cancel only an in-progress pointer gesture, retaining the selected square.
+        self.drag_piece = self.drag_world = self.left_down_pos = None
+        self.board_pan_drag = self.right_drag = self.ctrl_left_rotate = self.was_drag = False
+        self.pan_start_world = None
+        self.camera()
+        self.update_piece_description()
+        self.persist()
+
+    def update_piece_description(self):
+        spec = self.piece_sets[self.piece_set]
+        text = f"Flat chess symbols in {spec.name} colours." if self.board_mode == "2D" else spec.description
+        self.piece_description_var.set(text)
+
+    def change_piece_set(self, _event=None):
+        index = self.piece_combo.current()
+        if index < 0:
+            return
+        key = self.piece_set_keys[index]
+        spec = self.piece_sets[key]
+        try:
+            glfw.make_context_current(self.window)
+            self.piece_renderer.prepare(spec)
+        except Exception as exc:
+            self.piece_combo.current(self.piece_set_keys.index(self.piece_set))
+            messagebox.showerror("Piece set", f"Could not load {spec.name}:\n{exc}", parent=self.ui)
+            return
+        self.piece_set = key
+        self.update_piece_description()
+        self.persist()
+
     def ray_to_board(self, mx, my):
+        # Input positions are window coordinates; OpenGL uses framebuffer pixels.
+        window_width, window_height = glfw.get_window_size(self.window)
+        mx *= self.width / max(1, window_width)
+        my *= self.height / max(1, window_height)
+        self.camera()
         vp = glGetIntegerv(GL_VIEWPORT)
         model = glGetDoublev(GL_MODELVIEW_MATRIX)
         proj = glGetDoublev(GL_PROJECTION_MATRIX)
@@ -919,8 +895,9 @@ class Chess3D:
         p = self.ray_to_board(*pos)
         if not p:
             return None
-        f = int(math.floor((p[0] - self.pan_x) + 4))
-        r = int(math.floor((p[2] - self.pan_z) + 4))
+        pan_x, pan_z = self.view_pan()
+        f = 7 - int(math.floor((p[0] - pan_x) + 4))
+        r = int(math.floor((p[2] - pan_z) + 4))
         return chess.square(f, r) if 0 <= f < 8 and 0 <= r < 8 else None
 
     def legal_targets(self):
@@ -1049,7 +1026,7 @@ class Chess3D:
             self.drag_world = self.ray_to_board(*pos)
             self.board_pan_drag = False
         else:
-            self.board_pan_drag = True
+            self.board_pan_drag = self.board_mode == "3D"
             self.pan_start_world = None
             self.pan_start_offset = (self.pan_x, self.pan_z)
 
@@ -1144,6 +1121,11 @@ class Chess3D:
         self.refresh_move_list()
 
     def reset_view(self):
+        if self.board_mode == "2D":
+            self.two_d_flipped = False
+            self.persist()
+            self.result_text = "View reset"
+            return
         self.yaw = 0.0
         self.pitch = math.radians(34)
         self.distance = 12.4
@@ -1154,6 +1136,10 @@ class Chess3D:
         self.result_text = "View reset"
 
     def flip_board(self):
+        if self.board_mode == "2D":
+            self.two_d_flipped = not self.two_d_flipped
+            self.persist()
+            return
         self.yaw = (self.yaw + math.pi) % math.tau
         self.pan_x = -self.pan_x
         self.pan_z = -self.pan_z
@@ -1593,6 +1579,9 @@ class Chess3D:
                 "frame_color": list(self.frame_color),
                 "background_color": list(self.background_color),
                 "background_image": self.background_image_path,
+                "piece_set": self.piece_set,
+                "board_mode": self.board_mode,
+                "two_d_flipped": self.two_d_flipped,
                 "show_coordinates": self.show_coordinates,
                 "show_move_indicator": self.show_move_indicator,
                 "sound_enabled": self.sound_enabled,
@@ -1659,7 +1648,7 @@ class Chess3D:
     def build_ui(self):
         root = tk.Tk()
         self.ui = root
-        root.title("OTBMaster3D - Controls")
+        root.title(f"OTBMaster3D v{__version__} - Controls")
         root.geometry("620x780+10+10")
         root.resizable(False, True)
         self.white_clock_var = tk.StringVar(value=self.fmt_clock(self.white_time))
@@ -1685,8 +1674,29 @@ class Chess3D:
         )
         outer = ttk.Frame(root)
         outer.pack(fill="both", expand=True, padx=6, pady=6)
-        left = ttk.Frame(outer, width=390)
-        left.pack(side="left", fill="both", expand=False)
+        controls = ttk.Frame(outer)
+        controls.pack(side="left", fill="both", expand=True)
+        control_canvas = tk.Canvas(controls, highlightthickness=0, width=420)
+        control_scroll = ttk.Scrollbar(controls, orient="vertical", command=control_canvas.yview)
+        control_scroll.pack(side="right", fill="y")
+        control_canvas.pack(side="left", fill="both", expand=True)
+        control_canvas.configure(yscrollcommand=control_scroll.set)
+        left = ttk.Frame(control_canvas)
+        control_window = control_canvas.create_window(0, 0, window=left, anchor="nw")
+        left.bind("<Configure>", lambda e: control_canvas.configure(scrollregion=control_canvas.bbox("all")))
+        control_canvas.bind("<Configure>", lambda e: control_canvas.itemconfigure(control_window, width=e.width))
+
+        def scroll_controls(event):
+            widget = event.widget
+            if isinstance(widget, (ttk.Combobox, tk.Text)):
+                return
+            while widget is not None:
+                if widget == controls:
+                    control_canvas.yview_scroll(-int(event.delta / 120), "units")
+                    return "break"
+                widget = getattr(widget, "master", None)
+
+        root.bind("<MouseWheel>", scroll_controls)
         right = ttk.LabelFrame(outer, text="Moves", width=165)
         right.pack(side="right", fill="both", expand=False, padx=(8, 0))
         right.pack_propagate(False)
@@ -1702,6 +1712,32 @@ class Chess3D:
             clocks, textvariable=self.white_clock_var, font=("Consolas", 18, "bold")
         ).grid(row=1, column=1, sticky="e")
         clocks.columnconfigure(1, weight=1)
+
+        pieces = ttk.LabelFrame(left, text="Piece set")
+        pieces.pack(fill="x", pady=(3, 6))
+        view_row = ttk.Frame(pieces)
+        view_row.pack(fill="x", padx=8, pady=(7, 0))
+        ttk.Label(view_row, text="Board view").pack(side="left")
+        self.board_mode_var = tk.StringVar(value=self.board_mode)
+        for mode in ("3D", "2D"):
+            ttk.Radiobutton(view_row, text=mode, value=mode, variable=self.board_mode_var,
+                            command=self.change_board_mode).pack(side="left", padx=(12, 0))
+        self.piece_set_keys = list(self.piece_sets)
+        self.piece_combo = ttk.Combobox(
+            pieces, state="readonly",
+            values=[self.piece_sets[key].name for key in self.piece_set_keys],
+        )
+        self.piece_combo.current(self.piece_set_keys.index(self.piece_set))
+        self.piece_combo.pack(fill="x", padx=8, pady=(7, 3))
+        self.piece_combo.bind("<<ComboboxSelected>>", self.change_piece_set)
+        self.piece_description_var = tk.StringVar(
+            value=self.piece_load_error or self.piece_sets[self.piece_set].description
+        )
+        if not self.piece_load_error:
+            self.update_piece_description()
+        ttk.Label(pieces, textvariable=self.piece_description_var, wraplength=360).pack(
+            anchor="w", padx=8, pady=(0, 7)
+        )
 
         game = ttk.LabelFrame(left, text="Game")
         game.pack(fill="x", pady=3)
@@ -1936,6 +1972,8 @@ class Chess3D:
             self.persist()
             self.engine_manager.unload()
             self.delete_background_texture()
+            self.piece_renderer.close()
+            self.flat_piece_renderer.close()
             try:
                 glfw.destroy_window(self.window)
             except Exception:
