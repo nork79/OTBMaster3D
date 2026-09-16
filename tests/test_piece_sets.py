@@ -17,8 +17,14 @@ from unittest.mock import patch
 
 import chess
 import glfw
-import main
-from piece_sets import ASSET_DIR, PIECE_NAMES, discover_sets, load_obj
+from otb_chess.core import game
+from otb_chess.services import settings
+import time
+import tkinter as tk
+from tkinter import messagebox
+from OpenGL.GL import glFinish, glGetError, GL_NO_ERROR
+from OpenGL.GLU import gluProject
+from otb_chess.graphics.piece_sets import ASSET_DIR, PIECE_NAMES, discover_sets, load_obj
 
 
 class AssetTests(unittest.TestCase):
@@ -69,7 +75,7 @@ class LiveSwitchTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         create_window = glfw.create_window
-        create_tk = main.tk.Tk
+        create_tk = tk.Tk
 
         def hidden_window(*args, **kwargs):
             glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
@@ -78,7 +84,7 @@ class LiveSwitchTests(unittest.TestCase):
         def hidden_tk(*args, **kwargs):
             try:
                 root = create_tk(*args, **kwargs)
-            except main.tk.TclError as exc:
+            except tk.TclError as exc:
                 # Some Windows Python installs package Tcl as zip libraries
                 # that the sandbox cannot auto-mount. Unpack only for this test.
                 if "init.tcl" not in str(exc):
@@ -100,9 +106,9 @@ class LiveSwitchTests(unittest.TestCase):
             return root
 
         with patch.object(glfw, "create_window", hidden_window), \
-             patch.object(main, "load_config", main.default_config), \
-             patch.object(main.tk, "Tk", hidden_tk):
-            cls.app = main.Chess3D()
+             patch.object(game, "load_config", settings.default_config), \
+             patch.object(tk, "Tk", hidden_tk):
+            cls.app = game.Chess3D()
             cls.app.build_ui()
 
     @classmethod
@@ -125,20 +131,20 @@ class LiveSwitchTests(unittest.TestCase):
         before = (app.board.fen(), tuple(app.board.move_stack), app.selected,
                   app.white_time, app.black_time, app.awaiting_clock_press)
         with tempfile.TemporaryDirectory() as folder, \
-             patch.object(main, "CONFIG_PATH", Path(folder) / "config.json"):
+             patch.object(settings, "CONFIG_PATH", Path(folder) / "config.json"):
             for key in app.piece_set_keys:
                 app.piece_combo.current(app.piece_set_keys.index(key))
                 app.piece_combo.event_generate("<<ComboboxSelected>>")
                 app.ui.update()
                 self.assertEqual(app.piece_set, key)
-                self.assertEqual(main.load_config()["piece_set"], key)
+                self.assertEqual(settings.load_config()["piece_set"], key)
                 app.draw()
                 # Both colours, all six types, including the lifted drag path.
                 for color in chess.COLORS:
                     for pt in chess.PIECE_TYPES:
                         app.draw_game_piece(chess.Piece(pt,color), 0,0,True)
-                main.glFinish()
-                self.assertEqual(main.glGetError(), main.GL_NO_ERROR)
+                glFinish()
+                self.assertEqual(glGetError(), GL_NO_ERROR)
                 self.assertEqual(before, (app.board.fen(),tuple(app.board.move_stack),
                     app.selected,app.white_time,app.black_time,app.awaiting_clock_press))
         # The two Staunton finishes share one cached mesh allocation.
@@ -149,7 +155,7 @@ class LiveSwitchTests(unittest.TestCase):
         previous = app.piece_set
         app.piece_combo.current(app.piece_set_keys.index("club"))
         with patch.object(app.piece_renderer, "prepare", side_effect=ValueError("Invalid model")), \
-             patch.object(main.messagebox, "showerror") as error, \
+             patch.object(messagebox, "showerror") as error, \
              patch.object(app, "persist") as persist:
             app.change_piece_set()
         self.assertEqual(app.piece_set, previous)
@@ -170,21 +176,21 @@ class LiveSwitchTests(unittest.TestCase):
                   app.background_color, app.background_image_path,
                   app.yaw, app.pitch, app.distance, app.pan_x, app.pan_z)
         with tempfile.TemporaryDirectory() as folder, \
-             patch.object(main, "CONFIG_PATH", Path(folder) / "config.json"):
+             patch.object(settings, "CONFIG_PATH", Path(folder) / "config.json"):
             app.board_mode_var.set("2D")
             app.change_board_mode()
-            self.assertEqual(main.load_config()["board_mode"], "2D")
+            self.assertEqual(settings.load_config()["board_mode"], "2D")
             for width,height in ((1180,800),(600,900)):
                 glfw.set_window_size(app.window,width,height)
                 glfw.poll_events()
-                main.Chess3D._resize(app.window,*glfw.get_framebuffer_size(app.window))
+                game.Chess3D._resize(app.window,*glfw.get_framebuffer_size(app.window))
                 for flipped in (False,True):
                     app.two_d_flipped = flipped
                     app.draw()
                     for square in chess.SQUARES:
                         pos = self.screen_square(square)
                         self.assertEqual(app.square_at_mouse(pos), square)
-                    self.assertEqual(main.glGetError(), main.GL_NO_ERROR)
+                    self.assertEqual(glGetError(), GL_NO_ERROR)
             app.board_mode_var.set("3D")
             app.change_board_mode()
             app.draw()
@@ -192,13 +198,13 @@ class LiveSwitchTests(unittest.TestCase):
                 app.black_time,app.selected,app.light_square,app.dark_square,app.frame_color,
                 app.background_color,app.background_image_path,app.yaw,app.pitch,app.distance,
                 app.pan_x,app.pan_z))
-            self.assertEqual(main.load_config()["board_mode"], "3D")
+            self.assertEqual(settings.load_config()["board_mode"], "3D")
 
     def screen_square(self, square):
         app = self.app
         app.camera()
         px,pz = app.view_pan()
-        x,y,_ = main.gluProject(3.5-chess.square_file(square)+px,0,
+        x,y,_ = gluProject(3.5-chess.square_file(square)+px,0,
                                chess.square_rank(square)-3.5+pz)
         width,height = glfw.get_window_size(app.window)
         return x*width/app.width, (app.height-y)*height/app.height
@@ -231,19 +237,19 @@ class LiveSwitchTests(unittest.TestCase):
         app = self.app
         camera = (app.yaw, app.pitch, app.distance, app.pan_x, app.pan_z)
         with tempfile.TemporaryDirectory() as folder, \
-             patch.object(main, "CONFIG_PATH", Path(folder) / "config.json"):
+             patch.object(settings, "CONFIG_PATH", Path(folder) / "config.json"):
             app.board = chess.Board()
             app.selected = None
             app.board_mode_var.set("2D")
             app.change_board_mode()
             app.reset_view()
-            main.Chess3D._scroll(app.window, 0, 1)
+            game.Chess3D._scroll(app.window, 0, 1)
             self.assertLess(app.two_d_scale, 1)
-            main.Chess3D._scroll(app.window, 0, -1)
+            game.Chess3D._scroll(app.window, 0, -1)
             self.assertAlmostEqual(app.two_d_scale, 1)
             for flipped in (False, True):
                 app.two_d_flipped = flipped
-                main.Chess3D._scroll(app.window, 0, 2)
+                game.Chess3D._scroll(app.window, 0, 2)
                 start = self.screen_square(chess.D4)
                 before = app.view_pan()
                 app.left_press(start)
@@ -260,7 +266,7 @@ class LiveSwitchTests(unittest.TestCase):
                     self.assertEqual(app.square_at_mouse(self.screen_square(square)),square)
                 self.assertEqual(app.board.fen(),chess.STARTING_FEN)
             app.persist()
-            saved = main.load_config()
+            saved = settings.load_config()
             self.assertEqual(saved["two_d_scale"],app.two_d_scale)
             self.assertEqual(saved["two_d_pan_x"],app.two_d_pan_x)
             self.assertEqual(saved["two_d_pan_z"],app.two_d_pan_z)
@@ -271,9 +277,9 @@ class LiveSwitchTests(unittest.TestCase):
             app.change_board_mode()
             self.assertEqual(camera,(app.yaw,app.pitch,app.distance,app.pan_x,app.pan_z))
             app.distance = 12.4
-            main.Chess3D._scroll(app.window,0,1)
+            game.Chess3D._scroll(app.window,0,1)
             self.assertLess(app.distance,12.4)
-            main.Chess3D._scroll(app.window,0,-1)
+            game.Chess3D._scroll(app.window,0,-1)
             self.assertAlmostEqual(app.distance,12.4)
 
 

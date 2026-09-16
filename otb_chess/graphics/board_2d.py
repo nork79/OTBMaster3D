@@ -1,7 +1,8 @@
 """Flat, antialiased chess symbols drawn from local vector shapes."""
 
+from otb_chess.chess_backend import values as chess
+
 import math
-import chess
 from PIL import Image, ImageDraw
 from OpenGL import GL as gl
 

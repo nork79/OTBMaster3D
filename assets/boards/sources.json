@@ -1,0 +1,35 @@
+[
+  {
+    "id": "Marble012",
+    "source": "https://ambientcg.com/view?id=Marble012",
+    "download": "https://ambientcg.com/get?file=Marble012_1K-JPG.zip",
+    "license": "CC0-1.0",
+    "license_url": "https://docs.ambientcg.com/license/",
+    "file": "Marble012.jpg",
+    "sha256": "a34b55c889c6b3819d2c351b6409bfd0baf0a0a55b073441850627dfebcdcd1e",
+    "archive_member": "Marble012_1K-JPG_Color.jpg",
+    "modified": false
+  },
+  {
+    "id": "Wood049",
+    "source": "https://ambientcg.com/view?id=Wood049",
+    "download": "https://ambientcg.com/get?file=Wood049_1K-JPG.zip",
+    "license": "CC0-1.0",
+    "license_url": "https://docs.ambientcg.com/license/",
+    "file": "Wood049.jpg",
+    "sha256": "451ee4dd719628289b4969f75dc583b5f77f8471d5d885ba5015fd90e7e5ce61",
+    "archive_member": "Wood049_1K-JPG_Color.jpg",
+    "modified": false
+  },
+  {
+    "id": "Fabric030",
+    "source": "https://ambientcg.com/view?id=Fabric030",
+    "download": "https://ambientcg.com/get?file=Fabric030_1K-JPG.zip",
+    "license": "CC0-1.0",
+    "license_url": "https://docs.ambientcg.com/license/",
+    "file": "Fabric030.jpg",
+    "sha256": "6388762708722de48cdbdfb4878b9ae6d8012de5948d564006067b629f0b84ef",
+    "archive_member": "Fabric030_1K-JPG_Color.jpg",
+    "modified": false
+  }
+]

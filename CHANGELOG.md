@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- Rename Board theme to Board Color Theme and add a separate remembered Board Type menu.
+- Add Polished Marble, Rounded Oak, Tournament Wood, Canvas Roll-up and Marble & Brass,
+  using original board geometry and bundled CC0 ambientCG material maps.
+- Isolate python-chess behind rules, notation, UCI and opening-book boundaries,
+  with application-owned rendering values, contract tests and a staged migration plan.
+- Add PGN/FEN open, save and clipboard actions, including multi-game PGN selection.
+- Add non-destructive move-list navigation while clocks are paused or inactive.
+- Add Right Mouse as an OTB clock binding, keeping Ctrl+left-drag for rotation.
+- Organise application code into the `otb_chess` package with `core`, `graphics`,
+  `ui` and `services` directories; support `python -m otb_chess`.
+- Refactor the main application into focused game, clock, rendering, input,
+  appearance, engine, settings and audio modules.
+- Isolate the legacy Tk UI and reduce `main.py` to the application launcher.
+- Update Qt imports and regression tests to use the modules that own each API.
+
 ## 8.0.0 - 2026-09-16
 
 - Add remembered Light, Dark, Blue, Cyberpunk and Pink/Lollipop interface themes.

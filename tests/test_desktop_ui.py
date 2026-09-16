@@ -14,8 +14,14 @@ from PySide6.QtGui import QWheelEvent, QColor
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QComboBox, QDoubleSpinBox, QColorDialog, QSpinBox, QPushButton
 
-import main
-from desktop_ui import MainWindow, configure_graphics
+from otb_chess.core import game
+from otb_chess.services import settings
+import time
+import tkinter as tk
+from tkinter import messagebox
+from OpenGL.GL import glFinish, glGetError, GL_NO_ERROR
+from OpenGL.GLU import gluProject
+from otb_chess.ui.desktop_ui import MainWindow, configure_graphics
 
 
 class DesktopTests(unittest.TestCase):
@@ -27,7 +33,7 @@ class DesktopTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)
-        self.config = patch.object(main,"CONFIG_PATH",Path(self.folder.name)/"config.json")
+        self.config = patch.object(settings,"CONFIG_PATH",Path(self.folder.name)/"config.json")
         self.config.start()
         self.addCleanup(self.config.stop)
         self.window = MainWindow()
@@ -49,9 +55,25 @@ class DesktopTests(unittest.TestCase):
         self.widget.makeCurrent()
         self.game.camera()
         px,pz = self.game.view_pan()
-        x,y,_ = main.gluProject(3.5-chess.square_file(square)+px,0,chess.square_rank(square)-3.5+pz)
+        x,y,_ = gluProject(3.5-chess.square_file(square)+px,0,chess.square_rank(square)-3.5+pz)
         ratio = self.widget.devicePixelRatioF()
         return QPoint(round(x/ratio),round((self.game.height-y)/ratio))
+
+    def test_board_types_render_and_preserve_game_and_colours(self):
+        w,g = self.window,self.game
+        from otb_chess.graphics.board_types import BOARD_TYPES
+        original = (g.board.fen(),g.light_square,g.dark_square,g.frame_color)
+        for mode in ('3D','2D'):
+            w.mode_actions[mode].trigger()
+            for key in BOARD_TYPES:
+                w.board_type_actions[key].trigger()
+                self.widget.grabFramebuffer()
+                self.assertEqual(glGetError(),GL_NO_ERROR)
+                self.assertEqual(g.board_type,key)
+                self.assertEqual(settings.load_config()['board_type'],key)
+                self.assertEqual((g.board.fen(),g.light_square,g.dark_square,g.frame_color),original)
+        self.assertEqual(len(g.board_surface_renderer.textures),3)
+        self.assertFalse(g.board_surface_renderer.failed)
 
     def test_interface_themes_apply_and_persist(self):
         w,g = self.window,self.game
@@ -62,7 +84,7 @@ class DesktopTests(unittest.TestCase):
             self.qt.processEvents()
             styles.add(w.styleSheet())
             self.assertEqual(w.interface_theme,name)
-            self.assertEqual(main.load_config()["interface_theme"],name)
+            self.assertEqual(settings.load_config()["interface_theme"],name)
             self.assertEqual(sum(a.isChecked() for a in w.interface_theme_actions.values()),1)
             self.assertEqual((g.board.fen(),g.light_square,g.dark_square,g.background_color),original)
         self.assertEqual(len(styles),5)
@@ -77,7 +99,7 @@ class DesktopTests(unittest.TestCase):
         self.assertIsNone(self.game.window)  # No second GLFW window.
         self.assertGreater(self.widget.width(),self.window.sidebar.width()*2)
         self.assertEqual([a.text() for a in self.window.menuBar().actions()],
-                         ["Game","View","Engine","Settings","Help"])
+                         ["File","Game","View","Engine","Settings","Help"])
         self.assertTrue(self.window.white_clock.isVisible())
         self.assertTrue(self.window.moves.isVisible())
         self.assertFalse(self.window.engine_panel.isVisible())
@@ -131,7 +153,7 @@ class DesktopTests(unittest.TestCase):
         w.mode_actions["3D"].trigger()
         w.set_actions["club"].trigger()
         b.grabFramebuffer()
-        self.assertEqual(main.glGetError(),main.GL_NO_ERROR)
+        self.assertEqual(glGetError(),GL_NO_ERROR)
         self.assertEqual(g.board.fen(),fen)
         self.assertEqual(g.piece_set,"club")
 
@@ -161,20 +183,64 @@ class DesktopTests(unittest.TestCase):
             g.clock_mode_var.set(mode)
             g.start_game()
             initial = (g.white_time,g.black_time)
-            with patch.object(main.time,"perf_counter",return_value=g.last_clock_tick+30):
+            with patch.object(time,"perf_counter",return_value=g.last_clock_tick+30):
                 g.update_clock()
             self.assertEqual((g.white_time,g.black_time),initial)
             self.assertFalse(g.try_move(chess.E2,chess.E5))
-            with patch.object(main.time,"perf_counter",return_value=g.last_clock_tick+30):
+            with patch.object(time,"perf_counter",return_value=g.last_clock_tick+30):
                 g.update_clock()
             self.assertEqual((g.white_time,g.black_time),initial)
             with patch.object(g,"play_game_sound"):
                 self.assertTrue(g.try_move(chess.E2,chess.E4))
             before = (g.white_time,g.black_time)
-            with patch.object(main.time,"perf_counter",return_value=g.last_clock_tick+2):
+            with patch.object(time,"perf_counter",return_value=g.last_clock_tick+2):
                 g.update_clock()
             expected = (before[0]-2,before[1]) if mode == "OTB" else (before[0],before[1]-2)
             self.assertEqual((g.white_time,g.black_time),expected)
+
+    def test_right_mouse_otb_and_paused_history_navigation(self):
+        w,g = self.window,self.game
+        g.clock_mode_var.set("OTB")
+        g.clock_binding_var.set("Right Mouse")
+        g.start_game()
+        with patch.object(g,"play_game_sound"):
+            g.try_move(chess.E2,chess.E4)
+        self.assertTrue(g.awaiting_clock_press)
+        QTest.mouseClick(self.widget,Qt.MouseButton.RightButton,pos=QPoint(50,50))
+        self.assertFalse(g.awaiting_clock_press)
+        self.assertFalse(g.right_drag)
+        self.assertEqual(g.active_clock_color,chess.BLACK)
+        with patch.object(g,"play_game_sound"):
+            g.try_move(chess.E7,chess.E5)
+        g.hit_clock()
+        live = g.board.fen()
+        g.stop_clock()
+        item = w.moves.item(0,1)
+        QTest.mouseClick(w.moves.viewport(),Qt.MouseButton.LeftButton,pos=w.moves.visualItemRect(item).center())
+        self.assertEqual(len(g.board.move_stack),1)
+        self.assertEqual(w.moves.item(0,2).text(),"e5")
+        self.assertFalse(g.human_can_move())
+        g.stop_clock()
+        self.assertEqual(g.board.fen(),live)
+        self.assertFalse(g.clock_paused)
+
+    def test_open_save_notation_and_black_to_move_numbering(self):
+        w,g = self.window,self.game
+        board = chess.Board()
+        board.push_uci('e2e4')
+        self.assertTrue(w.import_notation(board.fen(),'fen'))
+        with patch.object(g,'play_game_sound'):
+            g.try_move(chess.E7,chess.E5)
+        self.assertEqual(w.moves.item(0,2).text(),'e5')
+        self.assertIsNone(w.moves.item(0,1))
+        path = str(Path(self.folder.name)/'saved.pgn')
+        with patch('otb_chess.ui.document_actions.QFileDialog.getSaveFileName',return_value=(path,'')):
+            w.save_notation('pgn')
+        with patch.object(w,'confirm',return_value=True):
+            self.assertTrue(w.import_notation(Path(path).read_text(),'pgn'))
+        self.assertEqual(g.board.root().fen(),board.fen())
+        self.assertEqual(len(g.board.move_stack),1)
+        self.assertFalse(g.game_started)
 
     def test_clock_dialog_applies_only_on_save(self):
         w,g = self.window,self.game
@@ -195,7 +261,7 @@ class DesktopTests(unittest.TestCase):
         self.assertFalse(errors)
         self.assertEqual(g.time_control_var.get(),"Custom")
         self.assertEqual(g.selected_time_control().initial_seconds,125)
-        self.assertEqual(main.load_config()["custom_increment"],3)
+        self.assertEqual(settings.load_config()["custom_increment"],3)
         self.assertEqual((g.white_time,g.black_time,g.increment),(125,125,3))
         self.assertEqual(w.white_clock.digits.text(),g.fmt_clock(125))
 
@@ -293,7 +359,7 @@ class DesktopTests(unittest.TestCase):
         self.window.engine_toggle.setChecked(True)
         self.qt.processEvents()
         self.window.close()
-        cfg = main.load_config()
+        cfg = settings.load_config()
         self.assertEqual(cfg["window_size"],[1100,720])
         self.assertTrue(cfg["focus_mode"])
         self.assertTrue(cfg["engine_panel_open"])

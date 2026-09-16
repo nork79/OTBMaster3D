@@ -1,4 +1,7 @@
-"""Single-window desktop UI. The game and renderers remain in main.py."""
+"""Single-window desktop UI. Game logic and rendering live in dedicated modules."""
+
+from otb_chess.chess_backend import uci
+from otb_chess.chess_backend import rules as chess
 
 import math
 import sys
@@ -6,8 +9,6 @@ import threading
 import time
 from pathlib import Path
 
-import chess
-import chess.engine
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QActionGroup, QColor, QKeySequence, QSurfaceFormat
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
@@ -19,9 +20,13 @@ from PySide6.QtWidgets import (
     QMessageBox, QLineEdit, QPlainTextEdit,
 )
 
-import main as core
-from version import __version__
-from interface_themes import THEMES, themed_stylesheet
+from otb_chess.core.game import Chess3D
+from otb_chess.services.settings import TIME_CONTROLS, TimeControl, ENGINE_DIR, BOOK_DIR
+from otb_chess.graphics.gl_primitives import setup_gl
+from otb_chess.version import __version__
+from otb_chess.ui.interface_themes import THEMES, themed_stylesheet
+from otb_chess.ui.document_actions import DocumentActions
+from otb_chess.graphics.board_types import BOARD_TYPES
 
 
 STYLE = """
@@ -74,7 +79,7 @@ class Value:
         self.value = value
 
 
-class DesktopGame(core.Chess3D):
+class DesktopGame(Chess3D):
     def __init__(self, widget):
         super().__init__(render_widget=widget)
         self.owner = widget.owner
@@ -108,12 +113,12 @@ class DesktopGame(core.Chess3D):
     def selected_time_control(self):
         name = self.time_control_var.get()
         if name != "Custom":
-            return core.TIME_CONTROLS.get(name, core.TIME_CONTROLS["Bullet 1+0"])
+            return TIME_CONTROLS.get(name, TIME_CONTROLS["Bullet 1+0"])
         initial, increment = float(self.custom_initial_var.get()), float(self.custom_increment_var.get())
         if not math.isfinite(initial) or not math.isfinite(increment) or initial <= 0 or increment < 0:
             QMessageBox.warning(self.owner, "Time control", "Enter a positive duration and a nonnegative increment.")
             return None
-        return core.TimeControl("Custom", initial, increment)
+        return TimeControl("Custom", initial, increment)
 
     def choose_set(self, key):
         try:
@@ -142,7 +147,7 @@ class DesktopGame(core.Chess3D):
             try:
                 with manager.lock:
                     if manager.engine and not self.closed:
-                        info = manager.engine.analyse(board, chess.engine.Limit(time=.25))
+                        info = manager.engine.analyse(board, uci.Limit(time=.25))
                         self.engine_output = (board.fen(), info, None)
             except Exception as exc:
                 self.engine_output = (board.fen(), {}, str(exc))
@@ -184,7 +189,7 @@ class BoardWidget(QOpenGLWidget):
 
     def initializeGL(self):
         g = self.game
-        core.setup_gl(max(1, self.width()), max(1, self.height()))
+        setup_gl(max(1, self.width()), max(1, self.height()))
         try:
             g.piece_renderer.prepare(g.piece_sets[g.piece_set])
         except Exception as exc:
@@ -200,7 +205,7 @@ class BoardWidget(QOpenGLWidget):
     def resizeGL(self, width, height):
         ratio = self.devicePixelRatioF()
         self.game.width, self.game.height = max(1, round(width*ratio)), max(1, round(height*ratio))
-        core.setup_gl(self.game.width, self.game.height)
+        setup_gl(self.game.width, self.game.height)
 
     def paintGL(self):
         if self.ready:
@@ -224,7 +229,7 @@ class BoardWidget(QOpenGLWidget):
         self.makeCurrent()
         g = self.game
         pos = (event.position().x(), event.position().y())
-        bindings = {Qt.MouseButton.MiddleButton: "Middle Mouse", Qt.MouseButton.BackButton: "Mouse Button 4",
+        bindings = {Qt.MouseButton.RightButton: "Right Mouse", Qt.MouseButton.MiddleButton: "Middle Mouse", Qt.MouseButton.BackButton: "Mouse Button 4",
                     Qt.MouseButton.ForwardButton: "Mouse Button 5"}
         if g.clock_mode == "OTB" and bindings.get(event.button()) == g.clock_binding:
             g.hit_clock()
@@ -269,6 +274,7 @@ class BoardWidget(QOpenGLWidget):
             return
         self.makeCurrent()
         self.game.delete_background_texture()
+        self.game.board_surface_renderer.close()
         self.game.piece_renderer.close()
         self.game.flat_piece_renderer.close()
         self.doneCurrent()
@@ -317,7 +323,7 @@ class ClockCard(QPushButton):
             self.style().polish(self)
 
 
-class MainWindow(QMainWindow):
+class MainWindow(DocumentActions, QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"OTBMaster3D v{__version__}")
@@ -399,6 +405,8 @@ class MainWindow(QMainWindow):
         self.moves.horizontalHeader().setSectionResizeMode(2,QHeaderView.ResizeMode.Stretch)
         self.moves.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.moves.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.moves.cellClicked.connect(self.navigate_move)
+        self.moves.setToolTip("Pause the clock, then click a move to review its position.")
         self.moves.setAlternatingRowColors(True)
         self.moves.setShowGrid(False)
         self.moves.setMinimumHeight(90)
@@ -448,12 +456,15 @@ class MainWindow(QMainWindow):
 
     def build_menus(self):
         g = self.game
+        self.build_file_menu()
         game = self.menuBar().addMenu("Game")
         self.action(game,"New game…",self.new_game,"Ctrl+N")
         self.action(game,"Start / pause clock",self.play_pause,"Ctrl+P")
         self.action(game,"Press OTB clock",lambda: self.hit_clock(),"Space")
         game.addSeparator()
         self.action(game,"Take back",g.takeback,"U")
+        self.action(game,"Go to starting position",lambda:g.navigate_to_ply(0))
+        self.action(game,"Return to latest move",g.return_to_live)
         self.action(game,"Resign…",self.resign)
         self.action(game,"Offer draw",g.offer_draw)
         self.action(game,"Reset board…",self.reset_board)
@@ -497,7 +508,15 @@ class MainWindow(QMainWindow):
                                  checkable=True,checked=name == self.interface_theme)
             theme_group.addAction(action)
             self.interface_theme_actions[name] = action
-        themes = settings.addMenu("Board theme")
+        types = settings.addMenu("Board Type")
+        type_group = QActionGroup(self)
+        self.board_type_actions = {}
+        for key,spec in BOARD_TYPES.items():
+            action = self.action(types,spec.name,lambda _,k=key:self.set_board_type(k),
+                                 checkable=True,checked=g.board_type==key)
+            type_group.addAction(action)
+            self.board_type_actions[key] = action
+        themes = settings.addMenu("Board Color Theme")
         for name in ("Wood","Tournament Green","Blue","Grey"):
             self.action(themes,name,lambda n=name:g.apply_preset(n))
         colors = settings.addMenu("Colours")
@@ -520,6 +539,12 @@ class MainWindow(QMainWindow):
     def set_mode(self, mode):
         self.game.board_mode_var.set(mode)
         self.game.change_board_mode()
+
+    def set_board_type(self, key):
+        if key in BOARD_TYPES:
+            self.game.board_type = key
+            self.game.persist()
+            self.board_widget.update()
 
     def set_option(self, name, value):
         setattr(self.game,name,value)
@@ -549,18 +574,29 @@ class MainWindow(QMainWindow):
             super().keyPressEvent(event)
 
     def refresh_moves(self):
-        board = self.game.board.root()
-        sans = []
-        for move in self.game.board.move_stack:
-            sans.append(board.san(move))
+        history = self.game.history_board()
+        board = history.root()
+        self.moves.setRowCount(0)
+        current = None
+        row = -1
+        for ply,move in enumerate(history.move_stack,1):
+            if row < 0 or board.turn == chess.WHITE:
+                row += 1
+                self.moves.insertRow(row)
+                self.moves.setItem(row,0,QTableWidgetItem(str(board.fullmove_number)))
+            column = 1 if board.turn == chess.WHITE else 2
+            item = QTableWidgetItem(board.san(move))
+            item.setData(Qt.ItemDataRole.UserRole,ply)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            if ply == len(self.game.board.move_stack):
+                font = item.font()
+                font.setBold(True)
+                item.setFont(font)
+                current = item
+            self.moves.setItem(row,column,item)
             board.push(move)
-        self.moves.setRowCount((len(sans)+1)//2)
-        for row in range(self.moves.rowCount()):
-            for col,text in enumerate((str(row+1),sans[row*2],sans[row*2+1] if row*2+1<len(sans) else "")):
-                item = QTableWidgetItem(text)
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.moves.setItem(row,col,item)
-        self.moves.scrollToBottom()
+        if current:
+            self.moves.scrollToItem(current)
 
     def hit_clock(self, color=None):
         g = self.game
@@ -659,7 +695,7 @@ class MainWindow(QMainWindow):
         dialog.setMinimumWidth(410)
         form = QFormLayout(dialog)
         preset = QComboBox()
-        preset.addItems(list(core.TIME_CONTROLS)+["Custom"])
+        preset.addItems(list(TIME_CONTROLS)+["Custom"])
         preset.setCurrentText(g.time_control_var.get())
         initial,increment = QDoubleSpinBox(),QDoubleSpinBox()
         initial.setRange(.1,86400)
@@ -672,7 +708,7 @@ class MainWindow(QMainWindow):
         mode.addItems(["Online","OTB"])
         mode.setCurrentText(g.clock_mode_var.get())
         binding = QComboBox()
-        binding.addItems(["Spacebar","Middle Mouse","Mouse Button 4","Mouse Button 5"])
+        binding.addItems(["Spacebar","Right Mouse","Middle Mouse","Mouse Button 4","Mouse Button 5"])
         binding.setCurrentText(g.clock_binding_var.get())
         form.addRow("Time control",preset)
         form.addRow("Initial time",initial)
@@ -715,7 +751,7 @@ class MainWindow(QMainWindow):
         form = QFormLayout(dialog)
         engine = QComboBox()
         engine.setEditable(True)
-        engine.addItems([""]+[str(p) for p in sorted(core.ENGINE_DIR.glob("*.exe"))])
+        engine.addItems([""]+[str(p) for p in sorted(ENGINE_DIR.glob("*.exe"))])
         engine.setCurrentText(g.engine_var.get())
         book = QLineEdit(g.book_var.get())
         side = QComboBox()
@@ -725,8 +761,8 @@ class MainWindow(QMainWindow):
             path,_ = QFileDialog.getOpenFileName(dialog,"Choose file",str(folder),file_filter)
             if path:
                 widget.setCurrentText(path) if isinstance(widget,QComboBox) else widget.setText(path)
-        for label,widget,folder,file_filter in (("UCI engine",engine,core.ENGINE_DIR,"Executables (*.exe);;All files (*)"),
-                                               ("Opening book",book,core.BOOK_DIR,"Polyglot books (*.bin);;All files (*)")):
+        for label,widget,folder,file_filter in (("UCI engine",engine,ENGINE_DIR,"Executables (*.exe);;All files (*)"),
+                                               ("Opening book",book,BOOK_DIR,"Polyglot books (*.bin);;All files (*)")):
             row = QHBoxLayout()
             row.addWidget(widget,1)
             button = QPushButton("Browse…")
@@ -840,7 +876,8 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self,"Controls",
             "Move: click source and destination, or drag a piece.\n"
             "Zoom: wheel up / down. Pan: drag an empty area.\n"
-            "Rotate 3D: right-drag or Ctrl + left-drag.\n\n"
+            "Rotate 3D: right-drag or Ctrl + left-drag.\n"
+            "When Right Mouse is the OTB binding, use Ctrl + left-drag to rotate.\n\n"
             "Ctrl+F: flip   Ctrl+R: reset view   U: take back\n"
             "Space: press OTB clock   F11: fullscreen\n"
             "Ctrl+B: sidebar   Ctrl+Shift+F: Focus mode")

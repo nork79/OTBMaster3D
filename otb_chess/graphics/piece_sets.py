@@ -5,14 +5,16 @@ Optional external sets use six Wavefront OBJ files plus set.json;
 see assets/pieces/README.md.
 """
 
+from otb_chess.chess_backend import values as chess
+
 from dataclasses import dataclass
 import json
 import gzip
 import struct
 import math
 from pathlib import Path
+from otb_chess.services.settings import PIECE_DIR
 
-import chess
 from OpenGL import GL as gl
 
 
@@ -31,7 +33,7 @@ class PieceSet:
     directory: Path | None = None
 
 
-ASSET_DIR = Path(__file__).resolve().parent / "assets" / "pieces" / "tournament"
+ASSET_DIR = PIECE_DIR / "tournament"
 BUILTIN_SETS = (
     PieceSet("tournament", "Tournament Staunton",
              "Traditional Staunton in satin ivory and black.", "mesh",
