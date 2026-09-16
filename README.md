@@ -1,16 +1,21 @@
 # OTBMaster3D
 
-**Version 7.3.1** - desktop chess with a tournament-style 3D board, a flat 2D view,
-UCI engine support and over-the-board clock controls. Built for Windows with
-Python, GLFW, OpenGL, Tkinter and python-chess.
+**Version 8.0.0** - desktop chess with a tournament-style 3D board,
+a flat 2D view, UCI engine support and over-the-board clock controls. The main
+interface uses PySide6 and an embedded OpenGL board.
 
-## What's new in 7.3.0
+The previous zoom/pan release is available on GitHub as **v7.3.1**.
 
-- Switch between **3D and 2D** without resetting the game or clocks.
-- Use **Tournament Staunton**, **Wooden Staunton** or **Classic Club** pieces.
-- Keep your board colours, backgrounds and piece colours in either view.
-- Correct starting-square orientation and pointer mapping.
-- Access every setting through the scrollable controls panel.
+## New single-window interface
+
+- The board fills the main area; a resizable sidebar keeps the clocks and moves visible.
+- Large clock cards show the active player and can be pressed in OTB mode.
+- Game, View, Engine and Settings menus keep occasional controls out of the way.
+- Engine output collapses below the move table; it shows evaluation, depth and the best line.
+- Focus mode keeps just the board and clocks. The sidebar can also be hidden entirely.
+- Window size, sidebar width, Focus mode and engine-panel visibility are remembered.
+- Five interface themes: Light, Dark, Blue, Cyberpunk and Pink/Lollipop.
+- New-game clocks wait for the first move; paused clocks can be adjusted independently.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
 
@@ -26,11 +31,12 @@ py -3.14 -m venv .venv
 ```
 
 This is a source release; a standalone Windows installer is not included.
-The app opens a board window and a separate controls window.
+The app opens one window. When upgrading from 7.3.x, rerun the requirements
+installation to add PySide6.
 
 ## Board and pieces
 
-Use **Board view: 3D / 2D** above the Piece set dropdown to change views instantly.
+Use **View ? 3D board / 2D board** to change views instantly.
 The 2D board initially fits the window and supports clicking, dragging and flipping.
 Scroll up to zoom in or down to zoom out in either view. Left-drag an empty area
 to reposition the board. Each view remembers its own zoom and pan; Reset View
@@ -38,7 +44,7 @@ restores the current view's defaults without changing the game.
 Switching back restores your 3D camera. View, piece set and appearance preferences
 are saved locally in `config.json`.
 
-The Piece set dropdown changes the whole set immediately:
+**View ? Piece set** changes the whole set immediately:
 
 | Set | Appearance |
 | --- | --- |
@@ -59,30 +65,52 @@ The previous Original option has been removed; saved selections migrate automati
 | Rotate the 3D board | Right-drag or Ctrl + left-drag. |
 | Pan the board (2D or 3D) | Left-drag an empty area; dragging a movable piece moves that piece. |
 | Zoom the board (2D or 3D) | Mouse wheel up to zoom in; down to zoom out. |
-| Flip the board | Flip Board button or Ctrl + F. |
-| Take back a move | Takeback button or U. |
-| Restore the view | Reset View button; the chess position is preserved. |
-| Close the board | Escape. |
+| Flip the board | View ? Flip board or Ctrl + F. |
+| Take back a move | Game ? Take back or U. |
+| Restore the view | View ? Reset view or Ctrl + R; the chess position is preserved. |
+| Show/hide sidebar | View ? Show sidebar or Ctrl + B. |
+| Focus mode | View ? Focus mode or Ctrl + Shift + F. |
+| Fullscreen | F11; Escape leaves fullscreen. |
+| Start/pause | Sidebar button or Ctrl + P. |
+| Close the app | Game ? Quit or Ctrl + Q. |
 
 ## Engines and opening books
 
-Place a compatible Windows UCI engine in `engines/`, or use **Browse** in the
-engine controls. Choose the engine side and use **Load**. Engines are not bundled.
+Open **Engine ? Engine and opening book**. Choose a compatible Windows UCI engine
+from `engines/` or browse for one, choose its side, and Save. Loading runs in the
+background. Leave the engine path empty to unload it. Engine side and opening
+book selections apply to the next game.
 
-Place Polyglot `.bin` books in `books/`, or browse for one in the book controls.
-Opening books are not bundled. Check the licences of any engines or books you distribute.
+Choose a Polyglot `.bin` book from `books/` or browse for one in the same dialog.
+Engines and books are not bundled; check their licences before distributing them.
+
+**Engine ? Analyse position** enables short background searches. The expandable
+Engine output panel shows the evaluation from White's perspective, depth and a
+SAN best line. Completed engine-move searches are labelled **Last search** so they
+are not mistaken for analysis of the current position. Analysis yields to engine
+moves and ignores results belonging to an older position.
 
 ## Clocks
 
-Choose a preset from hyperbullet through classical, or enter a custom initial
-time and increment in seconds.
+Open **Settings ? Time control and clock** to choose a preset from hyperbullet
+through classical, or a custom initial time and increment in seconds. Saved
+settings update idle clocks immediately. During a game (including while paused),
+settings apply to the next game; Reset clock applies the selected time control.
 
 - **Online** clock mode switches clocks automatically after moves. This name
   describes clock behaviour; the app does not provide online multiplayer.
 - **OTB** mode requires the human player to move and then press the configured
   clock input: Spacebar, middle mouse, Mouse Button 4 or Mouse Button 5.
+- Clicking the active clock card also completes the turn in OTB mode.
+- While paused, click either clock to adjust its minutes and seconds. Save changes
+  only that clock and leaves the game paused; Cancel keeps its previous time.
 - Engine moves complete their clock action automatically.
-- Stop Clock and Reset Clock operate independently of Reset Board.
+- The sidebar Start/Pause button controls play; Game ? Reset clock resets the timers.
+- Colours, board themes, backgrounds and sound are in Settings.
+- **Settings → Interface theme** switches instantly between Light, Dark, Blue,
+  Cyberpunk and Pink/Lollipop. Your choice is remembered independently of board colours.
+- Colour dialogs preview changes live on the board. Cancel restores the original
+  colour and keeps any background image; OK saves the new colour.
 
 Game export/import and saved-game restoration are not implemented. `config.json`
 saves preferences, not the current game.
@@ -93,11 +121,12 @@ saves preferences, not the current game.
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-The eight tests cover complete assets, custom-set loading, live switching,
-configuration persistence, 2D click/drag moves and all 64 squares in both
-orientations and landscape/portrait windows, plus wheel zoom and 2D panning. Rendering tests create hidden
-OpenGL and Tk windows and require a working graphics environment. They do not
-write to the user's configuration.
+The 15 tests cover assets, complete-set loading, view switching, persistence,
+2D input, zoom/pan, native Qt menus and layout, clock dialogs, clickable OTB clocks,
+and UCI play/analysis through a deterministic subprocess fixture. Rendering tests
+use invisible native OpenGL surfaces and require a working graphics environment.
+The older renderer regression tests use GLFW/Tk; the normal app launch uses Qt.
+Tests never write to the user's configuration.
 
 ## Assets and licences
 
@@ -111,6 +140,8 @@ Dependency licences are separate from the model licence. In particular,
 [python-chess](https://python-chess.readthedocs.io/en/latest/#license) is
 GPLv3-or-later. The models' MIT licence is not a licence for the whole application;
 redistribution must account for the applicable dependency obligations.
+PySide6/Qt also have their own licences; see the installed packages and
+[Qt for Python licensing](https://doc.qt.io/qtforpython-6/licenses.html).
 
 Local configuration, temporary files, virtual environments and engine/book
 binaries are excluded from Git.

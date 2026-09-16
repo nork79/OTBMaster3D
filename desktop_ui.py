@@ -1,0 +1,933 @@
+"""Single-window desktop UI. The game and renderers remain in main.py."""
+
+import math
+import sys
+import threading
+import time
+from pathlib import Path
+
+import chess
+import chess.engine
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QAction, QActionGroup, QColor, QKeySequence, QSurfaceFormat
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QPushButton, QToolButton, QSplitter, QTableWidget, QTableWidgetItem,
+    QHeaderView, QAbstractItemView, QDialog, QFormLayout, QComboBox,
+    QDoubleSpinBox, QSpinBox, QAbstractSpinBox, QDialogButtonBox, QFileDialog, QColorDialog,
+    QMessageBox, QLineEdit, QPlainTextEdit,
+)
+
+import main as core
+from version import __version__
+from interface_themes import THEMES, themed_stylesheet
+
+
+STYLE = """
+QMainWindow, QDialog { background: #171b22; color: #e8eaf0; }
+QWidget { font-family: 'Segoe UI'; font-size: 13px; color: #e8eaf0; }
+QMenuBar { background: #1e242e; padding: 5px 12px; }
+QMenuBar::item { padding: 7px 14px; border-radius: 4px; }
+QMenuBar::item:selected, QMenu::item:selected { background: #384354; }
+QMenu { background: #242c38; border: 1px solid #414b5b; padding: 6px; }
+QMenu::item { padding: 7px 26px; }
+QMenu::separator { height: 1px; background: #414b5b; margin: 5px; }
+QWidget#sidebar { background: #1b212b; }
+QLabel#section { color: #a3afc1; font-size: 11px; font-weight: 600; }
+QLabel#hint { color: #a3afc1; font-size: 12px; }
+QPushButton, QToolButton { background: #2b3543; border: 1px solid #3b4759;
+    border-radius: 6px; padding: 8px 12px; }
+QPushButton:hover, QToolButton:hover { background: #39475b; }
+QPushButton:disabled { color: #748095; }
+QPushButton#primary { background: #d5944a; color: #161a20; border: none; font-weight: 600; }
+QPushButton#primary:hover { background: #e5a65c; }
+QPushButton#clock { background: #252e3a; border: 2px solid #364152; padding: 8px; }
+QPushButton#clock[active="true"] { background: #333127; border: 2px solid #e5a65c; }
+QPushButton#clock[waiting="true"] { border: 2px solid #80bfab; }
+QLabel#clockDigits { font-family: 'Consolas'; font-size: 39px; font-weight: 600; }
+QTableWidget { background: #1b212b; alternate-background-color: #202834;
+    border: none; selection-background-color: #364253; gridline-color: #303a49; }
+QTableWidget::item { padding: 6px; }
+QHeaderView::section { background: #1b212b; color: #a3afc1; border: none;
+    padding: 9px 4px; font-size: 11px; font-weight: 600; }
+QSplitter::handle { background: #303a49; width: 4px; }
+QStatusBar { background: #1e242e; color: #a3afc1; }
+QComboBox, QLineEdit, QDoubleSpinBox, QSpinBox, QPlainTextEdit {
+    background: #111720; border: 1px solid #414b5b; border-radius: 4px; padding: 7px; }
+QComboBox QAbstractItemView { background: #242c38; selection-background-color: #414b5b; }
+QScrollBar:vertical { background: #1b212b; width: 10px; }
+QScrollBar::handle:vertical { background: #4a5668; min-height: 24px; border-radius: 4px; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
+"""
+
+
+class Value:
+    """UI-independent setting cell used by the existing game controller."""
+    def __init__(self, value=None):
+        self.value = value
+
+    def get(self):
+        return self.value
+
+    def set(self, value):
+        self.value = value
+
+
+class DesktopGame(core.Chess3D):
+    def __init__(self, widget):
+        super().__init__(render_widget=widget)
+        self.owner = widget.owner
+        for name, value in {
+            "time_control": self.cfg["time_control"], "engine_side": self.cfg["engine_side"],
+            "engine": self.cfg["engine_path"], "book": self.cfg["book_path"],
+            "clock_mode": self.clock_mode, "clock_binding": self.clock_binding,
+            "custom_initial": self.cfg["custom_initial"],
+            "custom_increment": self.cfg["custom_increment"], "board_mode": self.board_mode,
+            "piece_description": "", "background": "",
+        }.items():
+            setattr(self, name + "_var", Value(value))
+        self.engine_output = None
+        self.engine_loading = False
+        self.engine_load_result = None
+        self.analysis_busy = False
+        self.analysis_enabled = False
+        self.analysis_stamp = 0
+        self.closed = False
+
+    def try_move(self, fr, to, is_engine=False):
+        moved = super().try_move(fr,to,is_engine)
+        if moved:
+            self.owner.sync_engine_output()
+        return moved
+
+    def refresh_move_list(self):
+        if hasattr(self.owner, "moves"):
+            self.owner.refresh_moves()
+
+    def selected_time_control(self):
+        name = self.time_control_var.get()
+        if name != "Custom":
+            return core.TIME_CONTROLS.get(name, core.TIME_CONTROLS["Bullet 1+0"])
+        initial, increment = float(self.custom_initial_var.get()), float(self.custom_increment_var.get())
+        if not math.isfinite(initial) or not math.isfinite(increment) or initial <= 0 or increment < 0:
+            QMessageBox.warning(self.owner, "Time control", "Enter a positive duration and a nonnegative increment.")
+            return None
+        return core.TimeControl("Custom", initial, increment)
+
+    def choose_set(self, key):
+        try:
+            self.make_context_current()
+            self.piece_renderer.prepare(self.piece_sets[key])
+        except Exception as exc:
+            QMessageBox.warning(self.owner, "Piece set", str(exc))
+            self.owner.set_actions[self.piece_set].setChecked(True)
+            return
+        self.piece_set = key
+        self.persist()
+
+    def request_analysis(self):
+        manager = self.engine_manager
+        if (self.closed or not self.analysis_enabled or self.engine_loading or self.analysis_busy
+                or manager.thinking or not manager.engine):
+            return
+        # Never queue analysis in front of the engine's turn.
+        if self.game_started and not self.game_over and self.board.turn == self.engine_side:
+            return
+        board = self.board.copy()
+        self.analysis_busy = True
+        self.analysis_stamp = time.perf_counter()
+
+        def worker():
+            try:
+                with manager.lock:
+                    if manager.engine and not self.closed:
+                        info = manager.engine.analyse(board, chess.engine.Limit(time=.25))
+                        self.engine_output = (board.fen(), info, None)
+            except Exception as exc:
+                self.engine_output = (board.fen(), {}, str(exc))
+            finally:
+                self.analysis_busy = False
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def load_engine_path(self, path):
+        if self.engine_loading or self.engine_manager.thinking or self.analysis_busy:
+            self.result_text = "Wait for the current engine search to finish."
+            return
+        self.engine_loading = True
+        self.engine_output = None
+        self.result_text = "Loading engine…"
+
+        def worker():
+            if path:
+                result = self.engine_manager.load(path)
+            else:
+                self.engine_manager.unload()
+                result = (True, "Engine unloaded")
+            self.engine_load_result = (path, result)
+            self.engine_loading = False
+
+        threading.Thread(target=worker, daemon=True).start()
+
+
+class BoardWidget(QOpenGLWidget):
+    def __init__(self, owner):
+        super().__init__(owner)
+        self.owner = owner
+        self.ready = False
+        self.cleaned = False
+        self.setMinimumSize(320, 280)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setMouseTracking(True)
+        self.game = DesktopGame(self)
+
+    def initializeGL(self):
+        g = self.game
+        core.setup_gl(max(1, self.width()), max(1, self.height()))
+        try:
+            g.piece_renderer.prepare(g.piece_sets[g.piece_set])
+        except Exception as exc:
+            g.piece_set = "club"
+            g.piece_renderer.prepare(g.piece_sets["club"])
+            g.result_text = f"Using Classic Club: {exc}"
+        if g.background_image_path:
+            if not g.load_background_image(g.background_image_path, show_error=False):
+                g.background_image_path = ""
+                g.result_text = "Saved background image was not available"
+        self.ready = True
+
+    def resizeGL(self, width, height):
+        ratio = self.devicePixelRatioF()
+        self.game.width, self.game.height = max(1, round(width*ratio)), max(1, round(height*ratio))
+        core.setup_gl(self.game.width, self.game.height)
+
+    def paintGL(self):
+        if self.ready:
+            self.game.draw()
+
+    def wheelEvent(self, event):
+        g = self.game
+        dy = event.angleDelta().y()/120
+        if g.board_mode == "2D":
+            g.two_d_scale = max(.4, min(2.5, g.two_d_scale*math.exp(-max(-10,min(10,dy))*.1)))
+        else:
+            g.distance = max(7, min(22, g.distance-dy*.7))
+        g.mark_camera_dirty()
+        self.update()
+        event.accept()
+
+    def mousePressEvent(self, event):
+        if not self.ready:
+            return
+        self.setFocus()
+        self.makeCurrent()
+        g = self.game
+        pos = (event.position().x(), event.position().y())
+        bindings = {Qt.MouseButton.MiddleButton: "Middle Mouse", Qt.MouseButton.BackButton: "Mouse Button 4",
+                    Qt.MouseButton.ForwardButton: "Mouse Button 5"}
+        if g.clock_mode == "OTB" and bindings.get(event.button()) == g.clock_binding:
+            g.hit_clock()
+        elif event.button() == Qt.MouseButton.RightButton or (
+                event.button() == Qt.MouseButton.LeftButton and event.modifiers() & Qt.KeyboardModifier.ControlModifier):
+            g.right_drag = True
+            g.last_mouse = pos
+        elif event.button() == Qt.MouseButton.LeftButton:
+            g.left_press(pos)
+        self.update()
+
+    def mouseMoveEvent(self, event):
+        if not self.ready:
+            return
+        self.makeCurrent()
+        g = self.game
+        pos = (event.position().x(), event.position().y())
+        if g.right_drag:
+            if g.board_mode == "3D":
+                g.yaw += (pos[0]-g.last_mouse[0])*.009
+                g.pitch = max(math.radians(14),min(math.radians(72),g.pitch+(pos[1]-g.last_mouse[1])*.007))
+                g.mark_camera_dirty()
+            g.last_mouse = pos
+        elif event.buttons() & Qt.MouseButton.LeftButton:
+            g.left_motion(pos)
+        self.update()
+
+    def mouseReleaseEvent(self, event):
+        if not self.ready:
+            return
+        self.makeCurrent()
+        g = self.game
+        if g.right_drag:
+            g.right_drag = False
+            g.mark_camera_dirty()
+        elif event.button() == Qt.MouseButton.LeftButton:
+            g.left_release((event.position().x(),event.position().y()))
+        self.update()
+
+    def cleanup(self):
+        if self.cleaned or not self.ready:
+            return
+        self.makeCurrent()
+        self.game.delete_background_texture()
+        self.game.piece_renderer.close()
+        self.game.flat_piece_renderer.close()
+        self.doneCurrent()
+        self.cleaned = True
+
+
+class ClockCard(QPushButton):
+    def __init__(self, name, color, owner):
+        super().__init__()
+        self.setObjectName("clock")
+        self.setMinimumHeight(96)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.color = color
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 5, 12, 5)
+        row = QHBoxLayout()
+        self.name = QLabel(name.upper())
+        self.name.setObjectName("section")
+        self.state = QLabel("")
+        self.state.setObjectName("hint")
+        row.addWidget(self.name)
+        row.addStretch()
+        row.addWidget(self.state)
+        layout.addLayout(row)
+        self.digits = QLabel("0:00")
+        self.digits.setObjectName("clockDigits")
+        layout.addWidget(self.digits)
+        for widget in (self.name,self.state,self.digits):
+            widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.clicked.connect(lambda: owner.edit_clock(color) if owner.game.clock_paused else owner.hit_clock(color))
+        self.setToolTip("In OTB mode, click the running clock after making your move.")
+
+    def refresh(self, game):
+        self.digits.setText(game.fmt_clock(game.white_time if self.color else game.black_time))
+        active = game.game_started and not game.game_over and game.active_clock_color == self.color
+        waiting = active and game.awaiting_clock_press
+        editable = game.clock_paused and not game.game_over
+        first_move = game.game_started and not game.game_over and not game.board.move_stack
+        self.state.setText("CLICK TO EDIT" if editable else "WAITING FOR MOVE" if first_move else "PRESS CLOCK" if waiting else "RUNNING" if active else "")
+        self.setToolTip("Click to adjust this clock while paused." if editable else "In OTB mode, click the running clock after making your move.")
+        self.setCursor(Qt.CursorShape.PointingHandCursor if editable else Qt.CursorShape.ArrowCursor)
+        if self.property("active") != active or self.property("waiting") != waiting:
+            self.setProperty("active",active)
+            self.setProperty("waiting",waiting)
+            self.style().unpolish(self)
+            self.style().polish(self)
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(f"OTBMaster3D v{__version__}")
+        self.setMinimumSize(760,560)
+        self.setStyleSheet(STYLE)
+        self.board_widget = BoardWidget(self)
+        self.game = self.board_widget.game
+        cfg = self.game.cfg
+        self.interface_theme = cfg.get("interface_theme","Blue")
+        if self.interface_theme not in THEMES:
+            self.interface_theme = "Blue"
+        self.setStyleSheet(themed_stylesheet(STYLE,self.interface_theme))
+        size = cfg.get("window_size",[1280,840])
+        self.resize(max(760,min(3840,int(size[0]))),max(560,min(2160,int(size[1]))))
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.splitter.setChildrenCollapsible(False)
+        self.splitter.addWidget(self.board_widget)
+        self.sidebar = QWidget()
+        self.sidebar.setObjectName("sidebar")
+        self.sidebar.setMinimumWidth(250)
+        self.sidebar.setMaximumWidth(520)
+        self.splitter.addWidget(self.sidebar)
+        self.splitter.setStretchFactor(0,1)
+        self.splitter.setStretchFactor(1,0)
+        self.sidebar_width = max(250,min(520,int(cfg.get("sidebar_width",300))))
+        self.splitter.setSizes([self.width()-self.sidebar_width,self.sidebar_width])
+        self.setCentralWidget(self.splitter)
+        self.build_sidebar()
+        self.build_menus()
+        self.refresh_moves()
+        self.statusBar().setSizeGripEnabled(True)
+        self.board_status = QLabel("")
+        self.board_status.setObjectName("hint")
+        self.statusBar().addPermanentWidget(self.board_status)
+        self.focus_action.setChecked(bool(cfg.get("focus_mode",False)))
+        self.sidebar_action.setChecked(bool(cfg.get("sidebar_visible",True)))
+        self.engine_toggle.setChecked(bool(cfg.get("engine_panel_open",False)))
+        self.apply_visibility()
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.tick)
+        self.timer.start(16)
+        self.last_fen = None
+        self.last_output = None
+        self.last_search = None
+        self.closing = False
+        remembered = self.game.engine_var.get()
+        if remembered and Path(remembered).is_file():
+            QTimer.singleShot(0,lambda: self.game.load_engine_path(remembered))
+
+    def build_sidebar(self):
+        layout = QVBoxLayout(self.sidebar)
+        layout.setContentsMargins(16,16,16,12)
+        layout.setSpacing(10)
+        label = QLabel("GAME CLOCK")
+        label.setObjectName("section")
+        layout.addWidget(label)
+        self.black_clock = ClockCard("Black",chess.BLACK,self)
+        self.white_clock = ClockCard("White",chess.WHITE,self)
+        layout.addWidget(self.black_clock)
+        layout.addWidget(self.white_clock)
+        self.clock_summary = QLabel("")
+        self.clock_summary.setObjectName("hint")
+        layout.addWidget(self.clock_summary)
+        self.play_button = QPushButton("Start game")
+        self.play_button.setObjectName("primary")
+        self.play_button.clicked.connect(self.play_pause)
+        layout.addWidget(self.play_button)
+        self.moves_panel = QWidget()
+        moves_layout = QVBoxLayout(self.moves_panel)
+        moves_layout.setContentsMargins(0,10,0,0)
+        label = QLabel("MOVE LIST")
+        label.setObjectName("section")
+        moves_layout.addWidget(label)
+        self.moves = QTableWidget(0,3)
+        self.moves.setHorizontalHeaderLabels(["#","WHITE","BLACK"])
+        self.moves.verticalHeader().hide()
+        self.moves.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.ResizeToContents)
+        self.moves.horizontalHeader().setSectionResizeMode(1,QHeaderView.ResizeMode.Stretch)
+        self.moves.horizontalHeader().setSectionResizeMode(2,QHeaderView.ResizeMode.Stretch)
+        self.moves.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.moves.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.moves.setAlternatingRowColors(True)
+        self.moves.setShowGrid(False)
+        self.moves.setMinimumHeight(90)
+        moves_layout.addWidget(self.moves,1)
+        layout.addWidget(self.moves_panel,1)
+        self.engine_toggle = QToolButton()
+        self.engine_toggle.setText("Engine output")
+        self.engine_toggle.setCheckable(True)
+        self.engine_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.engine_toggle.toggled.connect(self.apply_visibility)
+        layout.addWidget(self.engine_toggle)
+        self.engine_panel = QWidget()
+        engine_layout = QVBoxLayout(self.engine_panel)
+        engine_layout.setContentsMargins(0,0,0,0)
+        self.engine_name = QLabel("No engine loaded")
+        self.engine_name.setObjectName("hint")
+        self.engine_name.setWordWrap(True)
+        engine_layout.addWidget(self.engine_name)
+        self.engine_metrics = QLabel("Enable analysis from the Engine menu.")
+        self.engine_metrics.setWordWrap(True)
+        engine_layout.addWidget(self.engine_metrics)
+        self.engine_line = QPlainTextEdit()
+        self.engine_line.setReadOnly(True)
+        self.engine_line.setMaximumHeight(84)
+        self.engine_line.setPlaceholderText("Best line will appear here")
+        engine_layout.addWidget(self.engine_line)
+        layout.addWidget(self.engine_panel)
+        self.focus_spacer = QWidget()
+        layout.addWidget(self.focus_spacer,1)
+
+    def action(self, menu, text, callback, shortcut=None, checkable=False, checked=False):
+        action = QAction(text,self)
+        action.setCheckable(checkable)
+        if checkable:
+            action.setChecked(checked)
+        if shortcut:
+            action.setShortcut(QKeySequence(shortcut))
+        action.triggered.connect(lambda checked=False: self.invoke(callback,checked) if checkable else self.invoke(callback))
+        menu.addAction(action)
+        return action
+
+    def invoke(self, callback, *args):
+        if self.board_widget.ready:
+            self.board_widget.makeCurrent()
+        callback(*args)
+        self.board_widget.update()
+
+    def build_menus(self):
+        g = self.game
+        game = self.menuBar().addMenu("Game")
+        self.action(game,"New game…",self.new_game,"Ctrl+N")
+        self.action(game,"Start / pause clock",self.play_pause,"Ctrl+P")
+        self.action(game,"Press OTB clock",lambda: self.hit_clock(),"Space")
+        game.addSeparator()
+        self.action(game,"Take back",g.takeback,"U")
+        self.action(game,"Resign…",self.resign)
+        self.action(game,"Offer draw",g.offer_draw)
+        self.action(game,"Reset board…",self.reset_board)
+        self.action(game,"Reset clock…",self.reset_clock)
+        game.addSeparator()
+        self.action(game,"Quit",self.close,"Ctrl+Q")
+        view = self.menuBar().addMenu("View")
+        modes = QActionGroup(self)
+        self.mode_actions = {}
+        for mode in ("3D","2D"):
+            act = self.action(view,f"{mode} board",lambda _,m=mode: self.set_mode(m),checkable=True,checked=g.board_mode==mode)
+            modes.addAction(act)
+            self.mode_actions[mode] = act
+        pieces = view.addMenu("Piece set")
+        group = QActionGroup(self)
+        self.set_actions = {}
+        for key,spec in g.piece_sets.items():
+            act = self.action(pieces,spec.name,lambda _,k=key: g.choose_set(k),checkable=True,checked=g.piece_set==key)
+            group.addAction(act)
+            self.set_actions[key] = act
+        view.addSeparator()
+        self.action(view,"Flip board",g.flip_board,"Ctrl+F")
+        self.action(view,"Reset view",g.reset_view,"Ctrl+R")
+        self.action(view,"Coordinates",lambda v:self.set_option("show_coordinates",v),checkable=True,checked=g.show_coordinates)
+        self.action(view,"Move indicator",lambda v:self.set_option("show_move_indicator",v),checkable=True,checked=g.show_move_indicator)
+        view.addSeparator()
+        self.sidebar_action = self.action(view,"Show sidebar",lambda _:self.apply_visibility(),"Ctrl+B",True,True)
+        self.focus_action = self.action(view,"Focus mode (board and clocks)",lambda _:self.apply_visibility(),"Ctrl+Shift+F",True)
+        self.fullscreen_action = self.action(view,"Fullscreen",self.set_fullscreen,"F11",True)
+        engine = self.menuBar().addMenu("Engine")
+        self.action(engine,"Engine and opening book…",self.engine_settings)
+        self.analysis_action = self.action(engine,"Analyse position",self.toggle_analysis,"Ctrl+A",True)
+        self.action(engine,"Show engine output",lambda:self.engine_toggle.setChecked(not self.engine_toggle.isChecked()))
+        settings = self.menuBar().addMenu("Settings")
+        self.action(settings,"Time control and clock…",self.clock_settings)
+        interface = settings.addMenu("Interface theme")
+        theme_group = QActionGroup(self)
+        self.interface_theme_actions = {}
+        for name in THEMES:
+            action = self.action(interface,name,lambda _,n=name:self.set_interface_theme(n),
+                                 checkable=True,checked=name == self.interface_theme)
+            theme_group.addAction(action)
+            self.interface_theme_actions[name] = action
+        themes = settings.addMenu("Board theme")
+        for name in ("Wood","Tournament Green","Blue","Grey"):
+            self.action(themes,name,lambda n=name:g.apply_preset(n))
+        colors = settings.addMenu("Colours")
+        for name,key in (("Light squares","light"),("Dark squares","dark"),("Board frame","frame"),("Background","background")):
+            self.action(colors,name+"…",lambda k=key:self.choose_color(k))
+        self.action(settings,"Background image…",self.choose_background)
+        self.action(settings,"Remove background image",self.clear_background)
+        self.action(settings,"Sound",lambda v:self.set_option("sound_enabled",v),checkable=True,checked=g.sound_enabled)
+        help_menu = self.menuBar().addMenu("Help")
+        self.action(help_menu,"Controls",self.show_controls)
+        self.action(help_menu,"About",lambda:QMessageBox.about(self,"OTBMaster3D",f"OTBMaster3D v{__version__}\n\nDesktop chess with 2D and 3D views.\nStaunton models: clarkerubber (MIT).\nSee assets/pieces/README.md for credits."))
+
+    def set_interface_theme(self, name):
+        self.interface_theme = name if name in THEMES else "Blue"
+        self.setStyleSheet(themed_stylesheet(STYLE,self.interface_theme))
+        self.interface_theme_actions[self.interface_theme].setChecked(True)
+        self.game.cfg["interface_theme"] = self.interface_theme
+        self.game.persist()
+
+    def set_mode(self, mode):
+        self.game.board_mode_var.set(mode)
+        self.game.change_board_mode()
+
+    def set_option(self, name, value):
+        setattr(self.game,name,value)
+        self.game.persist()
+
+    def apply_visibility(self, *_):
+        if not hasattr(self,"focus_action"):
+            return
+        focus = self.focus_action.isChecked()
+        if self.sidebar.isVisible() and not self.sidebar_action.isChecked():
+            self.sidebar_width = self.sidebar.width()
+        self.sidebar.setVisible(self.sidebar_action.isChecked())
+        self.moves_panel.setVisible(not focus)
+        self.engine_toggle.setVisible(not focus)
+        self.engine_panel.setVisible(not focus and self.engine_toggle.isChecked())
+        self.engine_toggle.setArrowType(Qt.ArrowType.DownArrow if self.engine_toggle.isChecked() else Qt.ArrowType.RightArrow)
+        self.focus_spacer.setVisible(focus)
+
+    def set_fullscreen(self, enabled):
+        self.showFullScreen() if enabled else self.showNormal()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape and self.isFullScreen():
+            self.fullscreen_action.setChecked(False)
+            self.showNormal()
+        else:
+            super().keyPressEvent(event)
+
+    def refresh_moves(self):
+        board = self.game.board.root()
+        sans = []
+        for move in self.game.board.move_stack:
+            sans.append(board.san(move))
+            board.push(move)
+        self.moves.setRowCount((len(sans)+1)//2)
+        for row in range(self.moves.rowCount()):
+            for col,text in enumerate((str(row+1),sans[row*2],sans[row*2+1] if row*2+1<len(sans) else "")):
+                item = QTableWidgetItem(text)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.moves.setItem(row,col,item)
+        self.moves.scrollToBottom()
+
+    def hit_clock(self, color=None):
+        g = self.game
+        if g.clock_mode == "OTB" and (color is None or color == g.active_clock_color):
+            g.hit_clock()
+
+    def confirm(self, title, text):
+        return QMessageBox.question(self,title,text) == QMessageBox.StandardButton.Yes
+
+    def new_game(self):
+        g = self.game
+        if g.engine_loading or g.engine_manager.thinking or g.analysis_busy:
+            g.result_text = "Wait for the current engine operation to finish."
+            return
+        if g.board.move_stack and not self.confirm("New game","Start a new game? The current moves will be cleared."):
+            return
+        g.pending_engine_move = None
+        g.engine_output = None
+        g.last_engine_search = None
+        g.selected = g.drag_piece = g.drag_world = None
+        g.start_game()
+
+    def play_pause(self):
+        if not self.game.game_started or self.game.game_over:
+            self.new_game()
+        else:
+            self.game.stop_clock()
+
+    def resign(self):
+        if self.game.game_started and self.confirm("Resign","Resign the current game?"):
+            self.game.resign()
+
+    def reset_board(self):
+        if self.game.engine_manager.thinking or self.game.engine_loading or self.game.analysis_busy:
+            self.game.result_text = "Wait for the current engine operation to finish."
+            return
+        if not self.game.board.move_stack or self.confirm("Reset board","Clear the current moves and reset the board?"):
+            self.game.pending_engine_move = None
+            self.game.last_engine_search = None
+            self.game.engine_output = None
+            self.game.reset_board()
+
+    def reset_clock(self):
+        if self.confirm("Reset clock","Reset both clocks to the selected time control?"):
+            self.game.reset_clock()
+
+    def edit_clock(self, color):
+        g = self.game
+        if not g.clock_paused or g.game_over:
+            return
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Adjust {'White' if color else 'Black'} clock")
+        form = QFormLayout(dialog)
+        remaining = max(0,math.ceil(g.white_time if color else g.black_time))
+
+        def time_field(label, maximum, value):
+            field = QSpinBox()
+            field.setRange(0,maximum)
+            field.setValue(value)
+            field.setAccessibleName(label)
+            field.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+            row = QHBoxLayout()
+            row.addWidget(field,1)
+            for text,step in (("−",-1),("+",1)):
+                button = QPushButton(text)
+                button.setFixedSize(40,36)
+                button.setAutoDefault(False)
+                button.setAutoRepeat(True)
+                button.setAccessibleName(f"{'Increase' if step > 0 else 'Decrease'} {label.lower()}")
+                button.clicked.connect(lambda checked=False,s=step: field.stepBy(s))
+                row.addWidget(button)
+            form.addRow(label,row)
+            return field
+
+        minutes = time_field("Minutes",1440,remaining // 60)
+        seconds = time_field("Seconds",59,remaining % 60)
+        form.addRow(QLabel("The game stays paused after saving."))
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        form.addRow(buttons)
+        if dialog.exec() == QDialog.DialogCode.Accepted and g.clock_paused and not g.game_over:
+            value = minutes.value()*60+seconds.value()
+            if color:
+                g.white_time = value
+            else:
+                g.black_time = value
+            self.white_clock.refresh(g)
+            self.black_clock.refresh(g)
+        dialog.deleteLater()
+
+    def clock_settings(self):
+        g = self.game
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Time control and clock")
+        dialog.setMinimumWidth(410)
+        form = QFormLayout(dialog)
+        preset = QComboBox()
+        preset.addItems(list(core.TIME_CONTROLS)+["Custom"])
+        preset.setCurrentText(g.time_control_var.get())
+        initial,increment = QDoubleSpinBox(),QDoubleSpinBox()
+        initial.setRange(.1,86400)
+        increment.setRange(0,3600)
+        initial.setValue(float(g.custom_initial_var.get()))
+        increment.setValue(float(g.custom_increment_var.get()))
+        initial.setSuffix(" sec")
+        increment.setSuffix(" sec")
+        mode = QComboBox()
+        mode.addItems(["Online","OTB"])
+        mode.setCurrentText(g.clock_mode_var.get())
+        binding = QComboBox()
+        binding.addItems(["Spacebar","Middle Mouse","Mouse Button 4","Mouse Button 5"])
+        binding.setCurrentText(g.clock_binding_var.get())
+        form.addRow("Time control",preset)
+        form.addRow("Initial time",initial)
+        form.addRow("Increment",increment)
+        form.addRow("Clock mode",mode)
+        form.addRow("Clock input",binding)
+        def custom_visibility():
+            form.setRowVisible(initial,preset.currentText()=="Custom")
+            form.setRowVisible(increment,preset.currentText()=="Custom")
+        preset.currentTextChanged.connect(custom_visibility)
+        custom_visibility()
+        note = QLabel("Saved settings update idle clocks immediately.\nDuring a game, settings apply to the next game.\nOnline = automatic clock switching; OTB = press after moving.")
+        note.setObjectName("hint")
+        note.setWordWrap(True)
+        form.addRow(note)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        form.addRow(buttons)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            for cell,value in ((g.time_control_var,preset.currentText()),(g.custom_initial_var,initial.value()),
+                               (g.custom_increment_var,increment.value()),(g.clock_mode_var,mode.currentText()),
+                               (g.clock_binding_var,binding.currentText())):
+                cell.set(value)
+            if not g.game_started:
+                tc = g.selected_time_control()
+                g.white_time = g.black_time = tc.initial_seconds
+                g.increment = tc.increment_seconds
+                g.clock_mode = g.clock_mode_var.get()
+                g.clock_binding = g.clock_binding_var.get()
+                self.white_clock.refresh(g)
+                self.black_clock.refresh(g)
+            g.persist()
+
+    def engine_settings(self):
+        g = self.game
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Engine and opening book")
+        dialog.setMinimumWidth(520)
+        form = QFormLayout(dialog)
+        engine = QComboBox()
+        engine.setEditable(True)
+        engine.addItems([""]+[str(p) for p in sorted(core.ENGINE_DIR.glob("*.exe"))])
+        engine.setCurrentText(g.engine_var.get())
+        book = QLineEdit(g.book_var.get())
+        side = QComboBox()
+        side.addItems(["None","White","Black"])
+        side.setCurrentText(g.engine_side_var.get())
+        def browse(widget, folder, file_filter):
+            path,_ = QFileDialog.getOpenFileName(dialog,"Choose file",str(folder),file_filter)
+            if path:
+                widget.setCurrentText(path) if isinstance(widget,QComboBox) else widget.setText(path)
+        for label,widget,folder,file_filter in (("UCI engine",engine,core.ENGINE_DIR,"Executables (*.exe);;All files (*)"),
+                                               ("Opening book",book,core.BOOK_DIR,"Polyglot books (*.bin);;All files (*)")):
+            row = QHBoxLayout()
+            row.addWidget(widget,1)
+            button = QPushButton("Browse…")
+            button.clicked.connect(lambda _,w=widget,f=folder,t=file_filter:browse(w,f,t))
+            row.addWidget(button)
+            form.addRow(label,row)
+        form.addRow("Engine plays",side)
+        note = QLabel("Engine side and opening book apply to the next game.\nLeave the engine path empty to unload it.")
+        note.setObjectName("hint")
+        form.addRow(note)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save|QDialogButtonBox.StandardButton.Cancel)
+        def accept():
+            if g.engine_manager.thinking or g.engine_loading or g.analysis_busy:
+                QMessageBox.information(dialog,"Engine busy","Wait for the current engine operation to finish.")
+                return
+            for path in (engine.currentText().strip(),book.text().strip()):
+                if path and not Path(path).is_file():
+                    QMessageBox.warning(dialog,"File not found",path)
+                    return
+            dialog.accept()
+        buttons.accepted.connect(accept)
+        buttons.rejected.connect(dialog.reject)
+        form.addRow(buttons)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            g.engine_side_var.set(side.currentText())
+            g.book_var.set(book.text().strip())
+            path = engine.currentText().strip()
+            if path != g.engine_manager.path or (path and g.engine_manager.engine is None):
+                g.load_engine_path(path)
+            else:
+                g.persist()
+
+    def choose_color(self, which):
+        g = self.game
+        original = g.color_value(which)
+        dialog = QColorDialog(QColor.fromRgbF(*original),self)
+        dialog.setWindowTitle("Choose colour")
+        dialog.setOption(QColorDialog.ColorDialogOption.DontUseNativeDialog,True)
+
+        def preview(color):
+            if color.isValid():
+                g.preview_background_color = which == "background"
+                g.set_color_value(which,(color.redF(),color.greenF(),color.blueF()))
+                self.board_widget.update()
+
+        dialog.currentColorChanged.connect(preview)
+        try:
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                preview(dialog.currentColor())
+                if which == "background":
+                    self.board_widget.makeCurrent()
+                    g.delete_background_texture()
+                    g.background_image_path = ""
+            else:
+                g.set_color_value(which,original)
+        finally:
+            g.preview_background_color = False
+            self.board_widget.update()
+            g.persist()
+            dialog.deleteLater()
+
+    def choose_background(self):
+        path,_ = QFileDialog.getOpenFileName(self,"Background image","","Images (*.png *.jpg *.jpeg *.bmp *.webp *.tif *.tiff)")
+        if path:
+            self.board_widget.makeCurrent()
+            if not self.game.load_background_image(path,show_error=False):
+                QMessageBox.warning(self,"Background image","This image could not be loaded.")
+            self.game.persist()
+
+    def clear_background(self):
+        self.game.delete_background_texture()
+        self.game.background_image_path = ""
+        self.game.persist()
+
+    def toggle_analysis(self, enabled):
+        self.game.analysis_enabled = enabled
+        if enabled:
+            self.sidebar_action.setChecked(True)
+            self.focus_action.setChecked(False)
+            self.engine_toggle.setChecked(True)
+            self.apply_visibility()
+        else:
+            self.engine_metrics.setText("Analysis paused")
+
+    def sync_engine_output(self):
+        """Show the engine's last completed search, labelled as such."""
+        search = self.game.last_engine_search
+        if search is not None and search is not self.last_search:
+            self.last_search = search
+            source, info = search
+            self.show_engine_info(source, info, "Last search · ")
+
+    def show_engine_info(self, source, info, prefix=""):
+        score = info.get("score")
+        if score is not None:
+            value = score.white()
+            score_text = f"Mate {value.mate():+d}" if value.is_mate() else f"{value.score()/100:+.2f}"
+        else:
+            score_text = "—"
+        self.engine_metrics.setText(f"{prefix}White: {score_text}   ·   Depth {info.get('depth','—')}")
+        board = chess.Board(source)
+        moves = []
+        for move in info.get("pv",[])[:12]:
+            if move not in board.legal_moves:
+                break
+            moves.append(board.san(move))
+            board.push(move)
+        self.engine_line.setPlainText(" ".join(moves))
+
+    def show_controls(self):
+        QMessageBox.information(self,"Controls",
+            "Move: click source and destination, or drag a piece.\n"
+            "Zoom: wheel up / down. Pan: drag an empty area.\n"
+            "Rotate 3D: right-drag or Ctrl + left-drag.\n\n"
+            "Ctrl+F: flip   Ctrl+R: reset view   U: take back\n"
+            "Space: press OTB clock   F11: fullscreen\n"
+            "Ctrl+B: sidebar   Ctrl+Shift+F: Focus mode")
+
+    def tick(self):
+        if self.closing:
+            return
+        g = self.game
+        g.update_clock()
+        g.apply_pending_engine_move()
+        g.maybe_persist_camera()
+        if g.engine_load_result is not None:
+            path,(ok,message) = g.engine_load_result
+            g.engine_load_result = None
+            g.result_text = message
+            g.engine_var.set(path if ok else "")
+            if not path or not ok:
+                g.engine_side = None
+            g.persist()
+            if ok and path:
+                self.engine_toggle.setChecked(True)
+        self.black_clock.refresh(g)
+        self.white_clock.refresh(g)
+        self.play_button.setText("Start game" if not g.game_started or g.game_over else "Resume clock" if g.clock_paused else "Pause clock")
+        self.play_button.setEnabled(not g.engine_loading and not g.engine_manager.thinking)
+        self.clock_summary.setText(f"{g.time_control_var.get()}  ·  {'Manual clock' if g.clock_mode == 'OTB' else 'Automatic clock'}")
+        self.statusBar().showMessage(g.result_text)
+        self.board_status.setText(f"{g.board_mode}  ·  {g.piece_sets[g.piece_set].name}")
+        self.engine_name.setText(Path(g.engine_manager.path).name if g.engine_manager.engine else "No engine loaded · Engine → Configure")
+        fen = g.board.fen()
+        if fen != self.last_fen:
+            self.refresh_moves()
+            self.engine_line.clear()
+            self.engine_metrics.setText("Analysing…" if g.analysis_enabled else "Enable analysis from the Engine menu.")
+            self.last_fen = fen
+            if g.last_engine_search is not None:
+                source, info = g.last_engine_search
+                self.show_engine_info(source,info,"Last search · ")
+        if g.analysis_enabled and time.perf_counter()-g.analysis_stamp > .75:
+            g.request_analysis()
+        output = g.engine_output
+        if output is not None and output is not self.last_output:
+            self.last_output = output
+            source,info,error = output
+            if source == fen and g.analysis_enabled:
+                if error:
+                    self.engine_metrics.setText(error)
+                else:
+                    self.show_engine_info(source,info)
+        self.board_widget.update()
+
+    def closeEvent(self, event):
+        g = self.game
+        if g.engine_loading:
+            g.result_text = "Finishing engine load before closing…"
+            QTimer.singleShot(100,self.close)
+            event.ignore()
+            return
+        self.closing = True
+        self.timer.stop()
+        g.closed = True
+        if self.sidebar.isVisible():
+            self.sidebar_width = self.sidebar.width()
+        normal_size = self.normalGeometry().size() if self.isFullScreen() or self.isMaximized() else self.size()
+        g.cfg.update(window_size=[normal_size.width(),normal_size.height()],sidebar_width=self.sidebar_width,
+                     sidebar_visible=self.sidebar_action.isChecked(),focus_mode=self.focus_action.isChecked(),
+                     engine_panel_open=self.engine_toggle.isChecked())
+        g.persist()
+        g.engine_manager.unload()
+        self.board_widget.cleanup()
+        event.accept()
+
+
+def configure_graphics():
+    fmt = QSurfaceFormat()
+    fmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
+    fmt.setVersion(2,1)
+    fmt.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
+    fmt.setDepthBufferSize(24)
+    fmt.setSamples(4)
+    QSurfaceFormat.setDefaultFormat(fmt)
+
+
+def run():
+    configure_graphics()
+    app = QApplication.instance() or QApplication(sys.argv)
+    app.setApplicationName("OTBMaster3D")
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())

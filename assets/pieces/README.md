@@ -1,6 +1,6 @@
 # Piece sets
 
-The Piece set dropdown switches immediately, keeps the current game and clocks,
+The View ? Piece set menu switches immediately, keeps the current game and clocks,
 and remembers the selection. Assets are bundled, so no downloads are needed at
 runtime.
 

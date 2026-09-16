@@ -219,6 +219,12 @@ def default_config():
         "two_d_scale": 1.0,
         "two_d_pan_x": 0.0,
         "two_d_pan_z": 0.0,
+        "window_size": [1280, 840],
+        "sidebar_width": 300,
+        "sidebar_visible": True,
+        "focus_mode": False,
+        "engine_panel_open": False,
+        "interface_theme": "Blue",
         "show_coordinates": True,
         "show_move_indicator": True,
         "sound_enabled": True,
@@ -454,12 +460,14 @@ class EngineManager:
                 except Exception:
                     pass
             self.engine = None
+            self.path = ""
             self.thinking = False
 
     def request_move(self):
         if not self.engine or self.thinking:
             return
         self.thinking = True
+        position = self.app.board.copy()
 
         def worker():
             try:
@@ -467,8 +475,10 @@ class EngineManager:
                     if not self.engine:
                         return
                     result = self.engine.play(
-                        self.app.board.copy(), chess.engine.Limit(time=0.12)
+                        position, chess.engine.Limit(time=0.12), info=chess.engine.INFO_ALL
                     )
+                self.app.last_engine_search = (position.fen(), result.info)
+                self.app.pending_engine_position = position.fen()
                 self.app.pending_engine_move = result.move
             except Exception as e:
                 self.app.pending_engine_error = str(e)
@@ -479,23 +489,26 @@ class EngineManager:
 
 
 class Chess3D:
-    def __init__(self):
+    def __init__(self, render_widget=None):
         ensure_dirs()
         self.cfg = load_config()
-        if not glfw.init():
-            raise RuntimeError("GLFW init failed.")
-        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 2)
-        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 1)
-        glfw.window_hint(glfw.SAMPLES, 4)
-        glfw.window_hint(glfw.RESIZABLE, glfw.TRUE)
-        self.window = glfw.create_window(WIDTH, HEIGHT, f"OTBMaster3D v{__version__}", None, None)
-        if not self.window:
-            glfw.terminate()
-            raise RuntimeError("Could not create OpenGL window.")
-        glfw.make_context_current(self.window)
-        glfw.swap_interval(1)
+        self.render_widget = render_widget
+        self.window = None
         self.width, self.height = WIDTH, HEIGHT
-        setup_gl(WIDTH, HEIGHT)
+        if render_widget is None:
+            if not glfw.init():
+                raise RuntimeError("GLFW init failed.")
+            glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 2)
+            glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 1)
+            glfw.window_hint(glfw.SAMPLES, 4)
+            glfw.window_hint(glfw.RESIZABLE, glfw.TRUE)
+            self.window = glfw.create_window(WIDTH, HEIGHT, f"OTBMaster3D v{__version__}", None, None)
+            if not self.window:
+                glfw.terminate()
+                raise RuntimeError("Could not create OpenGL window.")
+            glfw.make_context_current(self.window)
+            glfw.swap_interval(1)
+            setup_gl(WIDTH, HEIGHT)
         self.board = chess.Board()
         self.board_mode = self.cfg.get("board_mode", "3D")
         if self.board_mode not in ("2D", "3D"):
@@ -511,12 +524,13 @@ class Chess3D:
             self.piece_set = "tournament"
         self.piece_renderer = PieceRenderer()
         self.piece_load_error = None
-        try:
-            self.piece_renderer.prepare(self.piece_sets[self.piece_set])
-        except (OSError, ValueError, RuntimeError) as exc:
-            self.piece_load_error = f"Could not load saved pieces: {exc}"
-            self.piece_set = "club"
-            self.piece_renderer.prepare(self.piece_sets[self.piece_set])
+        if render_widget is None:
+            try:
+                self.piece_renderer.prepare(self.piece_sets[self.piece_set])
+            except (OSError, ValueError, RuntimeError) as exc:
+                self.piece_load_error = f"Could not load saved pieces: {exc}"
+                self.piece_set = "club"
+                self.piece_renderer.prepare(self.piece_sets[self.piece_set])
         self.light_square = tuple(self.cfg["light_square"])
         self.dark_square = tuple(self.cfg["dark_square"])
         self.frame_color = tuple(self.cfg["frame_color"])
@@ -574,15 +588,18 @@ class Chess3D:
         }.get(self.cfg["engine_side"])
         self.engine_manager = EngineManager(self)
         self.pending_engine_move = None
+        self.pending_engine_position = None
+        self.last_engine_search = None
         self.pending_engine_error = None
         self.book_path = self.cfg.get("book_path", "")
         self.ui = None
-        glfw.set_window_user_pointer(self.window, self)
-        glfw.set_framebuffer_size_callback(self.window, self._resize)
-        glfw.set_scroll_callback(self.window, self._scroll)
-        glfw.set_mouse_button_callback(self.window, self._mouse)
-        glfw.set_cursor_pos_callback(self.window, self._cursor)
-        glfw.set_key_callback(self.window, self._key)
+        if render_widget is None:
+            glfw.set_window_user_pointer(self.window, self)
+            glfw.set_framebuffer_size_callback(self.window, self._resize)
+            glfw.set_scroll_callback(self.window, self._scroll)
+            glfw.set_mouse_button_callback(self.window, self._mouse)
+            glfw.set_cursor_pos_callback(self.window, self._cursor)
+            glfw.set_key_callback(self.window, self._key)
 
     @staticmethod
     def _s(w):
@@ -697,10 +714,11 @@ class Chess3D:
             gluLookAt(0, 10, 0, 0, 0, 0, 0, 0, -1 if self.two_d_flipped else 1)
             return
         cp = math.cos(self.pitch)
+        distance = self.distance * max(1, 1.48 / aspect)
         eye = (
-            math.sin(self.yaw) * cp * self.distance,
-            math.sin(self.pitch) * self.distance + self.target_y,
-            -math.cos(self.yaw) * cp * self.distance,
+            math.sin(self.yaw) * cp * distance,
+            math.sin(self.pitch) * distance + self.target_y,
+            -math.cos(self.yaw) * cp * distance,
         )
         gluLookAt(*eye, 0, self.target_y, 0, 0, 1, 0)
         glLightfv(GL_LIGHT0, GL_POSITION, (4, 9, -6, 1))
@@ -709,7 +727,8 @@ class Chess3D:
     def draw_background(self):
         glClearColor(*self.background_color, 1)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        if self.background_texture is None or self.background_texture_size is None:
+        if (getattr(self, "preview_background_color", False)
+                or self.background_texture is None or self.background_texture_size is None):
             return
 
         image_width, image_height = self.background_texture_size
@@ -832,6 +851,12 @@ class Chess3D:
         else:
             self.piece_renderer.draw(spec, piece, x, z, lifted)
 
+    def make_context_current(self):
+        if self.render_widget is not None:
+            self.render_widget.makeCurrent()
+        else:
+            glfw.make_context_current(self.window)
+
     def view_pan(self):
         return (self.two_d_pan_x, self.two_d_pan_z) if self.board_mode == "2D" else (self.pan_x, self.pan_z)
 
@@ -865,7 +890,7 @@ class Chess3D:
         key = self.piece_set_keys[index]
         spec = self.piece_sets[key]
         try:
-            glfw.make_context_current(self.window)
+            self.make_context_current()
             self.piece_renderer.prepare(spec)
         except Exception as exc:
             self.piece_combo.current(self.piece_set_keys.index(self.piece_set))
@@ -877,7 +902,11 @@ class Chess3D:
 
     def ray_to_board(self, mx, my):
         # Input positions are window coordinates; OpenGL uses framebuffer pixels.
-        window_width, window_height = glfw.get_window_size(self.window)
+        self.make_context_current()
+        if self.render_widget is not None:
+            window_width, window_height = self.render_widget.width(), self.render_widget.height()
+        else:
+            window_width, window_height = glfw.get_window_size(self.window)
         mx *= self.width / max(1, window_width)
         my *= self.height / max(1, window_height)
         self.camera()
@@ -950,6 +979,8 @@ class Chess3D:
             )
         self.board.push(mv)
         if self.game_started:
+            if len(self.board.move_stack) == 1:
+                self.last_clock_tick = time.perf_counter()
             if self.clock_mode == "OTB" and not is_engine:
                 self.awaiting_clock_press = True
                 self.awaiting_clock_color = mover
@@ -1166,7 +1197,8 @@ class Chess3D:
         self.clock_paused = not self.clock_paused
         self.last_clock_tick = time.perf_counter()
         self.result_text = "Clock stopped" if self.clock_paused else "Clock resumed"
-        self.stop_btn.config(text="Resume Clock" if self.clock_paused else "Stop Clock")
+        if hasattr(self, "stop_btn"):
+            self.stop_btn.config(text="Resume Clock" if self.clock_paused else "Stop Clock")
 
     def selected_time_control(self):
         """Return the selected preset or a validated custom time control."""
@@ -1262,7 +1294,7 @@ class Chess3D:
 
     def update_clock(self):
         now = time.perf_counter()
-        if not self.game_started or self.game_over or self.clock_paused:
+        if not self.game_started or self.game_over or self.clock_paused or not self.board.move_stack:
             self.last_clock_tick = now
             return
         e = now - self.last_clock_tick
@@ -1312,6 +1344,7 @@ class Chess3D:
             return
         bm = self.pick_book_move()
         if bm:
+            self.pending_engine_position = self.board.fen()
             self.pending_engine_move = bm
         elif self.engine_manager.engine:
             self.engine_manager.request_move()
@@ -1324,6 +1357,10 @@ class Chess3D:
         if mv is None:
             return
         self.pending_engine_move = None
+        source = self.pending_engine_position
+        self.pending_engine_position = None
+        if source is not None and source != self.board.fen():
+            return
         if mv in self.board.legal_moves:
             self.try_move(mv.from_square, mv.to_square, True)
 
@@ -1589,6 +1626,8 @@ class Chess3D:
     def persist(self):
         save_config(
             {
+                **{key: self.cfg.get(key, default_config()[key]) for key in
+                   ("window_size", "sidebar_width", "sidebar_visible", "focus_mode", "engine_panel_open", "interface_theme")},
                 "light_square": list(self.light_square),
                 "dark_square": list(self.dark_square),
                 "frame_color": list(self.frame_color),
@@ -2000,4 +2039,5 @@ class Chess3D:
 
 
 if __name__ == "__main__":
-    Chess3D().run()
+    from desktop_ui import run
+    run()

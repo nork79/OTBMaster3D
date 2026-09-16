@@ -1,5 +1,24 @@
 # Changelog
 
+## 8.0.0 - 2026-09-16
+
+- Add remembered Light, Dark, Blue, Cyberpunk and Pink/Lollipop interface themes.
+- Keep both new-game clocks stopped until the first legal move is played.
+- Restore live colour previews, with Cancel restoring the previous appearance.
+- Apply saved clock settings immediately when no game is running.
+- Allow either paused clock to be clicked and adjusted independently.
+- Use whole minutes and seconds with separate, larger minus/plus buttons in the paused clock editor.
+- Replace the two-window launch with a single PySide6 window and an embedded OpenGL board.
+- Prioritise the board, large clickable clocks, move table and collapsible engine output.
+- Move game, view, engine and appearance settings into menus and compact dialogs.
+- Add a resizable/hideable sidebar, Focus mode, fullscreen and remembered layout preferences.
+- Add background UCI position analysis with White-relative evaluation, depth and best line.
+- Show the last engine move search separately from current-position analysis.
+- Keep 2D/3D input, colours, piece sets, clock bindings, themes and backgrounds.
+- Fit the 3D board to narrower viewports and reject engine moves from stale positions.
+- Add native Qt interaction tests and a deterministic UCI subprocess integration test.
+- Add PySide6 6.11.2; run the requirements installation when upgrading.
+
 ## 7.3.1 - 2026-09-16
 
 - Enable wheel zoom in 2D as well as 3D: up zooms in, down zooms out.
