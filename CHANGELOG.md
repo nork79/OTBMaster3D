@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 8.1.0 - 2026-09-16
 
 - Rename Board theme to Board Color Theme and add a separate remembered Board Type menu.
 - Add Polished Marble, Rounded Oak, Tournament Wood, Canvas Roll-up and Marble & Brass,

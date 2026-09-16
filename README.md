@@ -1,6 +1,6 @@
 # OTBMaster3D
 
-**Version 8.0.0** - desktop chess with a tournament-style 3D board,
+**Version 8.1.0** - desktop chess with a tournament-style 3D board,
 a flat 2D view, UCI engine support and over-the-board clock controls. The main
 interface uses PySide6 and an embedded OpenGL board.
 
@@ -18,6 +18,11 @@ The previous zoom/pan release is available on GitHub as **v7.3.1**.
 - New-game clocks wait for the first move; paused clocks can be adjusted independently.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
+
+Release versions follow `MAJOR.MINOR.PATCH`: breaking changes increment MAJOR,
+compatible features increment MINOR, and fixes increment PATCH. Each release
+updates `otb_chess/version.py`, this README and the changelog together, with a
+matching `vMAJOR.MINOR.PATCH` Git tag.
 
 ## Run on Windows
 
