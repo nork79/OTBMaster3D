@@ -1,5 +1,13 @@
 # Changelog
 
+## 8.3.0 - 2026-09-16
+
+- Add an auditable dependency BOM, copied third-party licence evidence, and explicit
+  unresolved licence/source verification notices.
+- Add Help → Open Source Licences and support notice/asset paths in folder builds.
+- Add a draft dynamic Qt folder deployment, module audit and commercial distribution
+  preparation guide. Python-chess remains a separate proprietary-release blocker.
+
 ## 8.2.0 - 2026-09-16
 
 - Add seven interface themes: Forest, Midnight Ocean, Amethyst, Ember, Nordic Frost,

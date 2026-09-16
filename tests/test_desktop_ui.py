@@ -75,6 +75,96 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual(len(g.board_surface_renderer.textures),3)
         self.assertFalse(g.board_surface_renderer.failed)
 
+    def test_open_source_licences_dialog_and_notice_files(self):
+        from otb_chess.services.settings import APP_DIR
+        from PySide6.QtWidgets import QPlainTextEdit
+        import json
+        help_menu = next(a.menu() for a in self.window.menuBar().actions() if a.text() == 'Help')
+        action = next(a for a in help_menu.actions() if a.text() == 'Open Source Licences')
+        seen = []
+        def inspect_dialog():
+            dialog = QApplication.activeModalWidget()
+            try:
+                seen.append((dialog.objectName(),dialog.findChild(QPlainTextEdit).toPlainText()))
+            finally:
+                dialog.reject()
+        QTimer.singleShot(0,inspect_dialog)
+        action.trigger()
+        self.assertEqual(seen[0][0],'openSourceLicencesDialog')
+        self.assertIn('PySide6',seen[0][1])
+        self.assertIn('chess',seen[0][1])
+        for name in ('THIRD_PARTY_NOTICES.md','licenses/README.md','third_party_bom.json'):
+            self.assertTrue((APP_DIR/name).is_file())
+        inventory = json.loads((APP_DIR/'third_party_bom.json').read_text(encoding='utf-8'))
+        for component in inventory['components']:
+            for evidence in component.get('license_files',[]):
+                self.assertTrue((APP_DIR/evidence['path']).is_file())
+
+    def test_background_presets_render_persist_and_replace_images(self):
+        w,g = self.window,self.game
+        self.assertEqual(len(w.background_actions),8)
+        original = g.board.fen()
+        for mode in ('2D','3D'):
+            g.board_mode = mode
+            for key,action in w.background_actions.items():
+                action.trigger()
+                self.widget.grabFramebuffer()
+                self.assertEqual(glGetError(),GL_NO_ERROR)
+                self.assertEqual(settings.load_config()['background_style'],key)
+                self.assertEqual(g.board.fen(),original)
+                self.assertTrue(action.isChecked())
+                if key != 'solid':
+                    self.assertIsNotNone(g.background_texture)
+        old_key = g.background_preset_key
+        g.dark_square = (.1,.2,.3)
+        self.widget.grabFramebuffer()
+        self.assertNotEqual(g.background_preset_key,old_key)
+        from PIL import Image
+        path = Path(self.folder.name)/'background.png'
+        Image.new('RGB',(16,16),'blue').save(path)
+        self.assertTrue(g.load_background_image(path,show_error=False))
+        w.refresh_background_actions()
+        self.assertFalse(any(a.isChecked() for a in w.background_actions.values()))
+        w.background_actions['studio'].trigger()
+        self.widget.grabFramebuffer()
+        self.assertEqual(g.background_image_path,'')
+        self.assertEqual(g.background_preset_key,('studio',()))
+        w.background_actions['solid'].trigger()
+        self.widget.grabFramebuffer()
+        self.assertIsNone(g.background_texture)
+
+    def test_additional_piece_sets_render_and_remember_independent_choices(self):
+        from otb_chess.graphics.board_2d import FLAT_SETS, flat_piece_image
+        w,g = self.window,self.game
+        original = g.board.fen()
+        w.set_actions['external:scifi'].trigger()
+        g.board_mode = '3D'
+        self.widget.grabFramebuffer()
+        self.assertEqual(glGetError(),GL_NO_ERROR)
+        self.assertEqual(settings.load_config()['piece_set'],'external:scifi')
+        g.board_mode = '2D'
+        signatures = set()
+        for key in FLAT_SETS:
+            w.flat_set_actions[key].trigger()
+            for colour in (True,False):
+                for piece in range(1,7):
+                    image = flat_piece_image(key,piece,(.8,.8,.8),colour)
+                    self.assertEqual(image.size,(256,256))
+                    self.assertIsNotNone(image.getbbox())
+                    self.assertEqual(image.getpixel((0,0))[3],0)
+            signatures.add(flat_piece_image(key,2,(.8,.8,.8),True).tobytes())
+            self.widget.grabFramebuffer()
+            self.assertEqual(glGetError(),GL_NO_ERROR)
+            self.assertEqual(settings.load_config()['flat_piece_set'],key)
+            self.assertEqual(g.piece_set,'external:scifi')
+            self.assertEqual(g.board.fen(),original)
+        self.assertEqual(len(signatures),len(FLAT_SETS))
+        self.window.close()
+        self.qt.processEvents()
+        self.window = MainWindow()
+        self.assertEqual(self.window.game.flat_piece_set,'eyes')
+        self.assertEqual(self.window.game.piece_set,'external:scifi')
+
     def test_interface_themes_apply_and_persist(self):
         w,g = self.window,self.game
         original = (g.board.fen(),g.light_square,g.dark_square,g.background_color)

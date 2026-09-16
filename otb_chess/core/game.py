@@ -3,7 +3,7 @@
 from otb_chess.chess_backend import books
 from otb_chess.chess_backend import rules as chess
 
-from otb_chess.graphics.board_2d import FlatPieceRenderer
+from otb_chess.graphics.board_2d import FlatPieceRenderer, FLAT_SETS
 from pathlib import Path
 from otb_chess.graphics.piece_sets import PieceRenderer
 from otb_chess.version import __version__
@@ -66,6 +66,9 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.two_d_pan_x = float(self.cfg.get("two_d_pan_x", 0.0))
         self.two_d_pan_z = float(self.cfg.get("two_d_pan_z", 0.0))
         self.flat_piece_renderer = FlatPieceRenderer()
+        self.flat_piece_set = self.cfg.get("flat_piece_set","classic")
+        if self.flat_piece_set not in FLAT_SETS:
+            self.flat_piece_set = "classic"
         self.piece_sets = discover_sets(PIECE_DIR)
         self.piece_set = self.cfg.get("piece_set", "tournament")
         if self.piece_set not in self.piece_sets:
@@ -86,6 +89,11 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             self.cfg.get("background_color", DEFAULT_BACKGROUND)
         )
         self.background_image_path = self.cfg.get("background_image", "")
+        from otb_chess.graphics.backgrounds import BACKGROUNDS
+        self.background_style = self.cfg.get("background_style", "solid")
+        if self.background_style not in BACKGROUNDS:
+            self.background_style = "solid"
+        self.background_preset_key = None
         self.background_texture = None
         self.background_texture_size = None
         self.show_coordinates = bool(self.cfg["show_coordinates"])

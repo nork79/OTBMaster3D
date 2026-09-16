@@ -3,9 +3,10 @@
 from otb_chess.chess_backend import values as chess
 
 from otb_chess.graphics.board_2d import flat_square
+from otb_chess.graphics.backgrounds import upload_background
 import glfw
 import math
-from otb_chess.services.settings import BOARD_Y, LEGAL, SELECT, TURN_INDICATOR
+from otb_chess.services.settings import BOARD_Y, SELECT, TURN_INDICATOR
 from otb_chess.graphics.gl_primitives import draw_box, draw_disc, draw_glyph
 from OpenGL.GL import GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST, GL_FALSE, GL_LIGHT0, GL_LIGHT1, GL_LIGHTING, GL_MODELVIEW, GL_MODELVIEW_MATRIX, GL_POSITION, GL_PROJECTION, GL_PROJECTION_MATRIX, GL_QUADS, GL_TEXTURE_2D, GL_TRUE, GL_VIEWPORT, glBegin, glBindTexture, glClear, glClearColor, glColor3f, glDepthMask, glDisable, glEnable, glEnd, glGetDoublev, glGetIntegerv, glLightfv, glLoadIdentity, glMatrixMode, glOrtho, glPopMatrix, glPushMatrix, glTexCoord2f, glTranslatef, glVertex2f
 from OpenGL.GLU import gluLookAt, gluPerspective, gluUnProject
@@ -43,6 +44,15 @@ class BoardRendering:
     def draw_background(self):
         glClearColor(*self.background_color, 1)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        if not getattr(self, "preview_background_color", False) and not self.background_image_path:
+            style = self.background_style
+            if style == "solid":
+                return
+            key = (style, tuple(self.dark_square) if style == "match" else ())
+            if self.background_preset_key != key:
+                self.delete_background_texture()
+                self.background_texture, self.background_texture_size = upload_background(style,self.dark_square)
+                self.background_preset_key = key
         if (getattr(self, "preview_background_color", False)
                 or self.background_texture is None or self.background_texture_size is None):
             return
@@ -103,15 +113,12 @@ class BoardRendering:
             flat_square(0, 0, 8.72, 8.72, self.frame_color, y=0)
         else:
             draw_box(0, -0.14, 0, 8.72, 0.28, 8.72, self.frame_color)
-        legal = self.legal_targets()
         for r in range(8):
             for f in range(8):
                 sq = chess.square(f, r)
                 col = self.dark_square if (f + r) % 2 == 0 else self.light_square
                 if sq == self.selected:
                     col = SELECT
-                elif sq in legal:
-                    col = tuple(0.60 * c + 0.40 * l for c, l in zip(col, LEGAL))
                 if self.board_type != "classic":
                     self.board_surface_renderer.square(self.board_type,3.5-f,r-3.5,col)
                 elif flat:
@@ -162,12 +169,32 @@ class BoardRendering:
                     max(-3.85, min(3.85, z - pan_z)),
                     True,
                 )
+        self.draw_legal_markers()
         glPopMatrix()
+
+    def draw_legal_markers(self):
+        if not self.show_move_indicator:
+            return
+        # Overlay the board centres so capture destinations remain visible too.
+        targets = self.legal_targets()
+        if not targets:
+            return
+        glDisable(GL_DEPTH_TEST)
+        glDepthMask(GL_FALSE)
+        for sq in targets:
+            f, r = chess.square_file(sq), chess.square_rank(sq)
+            square_color = self.dark_square if (f + r) % 2 == 0 else self.light_square
+            brightness = sum(c * weight for c,weight in zip(square_color,(0.2126,0.7152,0.0722)))
+            shade = 0.62 if brightness > 0.5 else 0.74
+            x, z = 3.5 - f, r - 3.5
+            draw_disc(x,0.04,z,0.095,(shade,)*3)
+        glDepthMask(GL_TRUE)
+        glEnable(GL_DEPTH_TEST)
 
     def draw_game_piece(self, piece, x, z, lifted=False):
         spec = self.piece_sets[self.piece_set]
         if self.board_mode == "2D":
-            self.flat_piece_renderer.draw(spec, piece, x, z, self.view_yaw(), lifted)
+            self.flat_piece_renderer.draw(spec, piece, x, z, self.view_yaw(), lifted, self.flat_piece_set)
         else:
             self.piece_renderer.draw(spec, piece, x, z, lifted)
 

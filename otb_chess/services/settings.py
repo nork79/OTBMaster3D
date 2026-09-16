@@ -4,9 +4,10 @@ from pathlib import Path
 from dataclasses import dataclass
 import json
 import math
+import sys
 
 
-APP_DIR = Path(__file__).resolve().parents[2]
+APP_DIR = Path(sys.executable).resolve().parent if getattr(sys,"frozen",False) else Path(__file__).resolve().parents[2]
 
 
 CONFIG_PATH = APP_DIR / "config.json"
@@ -94,6 +95,8 @@ def default_config():
         "frame_color": list(DEFAULT_FRAME),
         "background_color": list(DEFAULT_BACKGROUND),
         "background_image": "",
+        "background_style": "solid",
+        "flat_piece_set": "classic",
         "piece_set": "tournament",
         "board_mode": "3D",
         "board_type": "classic",

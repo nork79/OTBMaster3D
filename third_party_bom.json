@@ -1,0 +1,1613 @@
+{
+  "schema_version": 1,
+  "status": "development inventory, NOT release clearance",
+  "components": [
+    {
+      "name": "PySide6",
+      "version": "6.11.2",
+      "apparent_license": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+      "category": "runtime",
+      "redistribution": "intended",
+      "source": "https://doc.qt.io/qtforpython-6/licenses.html",
+      "evidence": "installed distribution metadata; selected licence route requires review",
+      "license_files": [
+        {
+          "path": "licenses/PySide6/LicenseRef-Qt-Commercial.txt",
+          "source": "pyside6-6.11.2.dist-info/licenses/LicenseRef-Qt-Commercial.txt",
+          "sha256": "4f54763ac0fe2abd8f7f8d8fe370a94a08ebf84786aa0b91045bd6628deb08a3"
+        }
+      ],
+      "requires": [
+        "shiboken6==6.11.2",
+        "PySide6_Essentials==6.11.2",
+        "PySide6_Addons==6.11.2",
+        "tomli>=2.0.1; python_version < \"3.11\""
+      ]
+    },
+    {
+      "name": "PySide6_Essentials",
+      "version": "6.11.2",
+      "apparent_license": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+      "category": "runtime",
+      "redistribution": "intended",
+      "source": "https://doc.qt.io/qtforpython-6/licenses.html",
+      "evidence": "installed distribution metadata; selected licence route requires review",
+      "license_files": [
+        {
+          "path": "licenses/PySide6_Essentials/LicenseRef-Qt-Commercial.txt",
+          "source": "pyside6_essentials-6.11.2.dist-info/licenses/LicenseRef-Qt-Commercial.txt",
+          "sha256": "4f54763ac0fe2abd8f7f8d8fe370a94a08ebf84786aa0b91045bd6628deb08a3"
+        }
+      ],
+      "requires": [
+        "shiboken6==6.11.2"
+      ]
+    },
+    {
+      "name": "PySide6_Addons",
+      "version": "6.11.2",
+      "apparent_license": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+      "category": "runtime",
+      "redistribution": "Selected runtime files only; not whole Addons wheel",
+      "source": "https://doc.qt.io/qt-6/licensing.html",
+      "evidence": "installed distribution metadata; selected licence route requires review",
+      "license_files": [
+        {
+          "path": "licenses/PySide6_Addons/LicenseRef-Qt-Commercial.txt",
+          "source": "pyside6_addons-6.11.2.dist-info/licenses/LicenseRef-Qt-Commercial.txt",
+          "sha256": "4f54763ac0fe2abd8f7f8d8fe370a94a08ebf84786aa0b91045bd6628deb08a3"
+        }
+      ],
+      "requires": [
+        "shiboken6==6.11.2",
+        "PySide6_Essentials==6.11.2"
+      ]
+    },
+    {
+      "name": "shiboken6",
+      "version": "6.11.2",
+      "apparent_license": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+      "category": "runtime",
+      "redistribution": "intended",
+      "source": "https://doc.qt.io/qtforpython-6/licenses.html",
+      "evidence": "installed distribution metadata; selected licence route requires review",
+      "license_files": [
+        {
+          "path": "licenses/shiboken6/LicenseRef-Qt-Commercial.txt",
+          "source": "shiboken6-6.11.2.dist-info/licenses/LicenseRef-Qt-Commercial.txt",
+          "sha256": "4f54763ac0fe2abd8f7f8d8fe370a94a08ebf84786aa0b91045bd6628deb08a3"
+        }
+      ],
+      "requires": []
+    },
+    {
+      "name": "glfw",
+      "version": "2.10.2",
+      "apparent_license": "MIT",
+      "category": "runtime",
+      "redistribution": "intended",
+      "source": "https://github.com/FlorianRhiem/pyGLFW",
+      "evidence": "installed distribution metadata; selected licence route requires review",
+      "license_files": [
+        {
+          "path": "licenses/glfw/LICENSE.txt",
+          "source": "glfw-2.10.2.dist-info/licenses/LICENSE.txt",
+          "sha256": "83e675a7714eb01db1ed75cedcf349ab9dd9630782f81c08161cb58cc67ca1ca"
+        }
+      ],
+      "requires": [
+        "glfw_preview; extra == \"preview\""
+      ]
+    },
+    {
+      "name": "PyOpenGL",
+      "version": "3.1.10",
+      "apparent_license": "requires verification before release",
+      "category": "runtime",
+      "redistribution": "intended",
+      "source": "https://github.com/mcfletch/pyopengl",
+      "evidence": "installed distribution metadata; selected licence route requires review",
+      "license_files": [],
+      "requires": []
+    },
+    {
+      "name": "Pillow",
+      "version": "12.3.0",
+      "apparent_license": "MIT-CMU",
+      "category": "runtime",
+      "redistribution": "intended",
+      "source": "https://pillow.readthedocs.io/en/stable/about.html",
+      "evidence": "installed distribution metadata; selected licence route requires review",
+      "license_files": [
+        {
+          "path": "licenses/Pillow/LICENSE",
+          "source": "pillow-12.3.0.dist-info/licenses/LICENSE",
+          "sha256": "4f7866a74802c6326f81faff59a56546b6aec2b10b91973e0e9308de95e79857"
+        }
+      ],
+      "requires": [
+        "furo; extra == \"docs\"",
+        "olefile; extra == \"docs\"",
+        "sphinx>=8.2; extra == \"docs\"",
+        "sphinx-autobuild; extra == \"docs\"",
+        "sphinx-copybutton; extra == \"docs\"",
+        "sphinx-inline-tabs; extra == \"docs\"",
+        "sphinxext-opengraph; extra == \"docs\"",
+        "olefile; extra == \"fpx\"",
+        "olefile; extra == \"mic\"",
+        "arro3-compute; extra == \"test-arrow\"",
+        "arro3-core; extra == \"test-arrow\"",
+        "nanoarrow; extra == \"test-arrow\"",
+        "pyarrow; extra == \"test-arrow\"",
+        "coverage>=7.4.2; extra == \"tests\"",
+        "defusedxml; extra == \"tests\"",
+        "markdown2; extra == \"tests\"",
+        "olefile; extra == \"tests\"",
+        "packaging; extra == \"tests\"",
+        "pytest; extra == \"tests\"",
+        "pytest-cov; extra == \"tests\"",
+        "pytest-timeout; extra == \"tests\"",
+        "pytest-xdist; extra == \"tests\"",
+        "setuptools; extra == \"tests\"",
+        "trove-classifiers>=2024.10.12; extra == \"tests\"",
+        "defusedxml; extra == \"xmp\""
+      ]
+    },
+    {
+      "name": "chess",
+      "version": "1.11.2",
+      "apparent_license": "GPL-3.0+",
+      "category": "runtime",
+      "redistribution": "NO: replace before proprietary release",
+      "source": "https://python-chess.readthedocs.io/en/stable/",
+      "evidence": "installed distribution metadata; selected licence route requires review",
+      "license_files": [
+        {
+          "path": "licenses/chess/LICENSE.txt",
+          "source": "chess-1.11.2.dist-info/licenses/LICENSE.txt",
+          "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+        }
+      ],
+      "requires": []
+    },
+    {
+      "name": "Qt runtime and plugins",
+      "version": "6.11.2",
+      "apparent_license": "LGPLv3 available for used modules; per-file third-party notices required",
+      "category": "runtime",
+      "redistribution": "selected DLLs only",
+      "source": "https://doc.qt.io/qt-6/licensing.html"
+    },
+    {
+      "name": "GLFW native library",
+      "version": "3.4.0",
+      "apparent_license": "zlib/libpng licence (upstream); bundled binary provenance requires verification before release",
+      "category": "runtime",
+      "redistribution": "intended",
+      "source": "https://www.glfw.org/license.html"
+    },
+    {
+      "name": "CPython",
+      "version": "3.14.7",
+      "apparent_license": "PSF and bundled component licences; requires verification before release",
+      "category": "runtime",
+      "redistribution": "intended",
+      "source": "https://docs.python.org/3/license.html"
+    },
+    {
+      "name": "Tcl/Tk",
+      "version": "requires verification before release",
+      "apparent_license": "Tcl/Tk licence; requires verification before release",
+      "category": "runtime",
+      "redistribution": "currently reachable through legacy UI imports",
+      "source": "https://www.tcl-lang.org/software/tcltk/license.html"
+    },
+    {
+      "name": "Windows VC runtimes",
+      "version": "requires verification before release",
+      "apparent_license": "Microsoft redistribution terms; requires verification before release",
+      "category": "runtime",
+      "redistribution": "as required by native binaries; includes installed glfw msvcr120.dll",
+      "source": "https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files"
+    },
+    {
+      "name": "Pillow native codecs",
+      "version": "requires verification before release",
+      "apparent_license": "Multiple; requires verification before release",
+      "category": "runtime",
+      "redistribution": "only exact wheel/deployed closure",
+      "source": "https://pillow.readthedocs.io/en/stable/installation/building-from-source.html"
+    },
+    {
+      "name": "OpenGL/GLU system drivers",
+      "version": "OS/vendor supplied",
+      "apparent_license": "OS/vendor terms; requires verification before release",
+      "category": "runtime",
+      "redistribution": "not redistributed",
+      "source": "https://learn.microsoft.com/en-us/windows/win32/opengl/opengl"
+    },
+    {
+      "name": "PyOpenGL optional freeglut/GLE binaries",
+      "version": "requires verification before release",
+      "apparent_license": "See installed COPYING files; not needed by this app",
+      "category": "runtime",
+      "redistribution": "exclude",
+      "source": "https://github.com/mcfletch/pyopengl"
+    },
+    {
+      "name": "Staunton models",
+      "version": "2014 source; converted meshes",
+      "apparent_license": "MIT",
+      "category": "asset",
+      "redistribution": "yes",
+      "source": "https://github.com/clarkerubber/Staunton-Pieces"
+    },
+    {
+      "name": "ambientCG board maps",
+      "version": "Marble012, Wood049, Fabric030; see assets/boards/sources.json",
+      "apparent_license": "CC0-1.0",
+      "category": "asset",
+      "redistribution": "yes",
+      "source": "https://docs.ambientcg.com/license/"
+    },
+    {
+      "name": "Generated sounds / procedural geometry",
+      "version": "application source",
+      "apparent_license": "Application-owned; audit provenance of any replacement files",
+      "category": "asset",
+      "redistribution": "yes; regenerate sounds in clean build",
+      "source": "otb_chess/services/audio.py"
+    },
+    {
+      "name": "User UCI engines and books",
+      "version": "user supplied",
+      "apparent_license": "varies; requires verification before release if bundled",
+      "category": "runtime",
+      "redistribution": "not bundled",
+      "source": "docs/chess-backend-migration.md"
+    },
+    {
+      "name": "PyInstaller",
+      "version": "not installed / not pinned",
+      "apparent_license": "GPL with bootloader exception; requires verification before release",
+      "category": "build",
+      "redistribution": "bootloader only if draft adopted",
+      "source": "https://pyinstaller.org/en/stable/license.html"
+    },
+    {
+      "name": "black",
+      "version": "26.5.1",
+      "apparent_license": "MIT",
+      "category": "development environment",
+      "redistribution": "no; not an application dependency"
+    },
+    {
+      "name": "click",
+      "version": "8.5.0",
+      "apparent_license": "BSD-3-Clause",
+      "category": "development environment",
+      "redistribution": "no; not an application dependency"
+    },
+    {
+      "name": "mypy_extensions",
+      "version": "1.1.0",
+      "apparent_license": "MIT",
+      "category": "development environment",
+      "redistribution": "no; not an application dependency"
+    },
+    {
+      "name": "packaging",
+      "version": "26.3",
+      "apparent_license": "Apache-2.0 OR BSD-2-Clause",
+      "category": "development environment",
+      "redistribution": "no; not an application dependency"
+    },
+    {
+      "name": "pathspec",
+      "version": "1.1.1",
+      "apparent_license": "requires verification before release",
+      "category": "development environment",
+      "redistribution": "no; not an application dependency"
+    },
+    {
+      "name": "pip",
+      "version": "26.2.1",
+      "apparent_license": "MIT",
+      "category": "development environment",
+      "redistribution": "no; not an application dependency"
+    },
+    {
+      "name": "platformdirs",
+      "version": "4.11.8",
+      "apparent_license": "MIT",
+      "category": "development environment",
+      "redistribution": "no; not an application dependency"
+    },
+    {
+      "name": "pytokens",
+      "version": "0.4.1",
+      "apparent_license": "MIT License\n\nCopyright (c) 2024 Tushar Sadhwani\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+      "category": "development environment",
+      "redistribution": "no; not an application dependency"
+    },
+    {
+      "name": "Sci-fi Vehicles chess models",
+      "version": "retrieved 2026-09-17",
+      "apparent_license": "CC0-1.0",
+      "category": "artwork",
+      "redistribution": "intended",
+      "source": "https://opengameart.org/content/sci-fi-chess",
+      "evidence": "Bundled upstream licence and source credits; see asset README",
+      "license_files": [
+        {
+          "path": "assets/pieces/scifi/LICENSE",
+          "source": "https://opengameart.org/content/sci-fi-chess",
+          "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+        }
+      ]
+    },
+    {
+      "name": "Maurizio Monge 2D chess artwork",
+      "version": "retrieved 2026-09-17",
+      "apparent_license": "MIT",
+      "category": "artwork",
+      "redistribution": "intended",
+      "source": "https://github.com/maurimo/chess-art",
+      "evidence": "Bundled upstream licence and source credits; see asset README",
+      "license_files": [
+        {
+          "path": "assets/pieces_2d/fantasy/LICENSE",
+          "source": "https://github.com/maurimo/chess-art",
+          "sha256": "6a659f43b1e9e0000a3b85655ed94d3e70b4de878b3054c5bcc79ff99bc7f253"
+        },
+        {
+          "path": "assets/pieces_2d/celtic/LICENSE",
+          "source": "https://github.com/maurimo/chess-art",
+          "sha256": "6a659f43b1e9e0000a3b85655ed94d3e70b4de878b3054c5bcc79ff99bc7f253"
+        },
+        {
+          "path": "assets/pieces_2d/spatial/LICENSE",
+          "source": "https://github.com/maurimo/chess-art",
+          "sha256": "6a659f43b1e9e0000a3b85655ed94d3e70b4de878b3054c5bcc79ff99bc7f253"
+        },
+        {
+          "path": "assets/pieces_2d/skulls/LICENSE",
+          "source": "https://github.com/maurimo/chess-art",
+          "sha256": "6a659f43b1e9e0000a3b85655ed94d3e70b4de878b3054c5bcc79ff99bc7f253"
+        },
+        {
+          "path": "assets/pieces_2d/eyes/LICENSE",
+          "source": "https://github.com/maurimo/chess-art",
+          "sha256": "6a659f43b1e9e0000a3b85655ed94d3e70b4de878b3054c5bcc79ff99bc7f253"
+        }
+      ]
+    }
+  ],
+  "imports": [
+    {
+      "file": "main.py",
+      "line": 5,
+      "module": "otb_chess.ui.desktop_ui",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/__main__.py",
+      "line": 3,
+      "module": "otb_chess.ui.desktop_ui",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/chess_backend/books.py",
+      "line": 3,
+      "module": "chess.polyglot",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/chess_backend/notation.py",
+      "line": 3,
+      "module": "chess.pgn",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/chess_backend/rules.py",
+      "line": 7,
+      "module": "chess",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/chess_backend/rules.py",
+      "line": 8,
+      "module": "otb_chess.chess_backend.values",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/chess_backend/uci.py",
+      "line": 3,
+      "module": "chess.engine",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/appearance.py",
+      "line": 3,
+      "module": "PIL",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/appearance.py",
+      "line": 4,
+      "module": "PIL",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/appearance.py",
+      "line": 5,
+      "module": "pathlib",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/appearance.py",
+      "line": 6,
+      "module": "tkinter",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/appearance.py",
+      "line": 7,
+      "module": "otb_chess.services.settings",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/appearance.py",
+      "line": 8,
+      "module": "otb_chess.graphics.board_colors",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/appearance.py",
+      "line": 9,
+      "module": "OpenGL.GL",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/board_input.py",
+      "line": 3,
+      "module": "glfw",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/board_input.py",
+      "line": 4,
+      "module": "math",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/board_input.py",
+      "line": 5,
+      "module": "time",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/board_input.py",
+      "line": 6,
+      "module": "otb_chess.graphics.gl_primitives",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/clocks.py",
+      "line": 3,
+      "module": "otb_chess.chess_backend",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/clocks.py",
+      "line": 5,
+      "module": "tkinter",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/clocks.py",
+      "line": 6,
+      "module": "time",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/clocks.py",
+      "line": 7,
+      "module": "otb_chess.services.settings",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/documents.py",
+      "line": 3,
+      "module": "otb_chess.chess_backend",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/documents.py",
+      "line": 4,
+      "module": "otb_chess.chess_backend",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/documents.py",
+      "line": 6,
+      "module": "io",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 3,
+      "module": "otb_chess.chess_backend",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 4,
+      "module": "otb_chess.chess_backend",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 6,
+      "module": "otb_chess.graphics.board_2d",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 7,
+      "module": "pathlib",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 8,
+      "module": "otb_chess.graphics.piece_sets",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 9,
+      "module": "otb_chess.version",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 10,
+      "module": "otb_chess.graphics.piece_sets",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 11,
+      "module": "glfw",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 12,
+      "module": "math",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 13,
+      "module": "random",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 14,
+      "module": "threading",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 15,
+      "module": "time",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 16,
+      "module": "otb_chess.services.settings",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 17,
+      "module": "otb_chess.services.audio",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 18,
+      "module": "otb_chess.graphics.gl_primitives",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 19,
+      "module": "otb_chess.services.engine",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 20,
+      "module": "otb_chess.graphics.rendering",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 21,
+      "module": "otb_chess.core.board_input",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 22,
+      "module": "otb_chess.core.appearance",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 23,
+      "module": "otb_chess.ui.legacy_ui",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 24,
+      "module": "otb_chess.core.clocks",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 25,
+      "module": "otb_chess.core.documents",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/core/game.py",
+      "line": 26,
+      "module": "otb_chess.graphics.board_types",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/board_2d.py",
+      "line": 3,
+      "module": "otb_chess.chess_backend",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/board_2d.py",
+      "line": 5,
+      "module": "math",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/board_2d.py",
+      "line": 6,
+      "module": "PIL",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/board_2d.py",
+      "line": 7,
+      "module": "OpenGL",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/board_types.py",
+      "line": 3,
+      "module": "dataclasses",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/board_types.py",
+      "line": 4,
+      "module": "math",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/board_types.py",
+      "line": 5,
+      "module": "PIL",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/board_types.py",
+      "line": 6,
+      "module": "OpenGL",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/board_types.py",
+      "line": 7,
+      "module": "otb_chess.services.settings",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/board_types.py",
+      "line": 8,
+      "module": "otb_chess.graphics.gl_primitives",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/gl_primitives.py",
+      "line": 3,
+      "module": "math",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/gl_primitives.py",
+      "line": 4,
+      "module": "otb_chess.services.settings",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/gl_primitives.py",
+      "line": 5,
+      "module": "OpenGL.GL",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/gl_primitives.py",
+      "line": 6,
+      "module": "OpenGL.GLU",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/piece_sets.py",
+      "line": 8,
+      "module": "otb_chess.chess_backend",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/piece_sets.py",
+      "line": 10,
+      "module": "dataclasses",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/piece_sets.py",
+      "line": 11,
+      "module": "json",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/piece_sets.py",
+      "line": 12,
+      "module": "gzip",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/piece_sets.py",
+      "line": 13,
+      "module": "struct",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/piece_sets.py",
+      "line": 14,
+      "module": "math",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/piece_sets.py",
+      "line": 15,
+      "module": "pathlib",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/piece_sets.py",
+      "line": 16,
+      "module": "otb_chess.services.settings",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/piece_sets.py",
+      "line": 18,
+      "module": "OpenGL",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/rendering.py",
+      "line": 3,
+      "module": "otb_chess.chess_backend",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/rendering.py",
+      "line": 5,
+      "module": "otb_chess.graphics.board_2d",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/rendering.py",
+      "line": 6,
+      "module": "glfw",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/rendering.py",
+      "line": 7,
+      "module": "math",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/rendering.py",
+      "line": 8,
+      "module": "otb_chess.services.settings",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/rendering.py",
+      "line": 9,
+      "module": "otb_chess.graphics.gl_primitives",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/rendering.py",
+      "line": 10,
+      "module": "OpenGL.GL",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/graphics/rendering.py",
+      "line": 11,
+      "module": "OpenGL.GLU",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/audio.py",
+      "line": 3,
+      "module": "math",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/audio.py",
+      "line": 4,
+      "module": "random",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/audio.py",
+      "line": 5,
+      "module": "struct",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/audio.py",
+      "line": 6,
+      "module": "threading",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/audio.py",
+      "line": 7,
+      "module": "wave",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/audio.py",
+      "line": 8,
+      "module": "otb_chess.services.settings",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/audio.py",
+      "line": 10,
+      "module": "winsound",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/engine.py",
+      "line": 3,
+      "module": "otb_chess.chess_backend",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/engine.py",
+      "line": 5,
+      "module": "pathlib",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/engine.py",
+      "line": 6,
+      "module": "threading",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/settings.py",
+      "line": 3,
+      "module": "pathlib",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/settings.py",
+      "line": 4,
+      "module": "dataclasses",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/settings.py",
+      "line": 5,
+      "module": "json",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/settings.py",
+      "line": 6,
+      "module": "math",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/services/settings.py",
+      "line": 7,
+      "module": "sys",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 3,
+      "module": "otb_chess.chess_backend",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 4,
+      "module": "otb_chess.chess_backend",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 6,
+      "module": "math",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 7,
+      "module": "sys",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 8,
+      "module": "threading",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 9,
+      "module": "time",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 10,
+      "module": "pathlib",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 12,
+      "module": "PySide6.QtCore",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 13,
+      "module": "PySide6.QtGui",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 14,
+      "module": "PySide6.QtOpenGLWidgets",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 15,
+      "module": "PySide6.QtWidgets",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 23,
+      "module": "otb_chess.core.game",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 24,
+      "module": "otb_chess.services.settings",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 25,
+      "module": "otb_chess.graphics.gl_primitives",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 26,
+      "module": "otb_chess.version",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 27,
+      "module": "otb_chess.ui.interface_themes",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 28,
+      "module": "otb_chess.ui.document_actions",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 29,
+      "module": "otb_chess.graphics.board_types",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 30,
+      "module": "otb_chess.graphics.board_colors",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/desktop_ui.py",
+      "line": 31,
+      "module": "otb_chess.ui.licenses_dialog",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/document_actions.py",
+      "line": 3,
+      "module": "pathlib",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/document_actions.py",
+      "line": 4,
+      "module": "PySide6.QtWidgets",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/document_actions.py",
+      "line": 5,
+      "module": "otb_chess.core.documents",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/interface_themes.py",
+      "line": 3,
+      "module": "re",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 3,
+      "module": "otb_chess.chess_backend",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 5,
+      "module": "PIL",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 6,
+      "module": "PIL",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 7,
+      "module": "pathlib",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 8,
+      "module": "otb_chess.version",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 9,
+      "module": "colorsys",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 10,
+      "module": "tkinter",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 11,
+      "module": "glfw",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 12,
+      "module": "math",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 13,
+      "module": "tkinter",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 14,
+      "module": "tkinter",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 15,
+      "module": "tkinter",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 16,
+      "module": "otb_chess.services.settings",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/legacy_ui.py",
+      "line": 17,
+      "module": "otb_chess.graphics.board_colors",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/licenses_dialog.py",
+      "line": 3,
+      "module": "json",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/licenses_dialog.py",
+      "line": 4,
+      "module": "PySide6.QtWidgets",
+      "scope": "runtime"
+    },
+    {
+      "file": "otb_chess/ui/licenses_dialog.py",
+      "line": 5,
+      "module": "otb_chess.services.settings",
+      "scope": "runtime"
+    },
+    {
+      "file": "tests/fixtures/uci_stub.py",
+      "line": 3,
+      "module": "sys",
+      "scope": "test"
+    },
+    {
+      "file": "tests/fixtures/uci_stub.py",
+      "line": 4,
+      "module": "chess",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_chess_backend.py",
+      "line": 3,
+      "module": "ast",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_chess_backend.py",
+      "line": 4,
+      "module": "pathlib",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_chess_backend.py",
+      "line": 5,
+      "module": "unittest",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_chess_backend.py",
+      "line": 7,
+      "module": "otb_chess.chess_backend",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 3,
+      "module": "tempfile",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 4,
+      "module": "sys",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 5,
+      "module": "time",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 6,
+      "module": "unittest",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 7,
+      "module": "pathlib",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 8,
+      "module": "unittest.mock",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 10,
+      "module": "chess",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 11,
+      "module": "chess.engine",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 12,
+      "module": "PySide6.QtCore",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 13,
+      "module": "PySide6.QtGui",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 14,
+      "module": "PySide6.QtTest",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 15,
+      "module": "PySide6.QtWidgets",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 17,
+      "module": "otb_chess.core",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 18,
+      "module": "otb_chess.services",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 19,
+      "module": "time",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 20,
+      "module": "tkinter",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 21,
+      "module": "tkinter",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 22,
+      "module": "OpenGL.GL",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 23,
+      "module": "OpenGL.GLU",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 24,
+      "module": "otb_chess.ui.desktop_ui",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 64,
+      "module": "otb_chess.graphics.board_types",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 79,
+      "module": "otb_chess.services.settings",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 80,
+      "module": "PySide6.QtWidgets",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_desktop_ui.py",
+      "line": 81,
+      "module": "json",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_documents.py",
+      "line": 3,
+      "module": "unittest",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_documents.py",
+      "line": 4,
+      "module": "unittest.mock",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_documents.py",
+      "line": 5,
+      "module": "chess",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_documents.py",
+      "line": 6,
+      "module": "otb_chess.core.documents",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 6,
+      "module": "gzip",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 7,
+      "module": "json",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 8,
+      "module": "math",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 9,
+      "module": "os",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 10,
+      "module": "pathlib",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 11,
+      "module": "struct",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 12,
+      "module": "sys",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 13,
+      "module": "tempfile",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 14,
+      "module": "unittest",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 15,
+      "module": "zipfile",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 16,
+      "module": "unittest.mock",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 18,
+      "module": "chess",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 19,
+      "module": "glfw",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 20,
+      "module": "otb_chess.core",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 21,
+      "module": "otb_chess.services",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 22,
+      "module": "time",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 23,
+      "module": "tkinter",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 24,
+      "module": "tkinter",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 25,
+      "module": "OpenGL.GL",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 26,
+      "module": "OpenGL.GLU",
+      "scope": "test"
+    },
+    {
+      "file": "tests/test_piece_sets.py",
+      "line": 27,
+      "module": "otb_chess.graphics.piece_sets",
+      "scope": "test"
+    },
+    {
+      "file": "tools/audit_dependencies.py",
+      "line": 6,
+      "module": "ast",
+      "scope": "tool"
+    },
+    {
+      "file": "tools/audit_dependencies.py",
+      "line": 7,
+      "module": "hashlib",
+      "scope": "tool"
+    },
+    {
+      "file": "tools/audit_dependencies.py",
+      "line": 8,
+      "module": "importlib.metadata",
+      "scope": "tool"
+    },
+    {
+      "file": "tools/audit_dependencies.py",
+      "line": 9,
+      "module": "json",
+      "scope": "tool"
+    },
+    {
+      "file": "tools/audit_dependencies.py",
+      "line": 10,
+      "module": "pathlib",
+      "scope": "tool"
+    },
+    {
+      "file": "tools/audit_dependencies.py",
+      "line": 11,
+      "module": "shutil",
+      "scope": "tool"
+    },
+    {
+      "file": "tools/audit_dependencies.py",
+      "line": 12,
+      "module": "sys",
+      "scope": "tool"
+    },
+    {
+      "file": "tools/convert_staunton.py",
+      "line": 7,
+      "module": "collections",
+      "scope": "tool"
+    },
+    {
+      "file": "tools/convert_staunton.py",
+      "line": 8,
+      "module": "gzip",
+      "scope": "tool"
+    },
+    {
+      "file": "tools/convert_staunton.py",
+      "line": 9,
+      "module": "math",
+      "scope": "tool"
+    },
+    {
+      "file": "tools/convert_staunton.py",
+      "line": 10,
+      "module": "pathlib",
+      "scope": "tool"
+    },
+    {
+      "file": "tools/convert_staunton.py",
+      "line": 11,
+      "module": "struct",
+      "scope": "tool"
+    },
+    {
+      "file": "tools/convert_staunton.py",
+      "line": 12,
+      "module": "sys",
+      "scope": "tool"
+    }
+  ],
+  "qt_modules": [
+    "PySide6.QtCore",
+    "PySide6.QtGui",
+    "PySide6.QtOpenGLWidgets",
+    "PySide6.QtTest",
+    "PySide6.QtWidgets"
+  ]
+}

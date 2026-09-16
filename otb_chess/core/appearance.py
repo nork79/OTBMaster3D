@@ -74,6 +74,7 @@ class AppearanceSettings:
             glDeleteTextures([self.background_texture])
         self.background_texture = None
         self.background_texture_size = None
+        self.background_preset_key = None
 
     def update_background_label(self):
         if not hasattr(self, "background_var"):
@@ -142,7 +143,9 @@ class AppearanceSettings:
                 "frame_color": list(self.frame_color),
                 "background_color": list(self.background_color),
                 "background_image": self.background_image_path,
+                "background_style": self.background_style,
                 "piece_set": self.piece_set,
+                "flat_piece_set": self.flat_piece_set,
                 "board_mode": self.board_mode,
                 "board_type": self.board_type,
                 "two_d_flipped": self.two_d_flipped,

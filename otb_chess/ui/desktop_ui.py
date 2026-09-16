@@ -28,6 +28,7 @@ from otb_chess.ui.interface_themes import THEMES, themed_stylesheet
 from otb_chess.ui.document_actions import DocumentActions
 from otb_chess.graphics.board_types import BOARD_TYPES
 from otb_chess.graphics.board_colors import BOARD_COLOR_THEMES
+from otb_chess.ui.licenses_dialog import show_licenses
 
 
 STYLE = """
@@ -46,6 +47,9 @@ QPushButton, QToolButton { background: #2b3543; border: 1px solid #3b4759;
     border-radius: 6px; padding: 8px 12px; }
 QPushButton:hover, QToolButton:hover { background: #39475b; }
 QPushButton:disabled { color: #748095; }
+QPushButton#moveNavigation { background: transparent; border: none;
+    border-radius: 3px; padding: 2px; font-size: 12px; }
+QPushButton#moveNavigation:hover { background: #39475b; }
 QPushButton#primary { background: #d5944a; color: #161a20; border: none; font-weight: 600; }
 QPushButton#primary:hover { background: #e5a65c; }
 QPushButton#clock { background: #252e3a; border: 2px solid #364152; padding: 8px; }
@@ -395,6 +399,22 @@ class MainWindow(DocumentActions, QMainWindow):
         self.moves_panel = QWidget()
         moves_layout = QVBoxLayout(self.moves_panel)
         moves_layout.setContentsMargins(0,10,0,0)
+        navigation = QHBoxLayout()
+        navigation.setSpacing(3)
+        self.move_navigation = {}
+        for symbol,description in (("<<","Go to the beginning of the game"),
+                                   ("<","Move back"),(">","Move forward"),
+                                   (">>","Go to the end of the game")):
+            button = QPushButton(symbol)
+            button.setObjectName("moveNavigation")
+            button.setFixedSize(28,24)
+            button.setToolTip(description + " (pause the clock first)")
+            button.setAccessibleName(description)
+            button.clicked.connect(lambda checked=False,step=symbol:self.navigate_history(step))
+            navigation.addWidget(button)
+            self.move_navigation[symbol] = button
+        navigation.addStretch()
+        moves_layout.addLayout(navigation)
         label = QLabel("MOVE LIST")
         label.setObjectName("section")
         moves_layout.addWidget(label)
@@ -479,13 +499,22 @@ class MainWindow(DocumentActions, QMainWindow):
             act = self.action(view,f"{mode} board",lambda _,m=mode: self.set_mode(m),checkable=True,checked=g.board_mode==mode)
             modes.addAction(act)
             self.mode_actions[mode] = act
-        pieces = view.addMenu("Piece set")
+        pieces = view.addMenu("3D piece set")
         group = QActionGroup(self)
         self.set_actions = {}
         for key,spec in g.piece_sets.items():
             act = self.action(pieces,spec.name,lambda _,k=key: g.choose_set(k),checkable=True,checked=g.piece_set==key)
             group.addAction(act)
             self.set_actions[key] = act
+        from otb_chess.graphics.board_2d import FLAT_SETS
+        flat_pieces = view.addMenu("2D piece set")
+        flat_group = QActionGroup(self)
+        self.flat_set_actions = {}
+        for key,name in FLAT_SETS.items():
+            act = self.action(flat_pieces,name,lambda _,k=key:self.set_option("flat_piece_set",k),
+                              checkable=True,checked=g.flat_piece_set==key)
+            flat_group.addAction(act)
+            self.flat_set_actions[key] = act
         view.addSeparator()
         self.action(view,"Flip board",g.flip_board,"Ctrl+F")
         self.action(view,"Reset view",g.reset_view,"Ctrl+R")
@@ -523,10 +552,23 @@ class MainWindow(DocumentActions, QMainWindow):
         colors = settings.addMenu("Colours")
         for name,key in (("Light squares","light"),("Dark squares","dark"),("Board frame","frame"),("Background","background")):
             self.action(colors,name+"…",lambda k=key:self.choose_color(k))
-        self.action(settings,"Background image…",self.choose_background)
-        self.action(settings,"Remove background image",self.clear_background)
+        from otb_chess.graphics.backgrounds import BACKGROUNDS
+        background = settings.addMenu("Background")
+        background_group = QActionGroup(self)
+        self.background_actions = {}
+        for key,name in BACKGROUNDS.items():
+            action = self.action(background,name,lambda _,k=key:self.set_background_style(k),
+                                 checkable=True,checked=not g.background_image_path and g.background_style==key)
+            background_group.addAction(action)
+            self.background_actions[key] = action
+        background.aboutToShow.connect(self.refresh_background_actions)
+        background.addSeparator()
+        self.action(background,"Choose solid colour…",lambda:self.choose_color("background"))
+        self.action(background,"Choose image…",self.choose_background)
+        self.action(background,"Remove background image",self.clear_background)
         self.action(settings,"Sound",lambda v:self.set_option("sound_enabled",v),checkable=True,checked=g.sound_enabled)
         help_menu = self.menuBar().addMenu("Help")
+        self.action(help_menu,"Open Source Licences",lambda:show_licenses(self))
         self.action(help_menu,"Controls",self.show_controls)
         self.action(help_menu,"About",lambda:QMessageBox.about(self,"OTBMaster3D",f"OTBMaster3D v{__version__}\n\nDesktop chess with 2D and 3D views.\nStaunton models: clarkerubber (MIT).\nSee assets/pieces/README.md for credits."))
 
@@ -574,7 +616,26 @@ class MainWindow(DocumentActions, QMainWindow):
         else:
             super().keyPressEvent(event)
 
+    def navigate_history(self, step):
+        current = len(self.game.board.move_stack)
+        end = len(self.game.history_board().move_stack)
+        target = {"<<":0,"<":max(0,current-1),">":min(end,current+1),">>":end}[step]
+        self.game.navigate_to_ply(target)
+        self.refresh_navigation()
+        self.board_widget.update()
+
+    def refresh_navigation(self):
+        g = self.game
+        current = len(g.board.move_stack)
+        end = len(g.history_board().move_stack)
+        allowed = not (g.game_started and not g.game_over and not g.clock_paused and current)
+        for symbol in ("<<","<"):
+            self.move_navigation[symbol].setEnabled(allowed and current > 0)
+        for symbol in (">",">>"):
+            self.move_navigation[symbol].setEnabled(allowed and current < end)
+
     def refresh_moves(self):
+        self.refresh_navigation()
         history = self.game.history_board()
         board = history.root()
         self.moves.setRowCount(0)
@@ -817,6 +878,7 @@ class MainWindow(DocumentActions, QMainWindow):
                     self.board_widget.makeCurrent()
                     g.delete_background_texture()
                     g.background_image_path = ""
+                    g.background_style = "solid"
             else:
                 g.set_color_value(which,original)
         finally:
@@ -824,6 +886,18 @@ class MainWindow(DocumentActions, QMainWindow):
             self.board_widget.update()
             g.persist()
             dialog.deleteLater()
+
+    def refresh_background_actions(self):
+        for key,action in self.background_actions.items():
+            action.setChecked(not self.game.background_image_path and self.game.background_style == key)
+
+    def set_background_style(self, style):
+        self.game.delete_background_texture()
+        self.game.background_image_path = ""
+        self.game.background_style = style
+        self.game.persist()
+        self.refresh_background_actions()
+        self.board_widget.update()
 
     def choose_background(self):
         path,_ = QFileDialog.getOpenFileName(self,"Background image","","Images (*.png *.jpg *.jpeg *.bmp *.webp *.tif *.tiff)")
@@ -904,6 +978,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.white_clock.refresh(g)
         self.play_button.setText("Start game" if not g.game_started or g.game_over else "Resume clock" if g.clock_paused else "Pause clock")
         self.play_button.setEnabled(not g.engine_loading and not g.engine_manager.thinking)
+        self.refresh_navigation()
         self.clock_summary.setText(f"{g.time_control_var.get()}  ·  {'Manual clock' if g.clock_mode == 'OTB' else 'Automatic clock'}")
         self.statusBar().showMessage(g.result_text)
         self.board_status.setText(f"{g.board_mode}  ·  {g.piece_sets[g.piece_set].name}")

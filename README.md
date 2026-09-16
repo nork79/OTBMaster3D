@@ -1,6 +1,6 @@
 # OTBMaster3D
 
-**Version 8.2.0** - desktop chess with a tournament-style 3D board,
+**Version 8.3.0** - desktop chess with a tournament-style 3D board,
 a flat 2D view, UCI engine support and over-the-board clock controls. The main
 interface uses PySide6 and an embedded OpenGL board.
 
@@ -58,15 +58,18 @@ restores the current view's defaults without changing the game.
 Switching back restores your 3D camera. View, piece set and appearance preferences
 are saved locally in `config.json`.
 
-**View ? Piece set** changes the whole set immediately:
+**View → 3D piece set** changes the 3D pieces immediately:
 
 | Set | Appearance |
 | --- | --- |
 | Tournament Staunton | Sourced 3D Staunton models in satin ivory and black; the default. |
 | Wooden Staunton | The same models in boxwood and rosewood colours. |
 | Classic Club | Procedural pieces with traditional silhouettes. |
+| Sci-fi Vehicles | Drummyfish's CC0 tanks, vehicles and towers. |
 
-In 2D, all sets use flat chess symbols with the selected set's colours.
+**View → 2D piece set** independently selects Classic, Fantasy, Celtic, Spatial,
+Skulls or Eyes. Classic matches the 3D set's colours; the five additional sets
+use Maurizio Monge's MIT-licensed artwork. Both choices are remembered.
 Light/dark squares, frame colour, background colour and background images are
 shared between views. Board presets include Wood, Tournament Green, Blue and Grey.
 The previous Original option has been removed; saved selections migrate automatically.
@@ -205,6 +208,13 @@ do not depend on the controller or UI. Keep new features in the module that owns
 their responsibility rather than adding application logic to `main.py`.
 
 ## Assets and licences
+
+**Help → Open Source Licences** shows the component inventory and local notice
+paths. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), the machine-readable
+[BOM](third_party_bom.json), and [Windows distribution preparation](docs/windows-commercial-distribution.md).
+The folder packaging specification is a draft, not an installer or legal clearance.
+Python-chess and unresolved licence/source verification still block the intended
+proprietary release. OTBMaster3D's source licence is unchanged.
 
 The bundled Staunton meshes are by
 [clarkerubber](https://github.com/clarkerubber/Staunton-Pieces), copyright 2014,

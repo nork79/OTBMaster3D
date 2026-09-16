@@ -11,9 +11,12 @@ runtime.
   (solid material colours, not wood-grain textures).
 - **Classic Club**: original procedural models with turned bases, bevelled horse
   heads, bishop slits, crenellated rooks, queen crowns and king crosses.
+- **Sci-fi Vehicles**: Drummyfish's CC0 tanks, vehicles and towers, converted from
+  Blender to OBJ. See [source and conversion credits](scifi/README.md).
 
-The 2D view uses original vector chess symbols drawn by `board_2d.py`, with the
-selected set's white/black colours. Board colours and backgrounds are shared
+The 2D view has an independent View → 2D piece set menu, with Classic symbols
+and five [additional MIT-licensed sets](../pieces_2d/README.md). Classic uses the
+selected 3D set's white/black colours. Board colours and backgrounds are shared
 between 2D and 3D. The former Original option has been removed; saved selections
 of it automatically use Tournament Staunton instead.
 

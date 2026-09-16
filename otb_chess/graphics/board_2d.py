@@ -5,6 +5,19 @@ from otb_chess.chess_backend import values as chess
 import math
 from PIL import Image, ImageDraw
 from OpenGL import GL as gl
+from otb_chess.services.settings import APP_DIR
+
+
+FLAT_SETS = {"classic":"Classic (match 3D colours)", "fantasy":"Fantasy",
+             "celtic":"Celtic", "spatial":"Spatial", "skulls":"Skulls", "eyes":"Eyes"}
+
+
+def flat_piece_image(style, piece_type, color, white):
+    if style == "classic":
+        return piece_image(piece_type,color,white)
+    filename = ('w' if white else 'b') + ' pnbrqk'[piece_type] + '.png'
+    with Image.open(APP_DIR/'assets'/'pieces_2d'/style/filename) as source:
+        return source.convert('RGBA')
 
 
 def piece_image(piece_type, fill, white):
@@ -104,11 +117,11 @@ class FlatPieceRenderer:
     def __init__(self):
         self.textures = {}
 
-    def draw(self, spec, piece, x, z, yaw, lifted=False):
+    def draw(self, spec, piece, x, z, yaw, lifted=False, style="classic"):
         color = spec.white if piece.color else spec.black
-        key = (color,piece.color,piece.piece_type)
+        key = (style,color if style == "classic" else None,piece.color,piece.piece_type)
         if key not in self.textures:
-            image = piece_image(piece.piece_type,color,piece.color)
+            image = flat_piece_image(style,piece.piece_type,color,piece.color)
             texture = gl.glGenTextures(1)
             gl.glBindTexture(gl.GL_TEXTURE_2D,texture)
             gl.glTexParameteri(gl.GL_TEXTURE_2D,gl.GL_TEXTURE_MIN_FILTER,gl.GL_LINEAR)
