@@ -1,21 +1,18 @@
 # OTBMaster3D
 
-**Version 8.6.0** - desktop chess with a tournament-style 3D board,
-a flat 2D view, UCI engine support and over-the-board clock controls. The main
-interface uses PySide6 and an embedded OpenGL board.
+**1.0.0 Beta 1** ? a free, open-source desktop chess app for Windows, with a
+3D tournament board, a flat 2D view, Stockfish support and over-the-board clocks.
+Application source is licensed under **GPL-3.0-or-later**; see [LICENSE](LICENSE).
+Third-party assets and dependencies retain their own licences.
 
-Version 8.6.0 establishes Python 3.13 as the runtime target, adds a tested internal
-chess core, and isolates PGN/history transfers with owned data. Production still
-uses python-chess; the new core has not replaced the live rules engine.
+<img src="assets/app-icon.png" alt="OTBMaster3D knight icon" width="96">
 
-Version 8.4.0 added automatic session recovery with paused clocks, adjustable
-piece animation, built-in backgrounds, and more 2D/3D piece sets. Compact move
-navigation and right-click cancellation make reviewing and playing easier.
-Windows CI now checks syntax and non-graphics tests on pushes and pull requests.
+This is the first official public beta, tagged `v1.0.0-beta.1`. Earlier 7.x/8.x
+versions were development milestones; their tags and history are preserved.
+The beta is a **source release**. Windows installer work is paused and no installer
+is attached. See [beta release notes](docs/releases/1.0.0-beta.1.md).
 
-The previous zoom/pan release is available on GitHub as **v7.3.1**.
-
-## New single-window interface
+## Features
 
 - The board fills the main area; a resizable sidebar keeps the clocks and moves visible.
 - Large clock cards show the active player and can be pressed in OTB mode.
@@ -28,10 +25,7 @@ The previous zoom/pan release is available on GitHub as **v7.3.1**.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
 
-Release versions follow `MAJOR.MINOR.PATCH`: breaking changes increment MAJOR,
-compatible features increment MINOR, and fixes increment PATCH. Each release
-updates `otb_chess/version.py`, this README and the changelog together, with a
-matching `vMAJOR.MINOR.PATCH` Git tag.
+Public beta versions use `1.0.0-beta.N`; the first stable release will be `1.0.0`.
 
 ## Run on Windows
 
@@ -41,6 +35,7 @@ OpenGL 2.1. From the project folder:
 ```powershell
 py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe tools/install_stockfish.py
 .\.venv\Scripts\python.exe main.py
 ```
 
@@ -51,8 +46,9 @@ unchanged. See the [3.13 compatibility results](docs/python-313-compatibility.md
 historical 3.14 test results remain recorded in the backend audit.
 
 This is a source release; a standalone Windows installer is not included.
-The app opens one window. When upgrading from 7.3.x, rerun the requirements
-installation to add PySide6.
+The app opens one window. The optional Stockfish setup downloads the official
+Windows x64 release, verifies its SHA-256 hash, and preserves its source and licence.
+Skip that command to use your own UCI engine or play without an engine.
 
 ## Board and pieces
 
@@ -107,6 +103,7 @@ move timing remain unchanged.
 | Action | Control |
 | --- | --- |
 | Move a piece | Click source then destination, or drag and drop. |
+| Promote a pawn | Choose Queen, Rook, Bishop or Knight. Cancel leaves the pawn in place. |
 | Rotate the 3D board | Right-drag or Ctrl + left-drag. |
 | Pan the board (2D or 3D) | Left-drag an empty area; dragging a movable piece moves that piece. |
 | Zoom the board (2D or 3D) | Mouse wheel up to zoom in; down to zoom out. |
@@ -126,14 +123,39 @@ from `engines/` or browse for one, choose its side, and Save. Loading runs in th
 background. Leave the engine path empty to unload it. Engine side and opening
 book selections apply to the next game.
 
-Choose a Polyglot `.bin` book from `books/` or browse for one in the same dialog.
-Engines and books are not bundled; check their licences before distributing them.
+The setup command installs Stockfish 19 for Windows x64 under `engines/stockfish-19/`, with its
+source and GPLv3 licence. It loads automatically on first use and plays Black;
+subsequent launches load the previously selected engine. An explicit unload is remembered.
+Choose a Polyglot `.bin` book from the dropdown or browse for one. Three bundled
+books use Lichess's CC0 opening data: all openings (default), 1.e4, and 1.d4.
+These are repertoire collections, with weights based on the number of named
+lines, not game-result statistics. See [book provenance](books/README.md).
 
-**Engine ? Analyse position** enables short background searches. The expandable
+The engine dialog offers **Full strength** or an approximate Elo target within
+the loaded engine's supported range (1320–3190 for this Stockfish build).
+**Balanced** uses the engine's chosen move. **Active** favours checks and captures;
+**Quiet** favours other moves among candidates evaluated within 0.35 pawns of
+the original choice. These app-level preferences require MultiPV support, use
+extra search time, and can affect the effective rating. Book moves bypass strength
+and style controls; select an empty book entry to use the engine on every move.
+Strength and style are remembered and apply to subsequent engine searches.
+
+Analysis starts automatically when an engine loads; **Engine ? Analyse position**
+can pause or resume it. The expandable
 Engine output panel shows the evaluation from White's perspective, depth and a
 SAN best line. Completed engine-move searches are labelled **Last search** so they
 are not mistaken for analysis of the current position. Analysis yields to engine
 moves and ignores results belonging to an older position.
+
+**Start analysis / Stop analysis** in Engine Output also controls line calculation.
+Stopping analysis lets the current short search finish and leaves engine moves enabled.
+The separate **Position evaluation** sits inside Engine Output and hides when it is collapsed
+unless **Engine → Always show static evaluation** is enabled, which moves it beside
+the **MOVE LIST** heading. This preference is remembered. The evaluation
+updates immediately for moves, imports and history navigation. It estimates
+material, piece placement and pawn structure without searching moves or using
+Stockfish; tactical engine evaluations can differ. Both scores use pawn units,
+with positive values favouring White and negative values favouring Black.
 
 ## Clocks
 
@@ -215,8 +237,9 @@ tests/                  # Regression tests and UCI fixture
 tools/                  # Asset conversion utilities
 ```
 
-Configuration, engines, opening books and sounds retain their existing project-root
-locations. Both launch commands work from the project folder.
+Source runs store settings and recovery files in the project folder. Frozen builds
+use `%LOCALAPPDATA%/OTBMaster3D` for user data; engines and books live beside the
+application. Both launch commands work from the project folder.
 
 | Module | Responsibility |
 | --- | --- |
@@ -246,9 +269,10 @@ their responsibility rather than adding application logic to `main.py`.
 **Help → Open Source Licences** shows the component inventory and local notice
 paths. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), the machine-readable
 [BOM](third_party_bom.json), and [Windows distribution preparation](docs/windows-commercial-distribution.md).
-The folder packaging specification is a draft, not an installer or legal clearance.
-Python-chess and unresolved licence/source verification still block the intended
-proprietary release. OTBMaster3D's source licence is unchanged.
+This beta is free and open source under GPL-3.0-or-later. Installer packaging
+remains in development and is not part of this source release. Historical
+proprietary-distribution research is retained for reference, not as the current
+release plan. See [CONTRIBUTING.md](CONTRIBUTING.md) for development and reporting.
 
 The bundled Staunton meshes are by
 [clarkerubber](https://github.com/clarkerubber/Staunton-Pieces), copyright 2014,
@@ -263,5 +287,5 @@ redistribution must account for the applicable dependency obligations.
 PySide6/Qt also have their own licences; see the installed packages and
 [Qt for Python licensing](https://doc.qt.io/qtforpython-6/licenses.html).
 
-Local configuration, temporary files, virtual environments and engine/book
-binaries are excluded from Git.
+Local configuration, saved games, build outputs, virtual environments and downloaded
+engine binaries are excluded from Git. The three small CC0 opening books are tracked.

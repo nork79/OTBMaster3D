@@ -12,10 +12,13 @@ import chess.engine
 from PySide6.QtCore import Qt, QPoint, QPointF, QTimer
 from PySide6.QtGui import QWheelEvent, QColor
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDialog, QComboBox, QDoubleSpinBox, QColorDialog, QSpinBox, QPushButton
+from PySide6.QtWidgets import QApplication, QDialog, QComboBox, QDoubleSpinBox, QColorDialog, QSpinBox, QPushButton, QDialogButtonBox
 
 from otb_chess.core import game
 from otb_chess.services import settings
+from otb_chess.chess_backend import uci
+from otb_chess.engine_state import EngineEvaluation, EngineScore
+from otb_chess_core import Move as OwnedMove
 import time
 import tkinter as tk
 from tkinter import messagebox
@@ -36,6 +39,10 @@ class DesktopTests(unittest.TestCase):
         self.config = patch.object(settings,"CONFIG_PATH",Path(self.folder.name)/"config.json")
         self.config.start()
         self.addCleanup(self.config.stop)
+        for name in ("ENGINE_DIR", "BOOK_DIR"):
+            folder_patch = patch.object(settings, name, Path(self.folder.name))
+            folder_patch.start()
+            self.addCleanup(folder_patch.stop)
         self.window = MainWindow()
         self.window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen,True)
         self.window.show()
@@ -274,7 +281,7 @@ class DesktopTests(unittest.TestCase):
         self.assertIsNone(self.game.window)  # No second GLFW window.
         self.assertGreater(self.widget.width(),self.window.sidebar.width()*2)
         self.assertEqual([a.text() for a in self.window.menuBar().actions()],
-                         ["File","Game","View","Engine","Settings","Help"])
+                         ["Game","File","View","Engine","Settings","Help"])
         self.assertTrue(self.window.white_clock.isVisible())
         self.assertTrue(self.window.moves.isVisible())
         self.assertFalse(self.window.engine_panel.isVisible())
@@ -351,6 +358,70 @@ class DesktopTests(unittest.TestCase):
         QTest.mouseClick(w.white_clock,Qt.MouseButton.LeftButton)
         self.assertFalse(g.awaiting_clock_press)
         self.assertEqual(g.active_clock_color,chess.BLACK)
+
+    def test_new_game_first_click_waits_for_startup_engine(self):
+        w, g = self.window, self.game
+        g.engine_loading = True
+        w.tick()
+        self.assertTrue(w.play_button.isEnabled())
+        QTest.mouseClick(w.play_button, Qt.MouseButton.LeftButton)
+        self.assertTrue(w.new_game_pending)
+        self.assertFalse(g.game_started)
+        w.tick()
+        self.assertEqual(w.play_button.text(), "Starting game…")
+        g.engine_manager.engine = Mock()
+        g.engine_manager.path = "stockfish.exe"
+        g.engine_side_var.set("Black")
+        g.engine_load_result = ("stockfish.exe", (True, "Loaded"))
+        g.engine_loading = False
+        with patch.object(g, "request_analysis"), patch.object(g, "start_game", wraps=g.start_game) as start:
+            w.tick()
+            w.tick()
+            start.assert_called_once()
+        self.assertTrue(g.game_started)
+        self.assertEqual(g.engine_side, chess.BLACK)
+        self.assertFalse(w.new_game_pending)
+
+    def test_new_game_waits_for_search_and_discards_previous_result(self):
+        w, g = self.window, self.game
+        for operation in ("analysis", "move"):
+            with self.subTest(operation=operation):
+                g.board = chess.Board()
+                g.board.push_uci("e2e4")
+                g.analysis_busy = operation == "analysis"
+                g.engine_manager.thinking = operation == "move"
+                with patch.object(w, "confirm", return_value=True) as confirm:
+                    w.new_game()
+                    w.new_game()
+                    confirm.assert_called_once()
+                self.assertTrue(w.new_game_pending)
+                g.analysis_enabled = True
+                g.engine_manager.engine = Mock()
+                g.analysis_busy = g.engine_manager.thinking = False
+                # Pending new-game requests suppress another analysis search.
+                g.request_analysis()
+                g.engine_manager.engine.analyse.assert_not_called()
+                g.pending_engine_position = g.board.fen()
+                g.pending_engine_move = OwnedMove(chess.E7, chess.E5)
+                with patch.object(g, "request_analysis"), patch.object(g, "try_move") as move:
+                    w.tick()
+                    move.assert_not_called()
+                self.assertFalse(w.new_game_pending)
+                self.assertEqual(g.board.fen(), chess.STARTING_FEN)
+                self.assertIsNone(g.pending_engine_move)
+                self.assertTrue(g.game_started)
+
+    def test_cancel_new_game_does_not_queue_restart(self):
+        w, g = self.window, self.game
+        g.board.push_uci("e2e4")
+        before = g.board.fen()
+        g.analysis_busy = True
+        with patch.object(w, "confirm", return_value=False):
+            w.new_game()
+        g.analysis_busy = False
+        w.tick()
+        self.assertFalse(w.new_game_pending)
+        self.assertEqual(g.board.fen(), before)
 
     def test_new_game_clocks_wait_for_first_legal_move(self):
         g = self.game
@@ -506,8 +577,8 @@ class DesktopTests(unittest.TestCase):
     def test_analysis_uses_worker_and_rejects_stale_positions(self):
         w,g = self.window,self.game
         engine = Mock()
-        engine.analyse.return_value = {"score":chess.engine.PovScore(chess.engine.Cp(34),chess.WHITE),
-                                      "depth":12,"pv":[chess.Move.from_uci("e2e4")]}
+        engine.analyse.return_value = EngineEvaluation(g.board.fen(), EngineScore(centipawns=34),
+                                                       depth=12, pv=(OwnedMove(chess.E2,chess.E4),))
         g.engine_manager.engine = engine
         g.engine_manager.path = "test-engine.exe"
         g.analysis_enabled = True
@@ -518,7 +589,7 @@ class DesktopTests(unittest.TestCase):
         self.assertFalse(g.analysis_busy)
         w.tick()
         self.assertIn("+0.34",w.engine_metrics.text())
-        self.assertEqual(w.engine_line.toPlainText(),"e4")
+        self.assertEqual(w.engine_line.toPlainText(),"1. e4")
         g.analysis_enabled = False
         g.board.push_uci("d2d4")
         w.tick()
@@ -527,6 +598,258 @@ class DesktopTests(unittest.TestCase):
         g.pending_engine_move = chess.Move.from_uci("d7d5")
         g.apply_pending_engine_move()
         self.assertEqual(len(g.board.move_stack),1)
+
+    def test_engine_load_enables_current_evaluation_and_saves_strength_style(self):
+        from otb_chess.ui.desktop_ui import ENGINE_DIR
+        executable = next(ENGINE_DIR.rglob("stockfish*.exe"), None)
+        if executable is None or sys.platform != "win32":
+            self.skipTest("Bundled Windows Stockfish is not installed")
+        w, g = self.window, self.game
+        g.load_engine_path(str(executable))
+        deadline = time.monotonic() + 8
+        while g.engine_loading and time.monotonic() < deadline:
+            QTest.qWait(10)
+        w.tick()
+        self.assertTrue(g.analysis_enabled)
+        self.assertTrue(w.analysis_action.isChecked())
+        while g.analysis_busy and time.monotonic() < deadline:
+            QTest.qWait(10)
+        w.tick()
+        self.assertIn("Engine evaluation:", w.engine_metrics.text())
+        self.assertNotIn("favours White", w.engine_metrics.text())
+        w.toggle_analysis(False)
+        def choose():
+            dialog = self.qt.activeModalWidget()
+            dialog.findChild(QComboBox, "engineStrength").setCurrentIndex(1)
+            rating = dialog.findChild(QSpinBox, "engineRating")
+            self.assertEqual((rating.minimum(), rating.maximum()), (1320, 3190))
+            rating.setValue(1600)
+            dialog.findChild(QComboBox, "engineStyle").setCurrentText("Active")
+            dialog.accept()
+        QTimer.singleShot(0, choose)
+        w.engine_settings()
+        config = settings.load_config()
+        self.assertEqual(config["engine_elo"], 1600)
+        self.assertEqual(config["engine_style"], "Active")
+        self.assertEqual(config["engine_path"], str(executable))
+
+    def test_engine_rating_keeps_edits_modes_and_saved_values(self):
+        w, g = self.window, self.game
+        g.engine_manager.engine = Mock()
+        g.engine_manager.engine.strength_range.return_value = (1320, 3190)
+        g.engine_manager.path = sys.executable
+        g.engine_var.set(sys.executable)
+        g.cfg["engine_elo"] = 1600
+        def edit_minimum():
+            dialog = self.qt.activeModalWidget()
+            rating = dialog.findChild(QSpinBox, "engineRating")
+            strength = dialog.findChild(QComboBox, "engineStrength")
+            self.assertEqual(rating.value(), 1600)
+            self.assertEqual(rating.text(), "1600")
+            rating.setValue(1320)
+            strength.setCurrentIndex(0)
+            strength.setCurrentIndex(1)
+            self.assertEqual(rating.value(), 1320)
+            engine = next(combo for combo in dialog.findChildren(QComboBox)
+                          if combo.isEditable() and combo.currentText() == sys.executable)
+            engine.setCurrentText("")
+            engine.setCurrentText(sys.executable)
+            self.assertEqual(rating.value(), 1320)
+            strength.setCurrentIndex(0)
+            dialog.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Save).click()
+        QTimer.singleShot(0, edit_minimum)
+        w.engine_settings()
+        self.assertIsNone(g.cfg["engine_elo"])
+        self.assertEqual(settings.load_config()["engine_rating"], 1320)
+        def type_rating():
+            dialog = self.qt.activeModalWidget()
+            rating = dialog.findChild(QSpinBox, "engineRating")
+            self.assertEqual(rating.value(), 1320)
+            dialog.findChild(QComboBox, "engineStrength").setCurrentIndex(1)
+            rating.lineEdit().selectAll()
+            QTest.keyClicks(rating.lineEdit(), "1800")
+            dialog.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Save).click()
+        QTimer.singleShot(0, type_rating)
+        w.engine_settings()
+        self.assertEqual(settings.load_config()["engine_elo"], 1800)
+        def reopen():
+            dialog = self.qt.activeModalWidget()
+            self.assertEqual(dialog.findChild(QSpinBox, "engineRating").text(), "1800")
+            dialog.reject()
+        QTimer.singleShot(0, reopen)
+        w.engine_settings()
+
+    def test_static_evaluation_follows_review_without_engine(self):
+        w, g = self.window, self.game
+        self.assertIsNone(g.engine_manager.engine)
+        self.assertIn("+0.00", w.static_evaluation.text())
+        self.assertNotIn("White", w.static_evaluation.text())
+        self.assertNotIn("Black", w.static_evaluation.text())
+        self.assertFalse(w.static_evaluation.isVisible())
+        self.assertFalse(w.engine_panel.isVisible())
+        w.engine_toggle.setChecked(True)
+        self.assertTrue(w.static_evaluation.isVisible())
+        w.engine_toggle.setChecked(False)
+        self.assertFalse(w.static_evaluation.isVisible())
+        for move in ("e2e4", "d7d5", "e4d5"):
+            g.board.push_uci(move)
+        w.refresh_moves()
+        live_score = w.static_evaluation.text()
+        self.assertNotIn("+0.00", live_score)
+        self.assertTrue(g.navigate_to_ply(0))
+        self.assertIn("+0.00", w.static_evaluation.text())
+        self.assertTrue(g.navigate_to_ply(1))
+        self.assertNotEqual(w.static_evaluation.text(), live_score)
+        g.return_to_live()
+        self.assertEqual(w.static_evaluation.text(), live_score)
+        g.load_document(chess.Board("7k/6Q1/6K1/8/8/8/8/8 b - - 0 1"))
+        self.assertIn("White wins", w.static_evaluation.text())
+        g.reset_board()
+        self.assertIn("+0.00", w.static_evaluation.text())
+        w.static_evaluation_action.trigger()
+        self.assertTrue(w.move_list_evaluation.isVisible())
+        self.assertEqual(w.move_list_evaluation.text(), "+0.00")
+        self.assertFalse(w.static_evaluation.isVisible())
+        self.assertTrue(settings.load_config()["always_show_static_evaluation"])
+        g.board.push_uci("e2e4")
+        w.refresh_moves()
+        self.assertNotIn("+0.00", w.move_list_evaluation.text())
+        w.engine_toggle.setChecked(True)
+        self.assertFalse(w.static_evaluation.isVisible())
+        w.static_evaluation_action.trigger()
+        self.assertFalse(w.move_list_evaluation.isVisible())
+        self.assertTrue(w.static_evaluation.isVisible())
+        self.assertFalse(settings.load_config()["always_show_static_evaluation"])
+
+    def test_engine_output_analysis_button_and_menu_stay_in_sync(self):
+        w, g = self.window, self.game
+        w.tick()
+        self.assertFalse(w.analysis_button.isEnabled())
+        g.engine_manager.engine = Mock()
+        w.tick()
+        w.engine_toggle.setChecked(True)
+        self.assertTrue(w.analysis_button.isEnabled())
+        QTest.mouseClick(w.analysis_button, Qt.MouseButton.LeftButton)
+        self.assertTrue(g.analysis_enabled)
+        self.assertTrue(w.analysis_action.isChecked())
+        self.assertEqual(w.analysis_button.text(), "Stop analysis")
+        QTest.mouseClick(w.analysis_button, Qt.MouseButton.LeftButton)
+        self.assertFalse(g.analysis_enabled)
+        self.assertFalse(w.analysis_action.isChecked())
+        self.assertEqual(w.analysis_button.text(), "Start analysis")
+        with patch.object(g, "request_analysis") as request:
+            w.tick()
+            request.assert_not_called()
+        g.board.push_uci("e2e4")
+        w.tick()
+        self.assertNotIn("+0.00", w.static_evaluation.text())
+        w.analysis_action.trigger()
+        self.assertTrue(w.analysis_button.isChecked())
+        self.assertEqual(w.analysis_button.text(), "Stop analysis")
+        w.analysis_action.trigger()
+        self.assertFalse(w.analysis_button.isChecked())
+
+    def test_evaluation_formats_negative_scores_and_mate(self):
+        w, g = self.window, self.game
+        for score, expected in ((EngineScore(centipawns=-125), "-1.25"),
+                                (EngineScore(centipawns=0), "+0.00"),
+                                (EngineScore(mate=-3), "Mate -3")):
+            w.show_engine_info(g.board.fen(), EngineEvaluation(g.board.fen(), score))
+            self.assertIn(expected, w.engine_metrics.text())
+
+    def test_engine_lines_number_moves_from_source_position(self):
+        for fen, line, expected in (
+            (chess.STARTING_FEN, ("e2e4", "e7e5", "g1f3"), "1. e4 e5 2. Nf3"),
+            ("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 17",
+             ("e7e5", "g1f3", "b8c6"), "17... e5 18. Nf3 Nc6"),
+        ):
+            with self.subTest(expected=expected):
+                pv = tuple(OwnedMove(m.from_square, m.to_square, m.promotion)
+                           for m in map(chess.Move.from_uci, line))
+                self.window.show_engine_info(fen, EngineEvaluation(fen, pv=pv))
+                self.assertEqual(self.window.engine_line.toPlainText(), expected)
+
+    def test_promotion_dialog_all_pieces_for_both_colours(self):
+        g = self.game
+        for color in (chess.WHITE, chess.BLACK):
+            for label, piece_type in (("Queen", chess.QUEEN), ("Rook", chess.ROOK),
+                                      ("Bishop", chess.BISHOP), ("Knight", chess.KNIGHT)):
+                with self.subTest(color=color, piece=label):
+                    g.board = chess.Board("7k/P7/8/8/8/8/8/7K w - - 0 1" if color else
+                                          "7k/8/8/8/8/8/p7/7K b - - 0 1")
+                    g.game_over = False
+                    src, dst = (chess.A7, chess.A8) if color else (chess.A2, chess.A1)
+                    def choose(label=label):
+                        dialog = self.qt.activeModalWidget()
+                        self.assertEqual(dialog.objectName(), "promotionDialog")
+                        QTest.mouseClick(dialog.findChild(QPushButton, "promote" + label), Qt.MouseButton.LeftButton)
+                    QTimer.singleShot(0, choose)
+                    with patch.object(g, "play_game_sound"):
+                        self.assertTrue(g.try_move(src, dst))
+                    self.assertEqual(g.board.piece_at(dst), chess.Piece(piece_type, color))
+                    self.assertEqual(g.board.peek().promotion, piece_type)
+                    self.assertIn("=" + chess.piece_symbol(piece_type).upper(), g.export_pgn())
+
+    def test_promotion_cancel_illegal_destination_and_clock_expiry(self):
+        g = self.game
+        g.board = chess.Board("7k/P7/8/8/8/8/8/7K w - - 0 1")
+        before = g.board.fen()
+        g.selected = chess.A7
+        QTimer.singleShot(0, lambda: self.qt.activeModalWidget().reject())
+        self.assertFalse(g.try_move(chess.A7, chess.A8))
+        self.assertEqual(g.board.fen(), before)
+        self.assertEqual(g.selected, chess.A7)
+        with patch.object(g, "choose_promotion") as chooser:
+            self.assertFalse(g.try_move(chess.A7, chess.B8))
+            chooser.assert_not_called()
+        def expired():
+            g.game_over = True
+            self.qt.activeModalWidget().findChild(QPushButton, "promoteKnight").click()
+        QTimer.singleShot(0, expired)
+        self.assertFalse(g.try_move(chess.A7, chess.A8))
+        self.assertEqual(g.board.fen(), before)
+
+    def test_capture_promotion_through_click_and_drag(self):
+        g = self.game
+        for drag in (False, True):
+            with self.subTest(drag=drag):
+                g.board = chess.Board("1r5k/P7/8/8/8/8/8/7K w - - 0 1")
+                g.game_over = False
+                g.cancel_selection()
+                src = self.screen(chess.A7)
+                dst = self.screen(chess.B8)
+                g.left_press((src.x(), src.y()))
+                if drag:
+                    g.left_motion((dst.x(), dst.y()))
+                else:
+                    g.left_release((src.x(), src.y()))
+                QTimer.singleShot(0, lambda: self.qt.activeModalWidget().findChild(QPushButton, "promoteKnight").click())
+                with patch.object(g, "play_game_sound"):
+                    if drag:
+                        g.left_release((dst.x(), dst.y()))
+                    else:
+                        g.left_press((dst.x(), dst.y()))
+                        g.left_release((dst.x(), dst.y()))
+                self.assertEqual(g.board.piece_at(chess.B8), chess.Piece(chess.KNIGHT, chess.WHITE))
+                self.assertIsNone(g.board.piece_at(chess.A7))
+                self.assertIsNone(g.selected)
+
+    def test_pending_engine_or_book_underpromotion_is_preserved(self):
+        g = self.game
+        for color in (chess.WHITE, chess.BLACK):
+            for piece in (chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT):
+                g.board = chess.Board("7k/P7/8/8/8/8/8/7K w - - 0 1" if color else
+                                      "7k/8/8/8/8/8/p7/7K b - - 0 1")
+                g.game_over = False
+                g.clock_paused = False
+                src, dst = (chess.A7, chess.A8) if color else (chess.A2, chess.A1)
+                g.pending_engine_position = g.board.fen()
+                g.pending_engine_move = OwnedMove(src, dst, piece)
+                with patch.object(g, "choose_promotion") as chooser, patch.object(g, "play_game_sound"):
+                    g.apply_pending_engine_move()
+                    chooser.assert_not_called()
+                self.assertEqual(g.board.peek().promotion, piece)
+                self.assertEqual(g.board.piece_at(dst), chess.Piece(piece, color))
 
     def test_layout_preferences_persist_on_close(self):
         self.window.resize(1100,720)
@@ -542,7 +865,7 @@ class DesktopTests(unittest.TestCase):
     def test_uci_subprocess_play_and_analysis_output(self):
         w,g = self.window,self.game
         fixture = Path(__file__).parent/"fixtures"/"uci_stub.py"
-        g.engine_manager.engine = chess.engine.SimpleEngine.popen_uci([sys.executable,str(fixture)])
+        g.engine_manager.engine = uci.Engine.open([sys.executable,str(fixture)])
         g.engine_manager.path = "UI Test Engine"
         g.engine_side_var.set("Black")
         g.start_game()

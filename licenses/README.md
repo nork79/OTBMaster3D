@@ -1,7 +1,7 @@
 # Licence evidence and release gaps
 
-This directory contains evidence for third-party components, not a licence grant
-for OTBMaster3D. No application source licence is changed by this work.
+This directory contains evidence for third-party components. OTBMaster3D application
+source is GPL-3.0-or-later under the root LICENSE; these components retain their own licences.
 
 Files under package-name directories were copied byte-for-byte from installed
 distribution metadata by `tools/audit_dependencies.py`. Their original paths and

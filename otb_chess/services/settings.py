@@ -5,12 +5,15 @@ from dataclasses import dataclass
 import json
 import math
 import sys
+import os
 
 
 APP_DIR = Path(sys.executable).resolve().parent if getattr(sys,"frozen",False) else Path(__file__).resolve().parents[2]
 
 
-CONFIG_PATH = APP_DIR / "config.json"
+USER_DATA_DIR = (Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / "OTBMaster3D"
+                 if getattr(sys, "frozen", False) else APP_DIR)
+CONFIG_PATH = USER_DATA_DIR / "config.json"
 
 
 ENGINE_DIR = APP_DIR / "engines"
@@ -19,7 +22,7 @@ ENGINE_DIR = APP_DIR / "engines"
 BOOK_DIR = APP_DIR / "books"
 
 
-SOUND_DIR = APP_DIR / "sounds"
+SOUND_DIR = USER_DATA_DIR / "sounds"
 
 
 PIECE_DIR = APP_DIR / "assets" / "pieces"
@@ -110,14 +113,19 @@ def default_config():
         "sidebar_visible": True,
         "focus_mode": False,
         "engine_panel_open": False,
+        "always_show_static_evaluation": False,
         "interface_theme": "Blue",
         "show_coordinates": True,
         "show_move_indicator": True,
         "sound_enabled": True,
         "time_control": "Bullet 1+0",
-        "engine_side": "None",
-        "engine_path": "",
-        "book_path": "",
+        "engine_side": "Black",
+        "engine_path": next((str(p) for p in sorted(ENGINE_DIR.rglob("stockfish*.exe"))), ""),
+        "book_path": str(BOOK_DIR / "lichess-all.bin") if (BOOK_DIR / "lichess-all.bin").exists() else "",
+        "engine_elo": None,
+        "engine_rating": 1500,
+        "engine_style": "Balanced",
+        "engine_defaults_applied": False,
         "clock_mode": "Online",
         "clock_binding": "Spacebar",
         "custom_initial": 300.0,
@@ -140,6 +148,14 @@ def load_config():
             )
         except Exception:
             pass
+    if not config["engine_defaults_applied"]:
+        defaults = default_config()
+        if not config["engine_path"] and defaults["engine_path"]:
+            config["engine_path"] = defaults["engine_path"]
+            config["engine_side"] = "Black"
+        if not config["book_path"]:
+            config["book_path"] = defaults["book_path"]
+        config["engine_defaults_applied"] = True
     return config
 
 
@@ -151,6 +167,7 @@ def save_config(config):
 
 
 def ensure_dirs():
+    USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
     ENGINE_DIR.mkdir(exist_ok=True)
     BOOK_DIR.mkdir(exist_ok=True)
     SOUND_DIR.mkdir(exist_ok=True)

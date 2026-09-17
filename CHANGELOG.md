@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.0-beta.1 - 2026-09-18
+
+First official public beta. Version numbering restarts at 1.0; earlier tags remain development history.
+Application source is now GPL-3.0-or-later.
+
+- Add instant static evaluation of the displayed position and an Engine Output start/stop analysis button.
+
+- Queue New Game during engine startup/search so the first click starts the game when ready.
+
+- Offer Queen/Rook/Bishop/Knight promotion choices and preserve engine/book underpromotions.
+
+- Prepare installer scaffolding, an original gold-knight icon and per-user paths. Installer compilation remains paused; this release is source-only.
+- Place Game before File in the menu bar.
+- Add verified Stockfish 19 setup and three bundled Lichess-based opening books, with remembered engine selection.
+- Add approximate Elo targets, Active/Quiet playing styles, and automatic current-position evaluation.
+- Highlight selection, hover and completed moves; hide move dots on occupied squares.
+
 ## 8.6.0 - 2026-09-17
 
 - Set Python 3.13 as the supported runtime and migration target in Windows CI,

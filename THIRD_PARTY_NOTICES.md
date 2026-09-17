@@ -1,7 +1,9 @@
 # Third-party notices and bill of materials
 
-Development audit, not release clearance. OTBMaster3D source licensing is unchanged.
-**Proprietary release is blocked by python-chess (GPL-3.0-or-later) and unresolved verification items.**
+OTBMaster3D 1.0.0 Beta 1 application source is GPL-3.0-or-later; see LICENSE.
+Third-party files retain their original licences. This source beta does not distribute
+a frozen Python/Qt runtime or an installer. The inventory below includes historical
+binary-packaging audit notes, which are not a declaration of the current source payload.
 
 Machine-readable evidence: [third_party_bom.json](third_party_bom.json). It records versions,
 installed metadata, import locations, licence-file hashes and redistribution intent.
@@ -16,7 +18,7 @@ Exact copied texts and explicitly labelled gaps: [licenses/README.md](licenses/R
 | glfw | 2.10.2 | MIT | runtime | intended |
 | PyOpenGL | 3.1.10 | requires verification before release | runtime | intended |
 | Pillow | 12.3.0 | MIT-CMU | runtime | intended |
-| chess | 1.11.2 | GPL-3.0+ | runtime | NO: replace before proprietary release |
+| chess | 1.11.2 | GPL-3.0+ | runtime | yes; GPL-3.0-or-later dependency |
 | Qt runtime and plugins | 6.11.2 | LGPLv3 available for used modules; per-file third-party notices required | runtime | selected DLLs only |
 | GLFW native library | 3.4.0 | zlib/libpng licence (upstream); bundled binary provenance requires verification before release | runtime | intended |
 | CPython | 3.14.7 | PSF and bundled component licences; requires verification before release | runtime | intended |
@@ -28,8 +30,10 @@ Exact copied texts and explicitly labelled gaps: [licenses/README.md](licenses/R
 | Staunton models | 2014 source; converted meshes | MIT | asset | yes |
 | ambientCG board maps | Marble012, Wood049, Fabric030; see assets/boards/sources.json | CC0-1.0 | asset | yes |
 | Generated sounds / procedural geometry | application source | Application-owned; audit provenance of any replacement files | asset | yes; regenerate sounds in clean build |
-| User UCI engines and books | user supplied | varies; requires verification before release if bundled | runtime | not bundled |
-| PyInstaller | not installed / not pinned | GPL with bootloader exception; requires verification before release | build | bootloader only if draft adopted |
+| Stockfish 19 | official Windows x64 universal release | GPLv3; source, authors and licence in engines/stockfish-19/stockfish | runtime executable | downloaded separately by tools/install_stockfish.py |
+| Lichess opening data | lichess-org/chess-openings | CC0; books/sources/COPYING.txt | three generated Polyglot repertoires | bundled |
+| Additional user UCI engines and books | user supplied | varies | runtime | user selected |
+| PyInstaller | 6.22.3 (local build tool) | GPL with bootloader exception; requires verification before release | build | bootloader only if draft adopted |
 | black | 26.5.1 | MIT | development environment | no; not an application dependency |
 | click | 8.5.0 | BSD-3-Clause | development environment | no; not an application dependency |
 | mypy_extensions | 1.1.0 | MIT | development environment | no; not an application dependency |

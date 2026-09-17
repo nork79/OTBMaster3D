@@ -23,6 +23,11 @@ def owned_move(move):
     return OwnedMove(move.from_square, move.to_square, move.promotion)
 
 
+def provider_move(move):
+    """Convert an owned engine move to the current production rules provider."""
+    return Move(move.from_square, move.to_square, move.promotion)
+
+
 def snapshot_history(board):
     return History(board.root().fen(), tuple(owned_move(m) for m in board.move_stack), board.fen())
 

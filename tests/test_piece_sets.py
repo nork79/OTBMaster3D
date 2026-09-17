@@ -113,6 +113,7 @@ class LiveSwitchTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls.app.engine_manager.unload()
         cls.app.ui.destroy()
         cls.app.piece_renderer.close()
         cls.app.flat_piece_renderer.close()

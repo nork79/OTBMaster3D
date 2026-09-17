@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction, QActionGroup, QColor, QKeySequence, QSurfaceFormat
+from PySide6.QtGui import QAction, QActionGroup, QColor, QIcon, QKeySequence, QSurfaceFormat
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
@@ -22,7 +22,8 @@ from PySide6.QtWidgets import (
 )
 
 from otb_chess.core.game import Chess3D
-from otb_chess.services.settings import TIME_CONTROLS, TimeControl, ENGINE_DIR, BOOK_DIR
+from otb_chess.core.evaluation import evaluate_position
+from otb_chess.services.settings import TIME_CONTROLS, TimeControl, ENGINE_DIR, BOOK_DIR, APP_DIR
 from otb_chess.graphics.gl_primitives import setup_gl
 from otb_chess.version import __version__
 from otb_chess.ui.interface_themes import THEMES, themed_stylesheet
@@ -106,8 +107,36 @@ class DesktopGame(Chess3D):
         self.analysis_stamp = 0
         self.closed = False
 
-    def try_move(self, fr, to, is_engine=False):
-        moved = super().try_move(fr,to,is_engine)
+    def choose_promotion(self, color, square):
+        dialog = QDialog(self.owner)
+        dialog.setObjectName("promotionDialog")
+        dialog.setWindowTitle("Pawn promotion")
+        layout = QVBoxLayout(dialog)
+        name = chr(ord('a') + chess.square_file(square)) + str(chess.square_rank(square) + 1)
+        layout.addWidget(QLabel(f"Promote {'White' if color else 'Black'}'s pawn on {name} to:"))
+        row = QHBoxLayout()
+        selected = None
+        def choose(piece_type):
+            nonlocal selected
+            selected = piece_type
+            dialog.accept()
+        for label, piece_type in (("Queen", chess.QUEEN), ("Rook", chess.ROOK),
+                                  ("Bishop", chess.BISHOP), ("Knight", chess.KNIGHT)):
+            button = QPushButton(label)
+            button.setObjectName("promote" + label)
+            button.setDefault(piece_type == chess.QUEEN)
+            button.clicked.connect(lambda _, p=piece_type: choose(p))
+            row.addWidget(button)
+        layout.addLayout(row)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        self.drag_piece = self.drag_world = None
+        self.was_drag = False
+        return selected if dialog.exec() == QDialog.DialogCode.Accepted else None
+
+    def try_move(self, fr, to, is_engine=False, promotion=None):
+        moved = super().try_move(fr,to,is_engine,promotion=promotion)
         if moved:
             self.owner.sync_engine_output()
             self.owner.session.save(self,force=True)
@@ -141,12 +170,13 @@ class DesktopGame(Chess3D):
     def request_analysis(self):
         manager = self.engine_manager
         if (self.closed or not self.analysis_enabled or self.engine_loading or self.analysis_busy
-                or manager.thinking or not manager.engine):
+                or manager.thinking or not manager.engine or self.owner.new_game_pending):
             return
         # Never queue analysis in front of the engine's turn.
-        if self.game_started and not self.game_over and self.board.turn == self.engine_side:
+        if (self.game_started and not self.game_over and not self.clock_paused
+                and self._review_live is None and self.board.turn == self.engine_side):
             return
-        board = self.board.copy()
+        board = chess.snapshot_history(self.board)
         self.analysis_busy = True
         self.analysis_stamp = time.perf_counter()
 
@@ -154,10 +184,10 @@ class DesktopGame(Chess3D):
             try:
                 with manager.lock:
                     if manager.engine and not self.closed:
-                        info = manager.engine.analyse(board, uci.Limit(time=.25))
-                        self.engine_output = (board.fen(), info, None)
+                        info = manager.engine.analyse(board)
+                        self.engine_output = (board.final_fen, info, None)
             except Exception as exc:
-                self.engine_output = (board.fen(), {}, str(exc))
+                self.engine_output = (board.final_fen, None, str(exc))
             finally:
                 self.analysis_busy = False
 
@@ -387,6 +417,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.last_output = None
         self.last_search = None
         self.closing = False
+        self.new_game_pending = False
         remembered = self.game.engine_var.get()
         if remembered and Path(remembered).is_file():
             QTimer.singleShot(0,lambda: self.game.load_engine_path(remembered))
@@ -430,7 +461,14 @@ class MainWindow(DocumentActions, QMainWindow):
         moves_layout.addLayout(navigation)
         label = QLabel("MOVE LIST")
         label.setObjectName("section")
-        moves_layout.addWidget(label)
+        move_heading = QHBoxLayout()
+        move_heading.addWidget(label)
+        self.move_list_evaluation = QLabel()
+        self.move_list_evaluation.setObjectName("moveListEvaluation")
+        self.move_list_evaluation.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.move_list_evaluation.setWordWrap(True)
+        move_heading.addWidget(self.move_list_evaluation, 1)
+        moves_layout.addLayout(move_heading)
         self.moves = QTableWidget(0,3)
         self.moves.setHorizontalHeaderLabels(["#","WHITE","BLACK"])
         self.moves.verticalHeader().hide()
@@ -446,6 +484,14 @@ class MainWindow(DocumentActions, QMainWindow):
         self.moves.setMinimumHeight(90)
         moves_layout.addWidget(self.moves,1)
         layout.addWidget(self.moves_panel,1)
+        self.static_evaluation = QLabel()
+        self.static_evaluation.setObjectName("staticEvaluation")
+        self.static_evaluation.setWordWrap(True)
+        self.static_evaluation.setToolTip(
+            "Instant estimate of the displayed board: material, piece placement and pawn structure.\n"
+            "No engine or move search. Values are in pawns.\n"
+            "Tactical threats can make the engine's evaluation different.")
+        self.move_list_evaluation.setToolTip(self.static_evaluation.toolTip())
         self.engine_toggle = QToolButton()
         self.engine_toggle.setText("Engine output")
         self.engine_toggle.setCheckable(True)
@@ -455,10 +501,20 @@ class MainWindow(DocumentActions, QMainWindow):
         self.engine_panel = QWidget()
         engine_layout = QVBoxLayout(self.engine_panel)
         engine_layout.setContentsMargins(0,0,0,0)
+        engine_layout.addWidget(self.static_evaluation)
         self.engine_name = QLabel("No engine loaded")
         self.engine_name.setObjectName("hint")
         self.engine_name.setWordWrap(True)
         engine_layout.addWidget(self.engine_name)
+        self.analysis_button = QPushButton("Start analysis")
+        self.analysis_button.setObjectName("toggleEngineAnalysis")
+        self.analysis_button.setCheckable(True)
+        self.analysis_button.setEnabled(False)
+        self.analysis_button.setToolTip(
+            "Start or stop automatic line calculation. The current short search may finish.\n"
+            "Static evaluation stays active; the engine still plays its turns.")
+        self.analysis_button.clicked.connect(lambda enabled: self.invoke(self.toggle_analysis, enabled))
+        engine_layout.addWidget(self.analysis_button)
         self.engine_metrics = QLabel("Enable analysis from the Engine menu.")
         self.engine_metrics.setWordWrap(True)
         engine_layout.addWidget(self.engine_metrics)
@@ -491,7 +547,6 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def build_menus(self):
         g = self.game
-        self.build_file_menu()
         game = self.menuBar().addMenu("Game")
         self.action(game,"New game…",self.new_game,"Ctrl+N")
         self.action(game,"Start / pause clock",self.play_pause,"Ctrl+P")
@@ -506,6 +561,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.action(game,"Reset clock…",self.reset_clock)
         game.addSeparator()
         self.action(game,"Quit",self.close,"Ctrl+Q")
+        self.build_file_menu()
         view = self.menuBar().addMenu("View")
         modes = QActionGroup(self)
         self.mode_actions = {}
@@ -542,6 +598,9 @@ class MainWindow(DocumentActions, QMainWindow):
         self.action(engine,"Engine and opening book…",self.engine_settings)
         self.analysis_action = self.action(engine,"Analyse position",self.toggle_analysis,"Ctrl+A",True)
         self.action(engine,"Show engine output",lambda:self.engine_toggle.setChecked(not self.engine_toggle.isChecked()))
+        self.static_evaluation_action = self.action(
+            engine, "Always show static evaluation", self.toggle_static_evaluation,
+            checkable=True, checked=bool(g.cfg.get("always_show_static_evaluation", False)))
         settings = self.menuBar().addMenu("Settings")
         self.action(settings,"Time control and clock…",self.clock_settings)
         self.action(settings,"Piece movement speed…",self.movement_settings)
@@ -647,10 +706,18 @@ class MainWindow(DocumentActions, QMainWindow):
             self.sidebar_width = self.sidebar.width()
         self.sidebar.setVisible(self.sidebar_action.isChecked())
         self.moves_panel.setVisible(not focus)
+        always_static = self.static_evaluation_action.isChecked()
+        self.move_list_evaluation.setVisible(always_static)
+        self.static_evaluation.setVisible(not always_static)
         self.engine_toggle.setVisible(not focus)
         self.engine_panel.setVisible(not focus and self.engine_toggle.isChecked())
         self.engine_toggle.setArrowType(Qt.ArrowType.DownArrow if self.engine_toggle.isChecked() else Qt.ArrowType.RightArrow)
         self.focus_spacer.setVisible(focus)
+
+    def toggle_static_evaluation(self, enabled):
+        self.game.cfg["always_show_static_evaluation"] = enabled
+        self.apply_visibility()
+        self.game.persist()
 
     def set_fullscreen(self, enabled):
         self.showFullScreen() if enabled else self.showNormal()
@@ -681,6 +748,9 @@ class MainWindow(DocumentActions, QMainWindow):
             self.move_navigation[symbol].setEnabled(allowed and current < end)
 
     def refresh_moves(self):
+        evaluation = evaluate_position(self.game.board).text
+        self.static_evaluation.setText(f"Position evaluation: {evaluation}")
+        self.move_list_evaluation.setText(evaluation)
         self.refresh_navigation()
         history = self.game.history_board()
         board = history.root()
@@ -716,15 +786,30 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def new_game(self):
         g = self.game
-        if g.engine_loading or g.engine_manager.thinking or g.analysis_busy:
-            g.result_text = "Wait for the current engine operation to finish."
+        if self.new_game_pending:
             return
         if g.board.move_stack and not self.confirm("New game","Start a new game? The current moves will be cleared."):
             return
+        self.new_game_pending = True
+        self.start_pending_game()
+
+    def start_pending_game(self):
+        if not self.new_game_pending:
+            return
+        g = self.game
+        if (g.engine_loading or g.engine_manager.thinking or g.analysis_busy
+                or g.engine_load_result is not None):
+            g.result_text = "Starting a new game when the engine is ready…"
+            return
+        self.new_game_pending = False
         g.pending_engine_move = None
+        g.pending_engine_position = None
+        g.pending_engine_error = None
         g.engine_output = None
         g.last_engine_search = None
-        g.selected = g.drag_piece = g.drag_world = None
+        g.move_animation = None
+        g.cancel_selection()
+        self.last_fen = self.last_output = self.last_search = None
         g.start_game()
 
     def play_pause(self):
@@ -859,9 +944,12 @@ class MainWindow(DocumentActions, QMainWindow):
         form = QFormLayout(dialog)
         engine = QComboBox()
         engine.setEditable(True)
-        engine.addItems([""]+[str(p) for p in sorted(ENGINE_DIR.glob("*.exe"))])
+        engine.addItems([""]+[str(p) for p in sorted(ENGINE_DIR.rglob("*.exe"))])
         engine.setCurrentText(g.engine_var.get())
-        book = QLineEdit(g.book_var.get())
+        book = QComboBox()
+        book.setEditable(True)
+        book.addItems([""] + [str(p) for p in sorted(BOOK_DIR.glob("*.bin"))])
+        book.setCurrentText(g.book_var.get())
         side = QComboBox()
         side.addItems(["None","White","Black"])
         side.setCurrentText(g.engine_side_var.get())
@@ -878,6 +966,40 @@ class MainWindow(DocumentActions, QMainWindow):
             row.addWidget(button)
             form.addRow(label,row)
         form.addRow("Engine plays",side)
+        strength = QComboBox()
+        strength.setObjectName("engineStrength")
+        strength.addItems(["Full strength", "Limit rating"])
+        strength.setCurrentIndex(0 if g.cfg.get("engine_elo") is None else 1)
+        rating = QSpinBox()
+        rating.setObjectName("engineRating")
+        rating.setRange(0, 10000)
+        rating.setValue(g.cfg.get("engine_elo") if g.cfg.get("engine_elo") is not None
+                        else g.cfg.get("engine_rating", 1500))
+        rating.setKeyboardTracking(False)
+        def update_rating_enabled():
+            rating.setEnabled(strength.isEnabled() and strength.currentIndex() == 1)
+        def update_limits():
+            loaded = g.engine_manager.engine
+            limits = loaded.strength_range() if loaded and engine.currentText() == g.engine_manager.path else None
+            strength.setEnabled(limits is not None)
+            if limits:
+                rating.setRange(*limits)
+            update_rating_enabled()
+        strength.currentIndexChanged.connect(update_rating_enabled)
+        engine.currentTextChanged.connect(update_limits)
+        update_limits()
+        style = QComboBox()
+        style.setObjectName("engineStyle")
+        style.addItems(["Balanced", "Active", "Quiet"])
+        style.setCurrentText(g.cfg.get("engine_style", "Balanced"))
+        form.addRow("Strength", strength)
+        form.addRow("Target rating", rating)
+        form.addRow("Playing style", style)
+        help_text = QLabel("Load an engine to see its supported rating range. Ratings are estimates.\n"
+                           "Active favours checks/captures; Quiet favours quieter moves of similar value.\n"
+                           "Styles need engine MultiPV support and can affect strength. Book moves bypass these controls.")
+        help_text.setWordWrap(True)
+        form.addRow(help_text)
         note = QLabel("Engine side and opening book apply to the next game.\nLeave the engine path empty to unload it.")
         note.setObjectName("hint")
         form.addRow(note)
@@ -886,7 +1008,7 @@ class MainWindow(DocumentActions, QMainWindow):
             if g.engine_manager.thinking or g.engine_loading or g.analysis_busy:
                 QMessageBox.information(dialog,"Engine busy","Wait for the current engine operation to finish.")
                 return
-            for path in (engine.currentText().strip(),book.text().strip()):
+            for path in (engine.currentText().strip(),book.currentText().strip()):
                 if path and not Path(path).is_file():
                     QMessageBox.warning(dialog,"File not found",path)
                     return
@@ -896,7 +1018,12 @@ class MainWindow(DocumentActions, QMainWindow):
         form.addRow(buttons)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             g.engine_side_var.set(side.currentText())
-            g.book_var.set(book.text().strip())
+            g.book_var.set(book.currentText().strip())
+            if strength.isEnabled():
+                rating.interpretText()
+                g.cfg["engine_rating"] = rating.value()
+                g.cfg["engine_elo"] = rating.value() if strength.currentIndex() else None
+            g.cfg["engine_style"] = style.currentText()
             path = engine.currentText().strip()
             if path != g.engine_manager.path or (path and g.engine_manager.engine is None):
                 g.load_engine_path(path)
@@ -960,6 +1087,9 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def toggle_analysis(self, enabled):
         self.game.analysis_enabled = enabled
+        self.analysis_action.setChecked(enabled)
+        self.analysis_button.setChecked(enabled)
+        self.analysis_button.setText("Stop analysis" if enabled else "Start analysis")
         if enabled:
             self.sidebar_action.setChecked(True)
             self.focus_action.setChecked(False)
@@ -970,6 +1100,8 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def sync_engine_output(self):
         """Show the engine's last completed search, labelled as such."""
+        if self.game.analysis_enabled:
+            return
         search = self.game.last_engine_search
         if search is not None and search is not self.last_search:
             self.last_search = search
@@ -977,20 +1109,23 @@ class MainWindow(DocumentActions, QMainWindow):
             self.show_engine_info(source, info, "Last search · ")
 
     def show_engine_info(self, source, info, prefix=""):
-        score = info.get("score")
+        score = info.score
         if score is not None:
-            value = score.white()
-            score_text = f"Mate {value.mate():+d}" if value.is_mate() else f"{value.score()/100:+.2f}"
+            score_text = f"Mate {score.mate:+d}" if score.mate is not None else f"{score.centipawns/100:+.2f}"
         else:
             score_text = "—"
-        self.engine_metrics.setText(f"{prefix}White: {score_text}   ·   Depth {info.get('depth','—')}")
+        self.engine_metrics.setText(f"{prefix}Engine evaluation: {score_text}   ·   Depth {info.depth if info.depth is not None else '—'}")
         board = chess.Board(source)
         moves = []
-        for move in info.get("pv",[])[:12]:
-            if move not in board.legal_moves:
+        for move in info.pv[:12]:
+            if chess.provider_move(move) not in board.legal_moves:
                 break
+            if board.turn == chess.WHITE:
+                moves.append(f"{board.fullmove_number}.")
+            elif not moves:
+                moves.append(f"{board.fullmove_number}...")
             moves.append(notation.san(board.fen(), chess.owned_move(move)))
-            board.push(move)
+            board.push(chess.provider_move(move))
         self.engine_line.setPlainText(" ".join(moves))
 
     def show_controls(self):
@@ -1008,7 +1143,8 @@ class MainWindow(DocumentActions, QMainWindow):
             return
         g = self.game
         g.update_clock()
-        g.apply_pending_engine_move()
+        if not self.new_game_pending:
+            g.apply_pending_engine_move()
         self.session.save(g)
         g.maybe_persist_camera()
         if g.engine_load_result is not None:
@@ -1021,22 +1157,28 @@ class MainWindow(DocumentActions, QMainWindow):
             g.persist()
             if ok and path:
                 self.engine_toggle.setChecked(True)
+                self.analysis_action.setChecked(True)
+                self.toggle_analysis(True)
+        self.start_pending_game()
         self.black_clock.refresh(g)
         self.white_clock.refresh(g)
-        self.play_button.setText("Start game" if not g.game_started or g.game_over else "Resume clock" if g.clock_paused else "Pause clock")
-        self.play_button.setEnabled(not g.engine_loading and not g.engine_manager.thinking)
+        self.play_button.setText("Starting game…" if self.new_game_pending else "Start game" if not g.game_started or g.game_over else "Resume clock" if g.clock_paused else "Pause clock")
+        self.play_button.setEnabled(not self.new_game_pending and
+                                    (not g.game_started or g.game_over or
+                                     not (g.engine_loading or g.engine_manager.thinking)))
         self.refresh_navigation()
         self.clock_summary.setText(f"{g.time_control_var.get()}  ·  {'Manual clock' if g.clock_mode == 'OTB' else 'Automatic clock'}")
         self.statusBar().showMessage(self.session.error or g.result_text)
         self.board_status.setText(f"{g.board_mode}  ·  {g.piece_sets[g.piece_set].name}")
         self.engine_name.setText(Path(g.engine_manager.path).name if g.engine_manager.engine else "No engine loaded · Engine → Configure")
+        self.analysis_button.setEnabled(g.engine_manager.engine is not None and not g.engine_loading)
         fen = g.board.fen()
         if fen != self.last_fen:
             self.refresh_moves()
             self.engine_line.clear()
             self.engine_metrics.setText("Analysing…" if g.analysis_enabled else "Enable analysis from the Engine menu.")
             self.last_fen = fen
-            if g.last_engine_search is not None:
+            if not g.analysis_enabled and g.last_engine_search is not None:
                 source, info = g.last_engine_search
                 self.show_engine_info(source,info,"Last search · ")
         if g.analysis_enabled and time.perf_counter()-g.analysis_stamp > .75:
@@ -1090,6 +1232,10 @@ def run():
     configure_graphics()
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("OTBMaster3D")
+    app.setWindowIcon(QIcon(str(APP_DIR / "assets" / "app-icon.ico")))
+    if sys.platform == "win32":
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("OTBMaster3D.Desktop")
     window = MainWindow()
     window.show()
     sys.exit(app.exec())

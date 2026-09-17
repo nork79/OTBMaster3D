@@ -180,7 +180,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             not self.game_over and not self.awaiting_clock_press and not engine_has_turn
         )
 
-    def try_move(self, fr, to, is_engine=False):
+    def try_move(self, fr, to, is_engine=False, promotion=None):
         if fr is None or to is None or fr == to:
             return False
         if not is_engine and not self.human_can_move():
@@ -188,12 +188,20 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         p = self.board.piece_at(fr)
         if not p:
             return False
-        promo = (
-            chess.QUEEN
-            if p.piece_type == chess.PAWN and chess.square_rank(to) in (0, 7)
-            else None
-        )
-        mv = chess.Move(fr, to, promotion=promo)
+        if p.piece_type == chess.PAWN and chess.square_rank(to) in (0, 7):
+            choices = {move.promotion for move in self.board.legal_moves
+                       if move.from_square == fr and move.to_square == to}
+            if not choices:
+                return False
+            if promotion is None and not is_engine:
+                position = self.board.fen()
+                promotion = self.choose_promotion(p.color, to)
+                # A modal chooser runs the UI timer: the clock can expire meanwhile.
+                if self.board.fen() != position or not self.human_can_move():
+                    return False
+            if promotion not in choices:
+                return False
+        mv = chess.Move(fr, to, promotion=promotion)
         if mv not in self.board.legal_moves:
             return False
         mover = self.board.turn
@@ -394,6 +402,6 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.pending_engine_position = None
         if source is not None and source != self.board.fen():
             return
-        if mv in self.board.legal_moves:
-            self.try_move(mv.from_square, mv.to_square, True)
+        if chess.provider_move(mv) in self.board.legal_moves:
+            self.try_move(mv.from_square, mv.to_square, True, promotion=mv.promotion)
 

@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 .venv/
 .tmp/
+.build-tools/
+.venv-build/
+build/
+dist/
+installer-output/
 
 # User-specific application state
 config.json
@@ -12,4 +17,9 @@ session.tmp
 
 # User-provided engines and opening books
 engines/*.exe
+engines/stockfish-19/
+saved-games/
 books/*.bin
+!books/lichess-all.bin
+!books/lichess-e4.bin
+!books/lichess-d4.bin

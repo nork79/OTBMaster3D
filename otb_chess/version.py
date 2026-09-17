@@ -1,3 +1,3 @@
 """Application release version."""
 
-__version__ = "8.6.0"
+__version__ = "1.0.0-beta.1"

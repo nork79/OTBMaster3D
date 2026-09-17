@@ -1,3 +1,10 @@
+# Historical proprietary-distribution research
+
+**Superseded for the public beta:** OTBMaster3D 1.0.0 Beta 1 is a free, open-source
+GPL-3.0-or-later source release. There is no current proprietary release plan.
+The material below is preserved as historical engineering research; installer
+compilation is paused. See [current release notes](releases/1.0.0-beta.1.md).
+
 # Windows commercial distribution preparation
 
 **NOT READY FOR PROPRIETARY RELEASE.** python-chess 1.11.2 remains GPL-3.0-or-later

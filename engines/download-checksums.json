@@ -1,0 +1,10 @@
+{
+  ".tmp/stockfish.zip": "3c8bf1f9ea66a09350a40df4f632288285ac206d99f33ab5842c408fc30b48a7",
+  "books/sources/a.tsv": "41722fa3d44f294357326fe2ca1b956d9e56490b30efcfa68db61114c9df7e10",
+  "books/sources/b.tsv": "310f0997d5a26ac6c9abfabac028e47e78f24356a6ba322cfffbf8f5a3f88d25",
+  "books/sources/c.tsv": "b2e64f32e42e6418b327d03a55af65f3a18e762f7cbc0efffc7e9d1ed3aa7343",
+  "books/sources/COPYING.txt": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+  "books/sources/d.tsv": "58cad40b886bd499717eabcce281d4bfcf00eeadbdc00552f42042cf4aac50d2",
+  "books/sources/e.tsv": "f1f8494f488f660e284f23527d5acfbeccdbbc3acc76e74f05d125f39d2f8a74",
+  "engines/stockfish-19/stockfish/stockfish-windows-x86-64-universal.exe": "45bc8e4969147db9c2eb533810637994619bff0eacc81ccfd9854394901bcbd0"
+}

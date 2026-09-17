@@ -21,6 +21,27 @@ from otb_chess.graphics.board_colors import BOARD_COLOR_THEMES
 class LegacyUI:
     """Optional Tk host methods; the normal application uses desktop_ui."""
 
+    def choose_promotion(self, color, square):
+        dialog = tk.Toplevel(self.ui)
+        dialog.title("Pawn promotion")
+        dialog.transient(self.ui)
+        selected = None
+        ttk.Label(dialog, text="Choose the promotion piece:").pack(padx=16, pady=12)
+        row = ttk.Frame(dialog)
+        row.pack(padx=16, pady=12)
+        def choose(piece_type):
+            nonlocal selected
+            selected = piece_type
+            dialog.destroy()
+        for label, piece_type in (("Queen", chess.QUEEN), ("Rook", chess.ROOK),
+                                  ("Bishop", chess.BISHOP), ("Knight", chess.KNIGHT)):
+            ttk.Button(row, text=label, command=lambda p=piece_type: choose(p)).pack(side="left")
+        ttk.Button(dialog, text="Cancel", command=dialog.destroy).pack(pady=12)
+        dialog.bind("<Escape>", lambda _: dialog.destroy())
+        dialog.grab_set()
+        dialog.wait_window()
+        return selected
+
     def refresh_move_list(self):
         if not hasattr(self, "move_text"):
             return

@@ -1,5 +1,9 @@
 # Replacing python-chess
 
+For 1.0.0 Beta 1, the application is GPL-3.0-or-later and continues to use
+python-chess. This document records experimental backend research; replacing
+python-chess is not a requirement for the current free, open-source release.
+
 ## Current state
 
 The active runtime and migration target is **Python 3.13 on Windows x64**.
