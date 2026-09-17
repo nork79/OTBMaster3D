@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QPushButton, QToolButton, QSplitter, QTableWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView, QDialog, QFormLayout, QComboBox,
     QDoubleSpinBox, QSpinBox, QAbstractSpinBox, QDialogButtonBox, QFileDialog, QColorDialog,
-    QMessageBox, QLineEdit, QPlainTextEdit,
+    QMessageBox, QLineEdit, QPlainTextEdit, QSlider,
 )
 
 from otb_chess.core.game import Chess3D
@@ -109,6 +109,7 @@ class DesktopGame(Chess3D):
         moved = super().try_move(fr,to,is_engine)
         if moved:
             self.owner.sync_engine_output()
+            self.owner.session.save(self,force=True)
         return moved
 
     def refresh_move_list(self):
@@ -236,7 +237,9 @@ class BoardWidget(QOpenGLWidget):
         pos = (event.position().x(), event.position().y())
         bindings = {Qt.MouseButton.RightButton: "Right Mouse", Qt.MouseButton.MiddleButton: "Middle Mouse", Qt.MouseButton.BackButton: "Mouse Button 4",
                     Qt.MouseButton.ForwardButton: "Mouse Button 5"}
-        if g.clock_mode == "OTB" and bindings.get(event.button()) == g.clock_binding:
+        if event.button() == Qt.MouseButton.RightButton and g.selected is not None:
+            g.cancel_selection()
+        elif g.clock_mode == "OTB" and bindings.get(event.button()) == g.clock_binding:
             g.hit_clock()
         elif event.button() == Qt.MouseButton.RightButton or (
                 event.button() == Qt.MouseButton.LeftButton and event.modifiers() & Qt.KeyboardModifier.ControlModifier):
@@ -336,6 +339,9 @@ class MainWindow(DocumentActions, QMainWindow):
         self.setStyleSheet(STYLE)
         self.board_widget = BoardWidget(self)
         self.game = self.board_widget.game
+        from otb_chess.services.session import SessionStore
+        self.session = SessionStore()
+        self.session.restore(self.game)
         cfg = self.game.cfg
         self.interface_theme = cfg.get("interface_theme","Blue")
         if self.interface_theme not in THEMES:
@@ -473,6 +479,7 @@ class MainWindow(DocumentActions, QMainWindow):
         if self.board_widget.ready:
             self.board_widget.makeCurrent()
         callback(*args)
+        self.session.save(self.game,force=True)
         self.board_widget.update()
 
     def build_menus(self):
@@ -530,6 +537,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.action(engine,"Show engine output",lambda:self.engine_toggle.setChecked(not self.engine_toggle.isChecked()))
         settings = self.menuBar().addMenu("Settings")
         self.action(settings,"Time control and clock…",self.clock_settings)
+        self.action(settings,"Piece movement speed…",self.movement_settings)
         interface = settings.addMenu("Interface theme")
         theme_group = QActionGroup(self)
         self.interface_theme_actions = {}
@@ -571,6 +579,37 @@ class MainWindow(DocumentActions, QMainWindow):
         self.action(help_menu,"Open Source Licences",lambda:show_licenses(self))
         self.action(help_menu,"Controls",self.show_controls)
         self.action(help_menu,"About",lambda:QMessageBox.about(self,"OTBMaster3D",f"OTBMaster3D v{__version__}\n\nDesktop chess with 2D and 3D views.\nStaunton models: clarkerubber (MIT).\nSee assets/pieces/README.md for credits."))
+
+    def movement_settings(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Piece movement speed")
+        dialog.setMinimumWidth(360)
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(QLabel("Slower ←    Movement speed    → Instant"))
+        slider = QSlider(Qt.Orientation.Horizontal)
+        slider.setInvertedAppearance(True)
+        slider.setInvertedControls(True)
+        slider.setRange(0,1500)
+        slider.setSingleStep(50)
+        slider.setPageStep(250)
+        slider.setValue(self.game.move_animation_ms)
+        slider.setAccessibleName("Piece movement duration in milliseconds")
+        layout.addWidget(slider)
+        label = QLabel()
+        def update_label(value):
+            label.setText("Instant (default)" if value == 0 else f"{value/1000:.2f} seconds per move")
+        slider.valueChanged.connect(update_label)
+        update_label(slider.value())
+        layout.addWidget(label)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.game.move_animation_ms = slider.value()
+            self.game.move_animation = None
+            self.game.persist()
+        dialog.deleteLater()
 
     def set_interface_theme(self, name):
         self.interface_theme = name if name in THEMES else "Blue"
@@ -963,6 +1002,7 @@ class MainWindow(DocumentActions, QMainWindow):
         g = self.game
         g.update_clock()
         g.apply_pending_engine_move()
+        self.session.save(g)
         g.maybe_persist_camera()
         if g.engine_load_result is not None:
             path,(ok,message) = g.engine_load_result
@@ -980,7 +1020,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.play_button.setEnabled(not g.engine_loading and not g.engine_manager.thinking)
         self.refresh_navigation()
         self.clock_summary.setText(f"{g.time_control_var.get()}  ·  {'Manual clock' if g.clock_mode == 'OTB' else 'Automatic clock'}")
-        self.statusBar().showMessage(g.result_text)
+        self.statusBar().showMessage(self.session.error or g.result_text)
         self.board_status.setText(f"{g.board_mode}  ·  {g.piece_sets[g.piece_set].name}")
         self.engine_name.setText(Path(g.engine_manager.path).name if g.engine_manager.engine else "No engine loaded · Engine → Configure")
         fen = g.board.fen()
@@ -1015,6 +1055,8 @@ class MainWindow(DocumentActions, QMainWindow):
         self.closing = True
         self.timer.stop()
         g.closed = True
+        g.update_clock()
+        self.session.save(g,force=True)
         if self.sidebar.isVisible():
             self.sidebar_width = self.sidebar.width()
         normal_size = self.normalGeometry().size() if self.isFullScreen() or self.isMaximized() else self.size()

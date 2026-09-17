@@ -146,6 +146,7 @@ class AppearanceSettings:
                 "background_style": self.background_style,
                 "piece_set": self.piece_set,
                 "flat_piece_set": self.flat_piece_set,
+                "move_animation_ms": self.move_animation_ms,
                 "board_mode": self.board_mode,
                 "board_type": self.board_type,
                 "two_d_flipped": self.two_d_flipped,

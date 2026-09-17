@@ -1,5 +1,10 @@
 # Additional 2D sets
 
+Textbook (Cburnett) provides traditional black-and-white diagram pieces by
+Colin M. L. Burnett (BSD-3-Clause). Chessnut is by Alexis Luengas (Apache-2.0),
+and Firi is by James Faure (CC-BY-4.0). Their folders include source credits,
+licences, SVGs and rasterised PNGs. Rebuild with tools/import_diagram_pieces.py.
+
 Fantasy, Celtic, Spatial, Skulls and Eyes are by Maurizio Monge, MIT licensed.
 Source: https://github.com/maurimo/chess-art
 Retrieved: 2026-09-17. Each set includes the full upstream LICENSE.

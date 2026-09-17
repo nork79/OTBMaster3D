@@ -97,6 +97,7 @@ def default_config():
         "background_image": "",
         "background_style": "solid",
         "flat_piece_set": "classic",
+        "move_animation_ms": 0,
         "piece_set": "tournament",
         "board_mode": "3D",
         "board_type": "classic",

@@ -90,3 +90,9 @@ with a complete licence inventory for every binary inside it.
 See [Qt module audit](docs/qt-module-audit.md) and
 [Windows distribution preparation](docs/windows-commercial-distribution.md) for module
 restrictions, replacement instructions, matching-source obligations and release gates.
+
+- **Textbook (Cburnett)** by Colin M. L. Burnett, BSD-3-Clause. Source: https://commons.wikimedia.org/wiki/File:Chess_nlt45.svg. Cburnett artwork extracted from the locally installed python-chess chess/svg.py artwork dictionary; wrapped as SVG and rasterised. No python-chess program code copied. Licence: [assets/pieces_2d/textbook/LICENSE](assets/pieces_2d/textbook/LICENSE).
+
+- **Chessnut** by Alexis Luengas, Apache-2.0. Source: https://github.com/LexLuengas/chessnut-pieces. Original SVGs rasterised to PNG; no design changes. Licence: [assets/pieces_2d/chessnut/LICENSE](assets/pieces_2d/chessnut/LICENSE).
+
+- **Firi** by James Faure (jfaure), CC-BY-4.0. Source: https://github.com/jfaure/Firi-pieceset. Standard chess SVGs from out/ rasterised to PNG; no design changes. Licence: [assets/pieces_2d/firi/LICENSE](assets/pieces_2d/firi/LICENSE).

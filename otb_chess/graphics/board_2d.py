@@ -8,7 +8,8 @@ from OpenGL import GL as gl
 from otb_chess.services.settings import APP_DIR
 
 
-FLAT_SETS = {"classic":"Classic (match 3D colours)", "fantasy":"Fantasy",
+FLAT_SETS = {"classic":"Classic (match 3D colours)", "textbook":"Textbook (Cburnett)",
+             "chessnut":"Chessnut", "firi":"Firi", "fantasy":"Fantasy",
              "celtic":"Celtic", "spatial":"Spatial", "skulls":"Skulls", "eyes":"Eyes"}
 
 

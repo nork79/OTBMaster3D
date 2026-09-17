@@ -54,6 +54,8 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             glfw.swap_interval(1)
             setup_gl(WIDTH, HEIGHT)
         self.board = chess.Board()
+        self.move_animation_ms = max(0,min(1500,int(self.cfg.get("move_animation_ms",0))))
+        self.move_animation = None
         self.board_type = self.cfg.get("board_type","classic")
         if self.board_type not in BOARD_TYPES:
             self.board_type = "classic"
@@ -200,7 +202,14 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             self.clock_history.append(
                 (self.white_time, self.black_time, self.active_clock_color)
             )
+        origins = {to: fr}
+        if self.board.is_castling(mv):
+            rank = chess.square_rank(fr)
+            kingside = chess.square_file(to) > chess.square_file(fr)
+            origins[chess.square(5 if kingside else 3,rank)] = chess.square(7 if kingside else 0,rank)
         self.board.push(mv)
+        self.move_animation = (self.board, self.board.fen(),time.perf_counter(),
+                               self.move_animation_ms / 1000,origins) if self.move_animation_ms else None
         if self.game_started:
             if len(self.board.move_stack) == 1:
                 self.last_clock_tick = time.perf_counter()

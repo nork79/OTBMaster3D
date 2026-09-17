@@ -32,6 +32,9 @@ class BoardInput:
     def _mouse(w, b, a, m):
         s = BoardInput._s(w)
         p = glfw.get_cursor_pos(w)
+        if b == glfw.MOUSE_BUTTON_RIGHT and a == glfw.PRESS and s.selected is not None:
+            s.cancel_selection()
+            return
         if a == glfw.PRESS and s.clock_mode == "OTB":
             binding_map = {
                 "Right Mouse": glfw.MOUSE_BUTTON_RIGHT,
@@ -106,6 +109,11 @@ class BoardInput:
         if self.camera_dirty and time.perf_counter() - self.last_camera_change > 0.35:
             self.camera_dirty = False
             self.persist()
+
+    def cancel_selection(self):
+        self.selected = self.drag_piece = self.drag_world = self.left_down_pos = None
+        self.board_pan_drag = self.right_drag = self.ctrl_left_rotate = self.was_drag = False
+        self.pan_start_world = None
 
     def left_press(self, pos):
         sq = self.square_at_mouse(pos)

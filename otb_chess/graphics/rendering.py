@@ -6,6 +6,7 @@ from otb_chess.graphics.board_2d import flat_square
 from otb_chess.graphics.backgrounds import upload_background
 import glfw
 import math
+import time
 from otb_chess.services.settings import BOARD_Y, SELECT, TURN_INDICATOR
 from otb_chess.graphics.gl_primitives import draw_box, draw_disc, draw_glyph
 from OpenGL.GL import GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST, GL_FALSE, GL_LIGHT0, GL_LIGHT1, GL_LIGHTING, GL_MODELVIEW, GL_MODELVIEW_MATRIX, GL_POSITION, GL_PROJECTION, GL_PROJECTION_MATRIX, GL_QUADS, GL_TEXTURE_2D, GL_TRUE, GL_VIEWPORT, glBegin, glBindTexture, glClear, glClearColor, glColor3f, glDepthMask, glDisable, glEnable, glEnd, glGetDoublev, glGetIntegerv, glLightfv, glLoadIdentity, glMatrixMode, glOrtho, glPopMatrix, glPushMatrix, glTexCoord2f, glTranslatef, glVertex2f
@@ -143,6 +144,21 @@ class BoardRendering:
                 rank_label_x = -4.12 if flat and self.two_d_flipped else 4.12
                 draw_glyph(ch, rank_label_x, 0.035, r - 3.5, yaw, 0.18)
 
+    def animated_piece_positions(self):
+        animation = self.move_animation
+        if animation is None:
+            return {}
+        board,fen,start,duration,origins = animation
+        elapsed = time.perf_counter()-start
+        if board is not self.board or fen != self.board.fen() or elapsed >= duration or not self.move_animation_ms:
+            self.move_animation = None
+            return {}
+        progress = max(0,elapsed/duration)
+        progress = progress*progress*(3-2*progress)
+        return {dst:(3.5-(chess.square_file(src)*(1-progress)+chess.square_file(dst)*progress),
+                     chess.square_rank(src)*(1-progress)+chess.square_rank(dst)*progress-3.5)
+                for dst,src in origins.items()}
+
     def draw(self):
         self.draw_background()
         self.camera()
@@ -150,13 +166,15 @@ class BoardRendering:
         pan_x, pan_z = self.view_pan()
         glTranslatef(pan_x, 0, pan_z)
         self.draw_board()
+        positions = self.animated_piece_positions()
         for sq, p in self.board.piece_map().items():
             if self.drag_piece == sq and self.was_drag and self.drag_world:
                 continue
+            x,z = positions.get(sq,(3.5-chess.square_file(sq),chess.square_rank(sq)-3.5))
             self.draw_game_piece(
                 p,
-                3.5 - chess.square_file(sq),
-                chess.square_rank(sq) - 3.5,
+                x,
+                z,
                 sq == self.selected,
             )
         if self.drag_piece is not None and self.was_drag and self.drag_world:

@@ -381,6 +381,54 @@
           "sha256": "6a659f43b1e9e0000a3b85655ed94d3e70b4de878b3054c5bcc79ff99bc7f253"
         }
       ]
+    },
+    {
+      "name": "Textbook (Cburnett) 2D artwork",
+      "version": "retrieved 2026-09-17",
+      "apparent_license": "BSD-3-Clause",
+      "category": "artwork",
+      "redistribution": "intended",
+      "source": "https://commons.wikimedia.org/wiki/File:Chess_nlt45.svg",
+      "evidence": "Cburnett artwork extracted from the locally installed python-chess chess/svg.py artwork dictionary; wrapped as SVG and rasterised. No python-chess program code copied.",
+      "license_files": [
+        {
+          "path": "assets/pieces_2d/textbook/LICENSE",
+          "source": "https://commons.wikimedia.org/wiki/File:Chess_nlt45.svg",
+          "sha256": "f4f5b9219fb0fce095e5f9c876d7bbf523d4b21fc1d46047bdb26b6a39a09205"
+        }
+      ]
+    },
+    {
+      "name": "Chessnut 2D artwork",
+      "version": "retrieved 2026-09-17",
+      "apparent_license": "Apache-2.0",
+      "category": "artwork",
+      "redistribution": "intended",
+      "source": "https://github.com/LexLuengas/chessnut-pieces",
+      "evidence": "Original SVGs rasterised to PNG; no design changes.",
+      "license_files": [
+        {
+          "path": "assets/pieces_2d/chessnut/LICENSE",
+          "source": "https://github.com/LexLuengas/chessnut-pieces",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ]
+    },
+    {
+      "name": "Firi 2D artwork",
+      "version": "retrieved 2026-09-17",
+      "apparent_license": "CC-BY-4.0",
+      "category": "artwork",
+      "redistribution": "intended",
+      "source": "https://github.com/jfaure/Firi-pieceset",
+      "evidence": "Standard chess SVGs from out/ rasterised to PNG; no design changes.",
+      "license_files": [
+        {
+          "path": "assets/pieces_2d/firi/LICENSE",
+          "source": "https://github.com/jfaure/Firi-pieceset",
+          "sha256": "b0795076b6787cb92063ffd73df82a6930705dca321b249e10a9ad5175428fff"
+        }
+      ]
     }
   ],
   "imports": [

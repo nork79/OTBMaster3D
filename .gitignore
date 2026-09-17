@@ -6,6 +6,9 @@ __pycache__/
 
 # User-specific application state
 config.json
+session.json
+session.backup.json
+session.tmp
 
 # User-provided engines and opening books
 engines/*.exe

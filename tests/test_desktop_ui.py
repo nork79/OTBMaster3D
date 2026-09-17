@@ -165,6 +165,91 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual(self.window.game.flat_piece_set,'eyes')
         self.assertEqual(self.window.game.piece_set,'external:scifi')
 
+    def test_right_click_cancels_selection_and_active_piece_drag(self):
+        g,b = self.game,self.widget
+        for mode in ('2D','3D'):
+            g.board_mode = mode
+            g.start_game()
+            original = g.board.fen()
+            QTest.mouseClick(b,Qt.MouseButton.LeftButton,pos=self.screen(chess.E2))
+            self.assertEqual(g.selected,chess.E2)
+            QTest.mouseClick(b,Qt.MouseButton.RightButton,pos=self.screen(chess.E4))
+            self.assertIsNone(g.selected)
+            self.assertFalse(g.legal_targets())
+            QTest.mousePress(b,Qt.MouseButton.LeftButton,pos=self.screen(chess.E2))
+            g.was_drag = True
+            g.clock_mode,g.clock_binding = 'OTB','Right Mouse'
+            with patch.object(g,'hit_clock') as clock:
+                QTest.mouseClick(b,Qt.MouseButton.RightButton,pos=self.screen(chess.E4))
+                clock.assert_not_called()
+            QTest.mouseRelease(b,Qt.MouseButton.LeftButton,pos=self.screen(chess.E4))
+            self.assertIsNone(g.selected)
+            self.assertIsNone(g.drag_piece)
+            self.assertEqual(g.board.fen(),original)
+
+    def test_move_animation_slider_and_castling(self):
+        from PySide6.QtWidgets import QSlider
+        w,g = self.window,self.game
+        self.assertEqual(g.move_animation_ms,0)
+        def set_speed():
+            dialog = QApplication.activeModalWidget()
+            dialog.findChild(QSlider).setValue(1000)
+            dialog.accept()
+        QTimer.singleShot(0,set_speed)
+        w.movement_settings()
+        self.assertEqual(settings.load_config()['move_animation_ms'],1000)
+        for mode in ('2D','3D'):
+            g.board_mode = mode
+            g.load_document(chess.Board('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1'))
+            with patch('otb_chess.core.game.time.perf_counter',return_value=10):
+                self.assertTrue(g.try_move(chess.E1,chess.G1))
+            with patch('otb_chess.graphics.rendering.time.perf_counter',return_value=10):
+                self.assertEqual(g.animated_piece_positions()[chess.G1],(-.5,-3.5))
+                self.assertEqual(g.animated_piece_positions()[chess.F1],(-3.5,-3.5))
+            with patch('otb_chess.graphics.rendering.time.perf_counter',return_value=10.5):
+                self.assertEqual(g.animated_piece_positions()[chess.G1],(-1.5,-3.5))
+                self.widget.grabFramebuffer()
+                self.assertEqual(glGetError(),GL_NO_ERROR)
+            with patch('otb_chess.graphics.rendering.time.perf_counter',return_value=11):
+                self.assertEqual(g.animated_piece_positions(),{})
+        g.load_document(chess.Board())
+        g.move_animation_ms = 0
+        self.assertTrue(g.try_move(chess.E2,chess.E4))
+        self.assertIsNone(g.move_animation)
+
+    def test_session_restores_history_review_clocks_and_backup(self):
+        from otb_chess.services.session import SessionStore
+        g = self.game
+        g.load_document(chess.Board())
+        g.game_started = True
+        g.clock_mode = 'OTB'
+        g.clock_binding = 'Right Mouse'
+        g.clock_paused = False
+        self.assertTrue(g.try_move(chess.E2,chess.E4))
+        g.white_time,g.black_time = 42.5,51.25
+        g.clock_paused = True
+        g.navigate_to_ply(0)
+        store = self.window.session
+        store.save(g,force=True)
+        restored = SessionStore()
+        g.load_document(chess.Board())
+        self.assertTrue(restored.restore(g))
+        self.assertEqual(len(g.board.move_stack),0)
+        self.assertEqual(len(g.history_board().move_stack),1)
+        self.assertEqual((g.white_time,g.black_time),(42.5,51.25))
+        self.assertTrue(g.game_started)
+        self.assertTrue(g.clock_paused)
+        self.assertTrue(g.awaiting_clock_press)
+        self.assertEqual(g.clock_binding_var.get(),'Right Mouse')
+        g.return_to_live()
+        restored.save(g,force=True)
+        restored.path.write_text('{broken',encoding='utf-8')
+        self.assertTrue(SessionStore().restore(g))
+        self.assertIn('backup',g.result_text)
+        restored.backup.write_text('{}',encoding='utf-8')
+        self.assertFalse(SessionStore().restore(g))
+        self.assertIn('could not be recovered',g.result_text)
+
     def test_interface_themes_apply_and_persist(self):
         w,g = self.window,self.game
         original = (g.board.fen(),g.light_square,g.dark_square,g.background_color)

@@ -67,14 +67,27 @@ are saved locally in `config.json`.
 | Classic Club | Procedural pieces with traditional silhouettes. |
 | Sci-fi Vehicles | Drummyfish's CC0 tanks, vehicles and towers. |
 
-**View → 2D piece set** independently selects Classic, Fantasy, Celtic, Spatial,
-Skulls or Eyes. Classic matches the 3D set's colours; the five additional sets
-use Maurizio Monge's MIT-licensed artwork. Both choices are remembered.
+**View → 2D piece set** independently selects Classic, Textbook (Cburnett),
+Chessnut, Firi, Fantasy, Celtic, Spatial, Skulls or Eyes. Textbook provides
+traditional black-and-white diagram pieces. Classic matches the 3D set's
+colours. Both choices are remembered; see assets/pieces_2d for artwork credits.
 Light/dark squares, frame colour, background colour and background images are
 shared between views. Board presets include Wood, Tournament Green, Blue and Grey.
 The previous Original option has been removed; saved selections migrate automatically.
 
 ## Controls
+
+Sessions are recovered automatically on reopening, including the full game or
+loaded position, move-review position and remaining clock times. Clocks always
+restore paused. Moves and menu actions are saved immediately, clocks are
+checkpointed every second, and quitting saves once more. Atomic local snapshots
+and a previous-save backup protect against interrupted writes. A crash can lose
+up to about one second of clock time. Use New game or Reset board to start fresh.
+Session files live beside config.json and are excluded from Git.
+
+**Settings → Piece movement speed** adjusts animation from Instant (the default)
+to 1.5 seconds per move in both 2D and 3D. The choice is saved; game clocks and
+move timing remain unchanged.
 
 | Action | Control |
 | --- | --- |
