@@ -1,10 +1,15 @@
 # Changelog
 
-## Unreleased
+## 8.6.0 - 2026-09-17
 
 - Set Python 3.13 as the supported runtime and migration target in Windows CI,
-  setup instructions and distribution planning. Dependency pins and the existing
-  python-chess backend remain unchanged.
+  setup instructions and distribution planning.
+- Add an independent cozy-chess-py 0.1.1 core with owned moves, FEN/history,
+  special-move handling and material-only insufficient-material detection.
+- Isolate PGN/SAN transfers using owned document/history snapshots while retaining
+  the existing parser/writer, annotations, review and session recovery behaviour.
+- Expand rules and integration coverage: all 69 tests pass. Production rules
+  still use python-chess; UCI and Polyglot implementations remain unchanged.
 
 ## 8.4.0 - 2026-09-17
 

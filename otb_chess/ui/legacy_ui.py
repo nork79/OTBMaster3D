@@ -1,6 +1,7 @@
 """Legacy Tk interface retained for compatibility and regression coverage."""
 
 from otb_chess.chess_backend import rules as chess
+from otb_chess.chess_backend import notation
 
 from PIL import Image
 from PIL import ImageTk
@@ -26,7 +27,7 @@ class LegacyUI:
         b = chess.Board()
         sans = []
         for mv in self.board.move_stack:
-            sans.append(b.san(mv))
+            sans.append(notation.san(b.fen(), chess.owned_move(mv)))
             b.push(mv)
         lines = []
         for i in range(0, len(sans), 2):

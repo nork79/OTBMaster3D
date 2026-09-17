@@ -39,10 +39,20 @@ an imported irrelevant EP target is intentionally canonicalized. True counters
 survive import, moves, copy, root and undo without provider truncation.
 
 Scope is standard chess only, with KQkq castling rights; no Chess960, null moves,
-SAN, PGN, UCI, Polyglot, repetition/material-draw or claim adjudication is exposed.
+SAN, PGN, UCI, Polyglot, repetition or claim adjudication is exposed.
 This is not a drop-in python-chess API: legal moves are a method, move history is
 read-only, and only legal moves can be pushed. No draw policy is inferred from
 the provider. Production callers have not been changed.
+
+`is_insufficient_material() -> bool` is an owned, non-mutating material query.
+It returns true for bare kings, one bishop or knight total besides the kings,
+or bishops only with every bishop on the same square colour (either player's
+bishops, including promoted bishops). It returns false with any pawn, rook or
+queen, with multiple knights, mixed bishops/knights, or opposite-colour bishops.
+Inability to force mate is not sufficient: mate must be impossible. This is a
+material-only test, not an exhaustive dead-position solver for blocked positions.
+The distinction follows [FIDE article 5.2.2](https://handbook.fide.com/chapter/e012023).
+No repetition or move-count draw rules are implemented.
 
 Target: Python 3.13 Windows x64. Candidate: cozy-chess-py 0.1.1 (MIT), wrapping
 cozy-chess 0.3.4 (MIT). No third-party implementation is vendored here.

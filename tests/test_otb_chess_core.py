@@ -340,6 +340,7 @@ class BoardTests(unittest.TestCase):
             'is_castling': board.is_castling(castle), 'is_en_passant': board.is_en_passant(castle),
             'copy': board.copy(), 'root': board.root(), 'is_check': board.is_check(),
             'is_checkmate': board.is_checkmate(), 'is_stalemate': board.is_stalemate(),
+            'is_insufficient_material': board.is_insufficient_material(),
             'from_fen': Board.from_fen(board.fen()), 'push': board.push(castle),
         }
         results['pop'] = board.pop()
@@ -361,3 +362,42 @@ class BoardTests(unittest.TestCase):
             owned(value)
         self.assertNotIn(mv('e1', 'h1'), results['legal_moves'])
         self.assertNotIn(mv('e1', 'a1'), results['legal_moves'])
+
+
+class MaterialTests(unittest.TestCase):
+    def test_bare_kings_and_single_minor_both_colors(self):
+        for row in ('8', '2B5', '2N5', '2b5', '2n5'):
+            with self.subTest(row=row):
+                board = Board(f'7k/8/8/8/8/8/{row}/K7 w - - 0 1')
+                self.assertIs(board.is_insufficient_material(), True)
+
+    def test_same_square_color_bishops_including_promoted_material(self):
+        for row in ('2B1b3', '2b1B3', '2B1B3', '2b1b3', 'B1b1B3', '1B1b4'):
+            with self.subTest(row=row):
+                self.assertTrue(Board(f'5k2/8/8/8/8/8/{row}/K7 w - - 0 1').is_insufficient_material())
+
+    def test_pawn_rook_queen_preclude_material_draw(self):
+        for kind in 'PRQprq':
+            with self.subTest(piece=kind):
+                self.assertFalse(Board(f'7k/8/8/8/8/8/2{kind}5/K7 w - - 0 1').is_insufficient_material())
+
+    def test_minor_combinations_that_permit_mate(self):
+        for row in ('2BN4', '2Bn4', '2bN4', '2bn4', '2NN4', '2Nn4',
+                    '2nn4', '2Bb4', '2BB4', '2bb4'):
+            with self.subTest(row=row):
+                self.assertFalse(Board(f'7k/8/8/8/8/8/{row}/K7 w - - 0 1').is_insufficient_material())
+
+    def test_capture_transition_and_query_preserve_complete_state(self):
+        board = Board('7k/8/8/8/8/8/3r4/K1B5 w - - 999999 888888')
+        self.assertFalse(board.is_insufficient_material())
+        board.push(mv('c1', 'd2'))
+        def state():
+            return (board.fen(), board.root().fen(), board.move_stack,
+                    board.piece_map(), board.turn, board.halfmove_clock,
+                    board.fullmove_number, board.legal_moves())
+        before = state()
+        for _ in range(3):
+            self.assertTrue(board.is_insufficient_material())
+            self.assertEqual(state(), before)
+        board.pop()
+        self.assertFalse(board.is_insufficient_material())

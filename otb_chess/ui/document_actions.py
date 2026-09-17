@@ -32,7 +32,7 @@ class DocumentActions:
                         return False
                     index = labels.index(choice)
                 document = games[index]
-                board = document.end().board()
+                board = document.history
             if self.game.engine_manager.thinking or self.game.engine_loading or self.game.analysis_busy:
                 QMessageBox.information(self,"Engine busy","Wait for the current engine operation to finish before opening a game.")
                 return False

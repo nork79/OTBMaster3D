@@ -1,10 +1,14 @@
 # OTBMaster3D
 
-**Version 8.4.0** - desktop chess with a tournament-style 3D board,
+**Version 8.6.0** - desktop chess with a tournament-style 3D board,
 a flat 2D view, UCI engine support and over-the-board clock controls. The main
 interface uses PySide6 and an embedded OpenGL board.
 
-Version 8.4.0 adds automatic session recovery with paused clocks, adjustable
+Version 8.6.0 establishes Python 3.13 as the runtime target, adds a tested internal
+chess core, and isolates PGN/history transfers with owned data. Production still
+uses python-chess; the new core has not replaced the live rules engine.
+
+Version 8.4.0 added automatic session recovery with paused clocks, adjustable
 piece animation, built-in backgrounds, and more 2D/3D piece sets. Compact move
 navigation and right-click cancellation make reviewing and playing easier.
 Windows CI now checks syntax and non-graphics tests on pushes and pull requests.

@@ -1,6 +1,6 @@
 """Owned orthodox chess position, lossless counters and snapshot history."""
 from .move import Move
-from .values import KING, PAWN, validate_square
+from .values import KING, PAWN, BISHOP, KNIGHT, validate_square
 from .rules.cozy_backend import _Position
 
 STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
@@ -129,3 +129,20 @@ class Board:
 
     def is_stalemate(self):
         return not self.is_check() and not self.legal_moves()
+
+    def is_insufficient_material(self) -> bool:
+        """Recognize material-only impossibility of mate, not all dead positions.
+
+        Two knights are not insufficient: inability to force mate is different
+        from impossibility of mate. Bishops alone suffice only when every bishop
+        is confined to the same square colour, regardless of piece ownership.
+        """
+        material = [(sq, p.piece_type) for sq, p in self.piece_map().items()
+                    if p.piece_type != KING]
+        if not material:
+            return True
+        if len(material) == 1:
+            return material[0][1] in (BISHOP, KNIGHT)
+        if any(kind != BISHOP for _, kind in material):
+            return False
+        return len({(sq // 8 + sq % 8) % 2 for sq, _ in material}) == 1

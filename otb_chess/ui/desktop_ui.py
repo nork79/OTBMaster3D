@@ -1,6 +1,7 @@
 """Single-window desktop UI. Game logic and rendering live in dedicated modules."""
 
 from otb_chess.chess_backend import uci
+from otb_chess.chess_backend import notation
 from otb_chess.chess_backend import rules as chess
 
 import math
@@ -686,7 +687,7 @@ class MainWindow(DocumentActions, QMainWindow):
                 self.moves.insertRow(row)
                 self.moves.setItem(row,0,QTableWidgetItem(str(board.fullmove_number)))
             column = 1 if board.turn == chess.WHITE else 2
-            item = QTableWidgetItem(board.san(move))
+            item = QTableWidgetItem(notation.san(board.fen(), chess.owned_move(move)))
             item.setData(Qt.ItemDataRole.UserRole,ply)
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             if ply == len(self.game.board.move_stack):
@@ -982,7 +983,7 @@ class MainWindow(DocumentActions, QMainWindow):
         for move in info.get("pv",[])[:12]:
             if move not in board.legal_moves:
                 break
-            moves.append(board.san(move))
+            moves.append(notation.san(board.fen(), chess.owned_move(move)))
             board.push(move)
         self.engine_line.setPlainText(" ".join(moves))
 

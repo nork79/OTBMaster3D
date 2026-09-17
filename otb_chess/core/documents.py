@@ -3,19 +3,11 @@
 from otb_chess.chess_backend import notation
 from otb_chess.chess_backend import rules as chess
 
-import io
+from otb_chess.document_state import History
 
 
 def read_pgn(text):
-    stream = io.StringIO(text.lstrip('\ufeff'))
-    games = []
-    while (game := notation.read_game(stream)) is not None:
-        if game.errors or not game.board().is_valid():
-            raise ValueError("The PGN contains an invalid position or illegal moves.")
-        games.append(game)
-    if not games:
-        raise ValueError("No PGN games found.")
-    return games
+    return notation.read_pgn(text)
 
 
 def read_fen(text):
@@ -58,9 +50,10 @@ class GameDocuments:
         return True
 
     def load_document(self, board, document=None):
+        board = chess.restore_history(board) if isinstance(board, History) else board.copy()
         self._review_live = None
         self._pgn_document = document
-        self.board = board.copy()
+        self.board = board
         self.game_started = self.game_over = False
         self.clock_paused = True
         self.awaiting_clock_press = False
@@ -74,15 +67,4 @@ class GameDocuments:
         self.refresh_move_list()
 
     def export_pgn(self):
-        board = self.history_board()
-        original = self._pgn_document
-        if (original is not None and original.board().fen() == board.root().fen()
-                and list(original.mainline_moves()) == board.move_stack):
-            document = original
-        else:
-            document = notation.Game.from_board(board)
-            if original is not None:
-                for key,value in original.headers.items():
-                    if key not in ('FEN','SetUp','Result'):
-                        document.headers[key] = value
-        return document.accept(notation.StringExporter(headers=True,variations=True,comments=True)) + '\n'
+        return notation.export_pgn(chess.snapshot_history(self.history_board()), self._pgn_document)

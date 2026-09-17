@@ -21,11 +21,11 @@ class DocumentTests(unittest.TestCase):
         text = '[Event "Test"]\n\n1. e4 {Hello} (1. d4 d5) e5 2. Nf3 *'
         original = read_pgn(text)[0]
         host = self.host()
-        host.load_document(original.end().board(),original)
+        host.load_document(original.history,original)
         exported = host.export_pgn()
         self.assertIn('Hello',exported)
         self.assertIn('d4',exported)
-        self.assertEqual(read_pgn(exported)[0].end().board().fen(),host.board.fen())
+        self.assertEqual(read_pgn(exported)[0].history.final_fen,host.board.fen())
 
     def test_fen_and_multiple_games(self):
         self.assertEqual(read_fen(chess.STARTING_FEN).fen(),chess.STARTING_FEN)
@@ -45,7 +45,7 @@ class DocumentTests(unittest.TestCase):
         host.clock_paused = True
         self.assertTrue(host.navigate_to_ply(1))
         self.assertEqual(len(host.board.move_stack),1)
-        self.assertEqual(len(read_pgn(host.export_pgn())[0].end().board().move_stack),3)
+        self.assertEqual(len(read_pgn(host.export_pgn())[0].history.moves),3)
         self.assertTrue(host.navigate_to_ply(0))
         self.assertTrue(host.navigate_to_ply(2))
         host.return_to_live()
@@ -58,5 +58,5 @@ class DocumentTests(unittest.TestCase):
         host.load_document(read_fen(board.fen()))
         host.board.push_uci('e7e5')
         reloaded = read_pgn(host.export_pgn())[0]
-        self.assertEqual(reloaded.board().fen(),board.fen())
-        self.assertEqual(reloaded.end().board().fen(),host.board.fen())
+        self.assertEqual(reloaded.history.root_fen,board.fen())
+        self.assertEqual(reloaded.history.final_fen,host.board.fen())

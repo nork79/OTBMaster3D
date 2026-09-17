@@ -59,7 +59,7 @@ class SessionStore:
         if data['version'] != 1:
             raise ValueError('Unsupported session version')
         document = read_pgn(data['pgn'])[0]
-        board = document.end().board()
+        board = document.history
         state = data['state']
         for key in FIELDS:
             state[key]
@@ -80,7 +80,7 @@ class SessionStore:
                 raise ValueError('Invalid clock history entry')
             if any(not isinstance(v,(int,float)) or not math.isfinite(v) or v<0 for v in row[:2]):
                 raise ValueError('Invalid historical clock')
-        if type(data['review_ply']) is not int or not 0<=data['review_ply']<=len(board.move_stack):
+        if type(data['review_ply']) is not int or not 0<=data['review_ply']<=len(board.moves):
             raise ValueError('Invalid review position')
         return data,document,board
 
