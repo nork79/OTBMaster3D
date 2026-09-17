@@ -256,6 +256,7 @@ class BoardWidget(QOpenGLWidget):
         self.makeCurrent()
         g = self.game
         pos = (event.position().x(), event.position().y())
+        g.hover_square = g.square_at_mouse(pos)
         if g.right_drag:
             if g.board_mode == "3D":
                 g.yaw += (pos[0]-g.last_mouse[0])*.009
@@ -265,6 +266,11 @@ class BoardWidget(QOpenGLWidget):
         elif event.buttons() & Qt.MouseButton.LeftButton:
             g.left_motion(pos)
         self.update()
+
+    def leaveEvent(self, event):
+        self.game.hover_square = None
+        self.update()
+        super().leaveEvent(event)
 
     def mouseReleaseEvent(self, event):
         if not self.ready:

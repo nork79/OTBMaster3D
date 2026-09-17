@@ -108,6 +108,10 @@ class BoardRendering:
     def draw_board(self):
         flat = self.board_mode == "2D"
         yaw = self.view_yaw()
+        last_squares = set()
+        if self.board.move_stack and self.move_animation is None:
+            move = self.board.move_stack[-1]
+            last_squares = {move.from_square, move.to_square}
         if self.board_type != "classic":
             self.board_surface_renderer.frame(self.board_type,self.frame_color,flat)
         elif flat:
@@ -118,6 +122,12 @@ class BoardRendering:
             for f in range(8):
                 sq = chess.square(f, r)
                 col = self.dark_square if (f + r) % 2 == 0 else self.light_square
+                if sq in last_squares:
+                    col = tuple(base * 0.45 + tint * 0.55
+                                for base, tint in zip(col, (0.90, 0.76, 0.25)))
+                if self.selected is not None and sq == getattr(self, "hover_square", None):
+                    col = tuple(base * 0.4 + tint * 0.6
+                                for base, tint in zip(col, SELECT))
                 if sq == self.selected:
                     col = SELECT
                 if self.board_type != "classic":
@@ -165,8 +175,8 @@ class BoardRendering:
         glPushMatrix()
         pan_x, pan_z = self.view_pan()
         glTranslatef(pan_x, 0, pan_z)
-        self.draw_board()
         positions = self.animated_piece_positions()
+        self.draw_board()
         for sq, p in self.board.piece_map().items():
             if self.drag_piece == sq and self.was_drag and self.drag_world:
                 continue
@@ -193,8 +203,8 @@ class BoardRendering:
     def draw_legal_markers(self):
         if not self.show_move_indicator:
             return
-        # Overlay the board centres so capture destinations remain visible too.
-        targets = self.legal_targets()
+        # Occupied destinations are represented by their pieces, never dots.
+        targets = [sq for sq in self.legal_targets() if self.board.piece_at(sq) is None]
         if not targets:
             return
         glDisable(GL_DEPTH_TEST)

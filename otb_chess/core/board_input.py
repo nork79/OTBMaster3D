@@ -71,6 +71,7 @@ class BoardInput:
     @staticmethod
     def _cursor(w, x, y):
         s = BoardInput._s(w)
+        s.hover_square = s.square_at_mouse((x, y))
         if s.right_drag or s.ctrl_left_rotate:
             if s.board_mode == "2D":
                 return
@@ -117,6 +118,7 @@ class BoardInput:
 
     def left_press(self, pos):
         sq = self.square_at_mouse(pos)
+        self.hover_square = sq
         self.left_down_pos = pos
         self.was_drag = False
         if (
