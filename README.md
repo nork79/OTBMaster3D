@@ -1,8 +1,13 @@
 # OTBMaster3D
 
-**Version 8.3.0** - desktop chess with a tournament-style 3D board,
+**Version 8.4.0** - desktop chess with a tournament-style 3D board,
 a flat 2D view, UCI engine support and over-the-board clock controls. The main
 interface uses PySide6 and an embedded OpenGL board.
+
+Version 8.4.0 adds automatic session recovery with paused clocks, adjustable
+piece animation, built-in backgrounds, and more 2D/3D piece sets. Compact move
+navigation and right-click cancellation make reviewing and playing easier.
+Windows CI now checks syntax and non-graphics tests on pushes and pull requests.
 
 The previous zoom/pan release is available on GitHub as **v7.3.1**.
 
@@ -155,10 +160,16 @@ settings apply to the next game; Reset clock applies the selected time control.
 - Colour dialogs preview changes live on the board. Cancel restores the original
   colour and keeps any background image; OK saves the new colour.
 
-Game export/import and saved-game restoration are not implemented. `config.json`
-saves preferences, not the current game.
+`config.json` stores preferences, while `session.json` stores automatic game
+recovery. PGN/FEN import and export are supported; a built-in saved-game library
+is not yet implemented.
 
 ## Tests
+
+The Windows CI workflow runs on pushes, pull requests, and manual dispatches.
+It uses Python 3.14, installs the pinned dependencies, checks Python syntax, and
+runs backend, notation, and asset tests without a graphics context. Native
+Qt/GLFW rendering tests remain part of the local full-suite command below.
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v

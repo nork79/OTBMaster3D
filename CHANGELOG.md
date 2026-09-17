@@ -1,5 +1,20 @@
 # Changelog
 
+## 8.4.0 - 2026-09-17
+
+- Recover games, positions, move review and clocks automatically using atomic
+  session saves and a backup; restored clocks always remain paused.
+- Add compact move-history navigation, subtle legal-move dots controlled by the
+  move-indicator setting, and right-click cancellation of selected pieces.
+- Add saved movement animation speed, from Instant to 1.5 seconds, in 2D and 3D.
+- Add eight built-in background options, including gradients, studio glow,
+  textures and matching board colours.
+- Add Sci-fi Vehicles in 3D and independent 2D selections: Fantasy, Celtic,
+  Spatial, Skulls, Eyes, Textbook (Cburnett), Chessnut and Firi, with licence credits.
+- Add Windows CI using Python 3.14 for syntax checks and non-graphics tests.
+- Clarify preferences, automatic session recovery, PGN/FEN support and the absence
+  of a built-in saved-game library in the README.
+
 ## 8.3.0 - 2026-09-16
 
 - Add an auditable dependency BOM, copied third-party licence evidence, and explicit

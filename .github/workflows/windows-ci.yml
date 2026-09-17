@@ -1,0 +1,27 @@
+name: Windows CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Check Python syntax
+        run: python -m compileall -q main.py otb_chess tests tools
+      # Qt/GLFW rendering tests require a working native OpenGL display.
+      - name: Run tests without a graphics context
+        run: python -m unittest -v tests.test_chess_backend tests.test_documents tests.test_piece_sets.AssetTests
