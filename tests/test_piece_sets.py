@@ -147,8 +147,8 @@ class LiveSwitchTests(unittest.TestCase):
                 self.assertEqual(glGetError(), GL_NO_ERROR)
                 self.assertEqual(before, (app.board.fen(),tuple(app.board.move_stack),
                     app.selected,app.white_time,app.black_time,app.awaiting_clock_press))
-        # The two Staunton finishes share one cached mesh allocation.
-        self.assertEqual(len(app.piece_renderer.cache), 2)
+        # Staunton finishes share one allocation; Club and Sci-fi each add one.
+        self.assertEqual(len(app.piece_renderer.cache), 3)
 
     def test_load_error_keeps_previous_selection(self):
         app = self.app

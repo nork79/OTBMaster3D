@@ -1,24 +1,28 @@
 # Chess backend candidate evaluation
 
-Date: 2026-09-17. Target: OTBMaster3D 8.4.0, standard CPython 3.14 on Windows x64.
+Date: 2026-09-17. Active target: OTBMaster3D 8.4.0, standard CPython 3.13 on Windows x64.
 Companion: [repository audit and baseline](python-chess-replacement-audit.md).
-This is a recommendation only. Neither candidate was installed, compiled or
-integrated; compatibility findings below distinguish source evidence from tests.
+This is a recommendation only. The original audit used source evidence without
+installing candidates. Subsequent [Python 3.13 application tests](python-313-compatibility.md)
+and [isolated cozy-chess-py wheel tests](cozy-chess-isolation-results.md) passed.
+No candidate has been integrated into the application. Python 3.14 findings below
+are retained as compatibility history, not the active runtime plan.
 
 ## Recommendation
 
-Prefer **cozy-chess 0.3.4 as the legal-move core**, through a small maintained
-PyO3 binding adapted from the MIT `cozy-chess-py` wrapper, behind the existing
+Prefer **cozy-chess 0.3.4 as the legal-move core**, through the
+published MIT `cozy-chess-py` 0.1.1 Python 3.13 Windows wheel, behind the existing
 `chess_backend` package. Keep move generation, attacks, king safety, castling
 legality and en-passant legality in the library. Own only compatibility records,
 history, notation/protocol adapters and narrowly scoped adjudication glue.
 
 This is a **conditional architecture choice**, not approval to replace the
-dependency now. The published Python wrapper is not ready for this app's 3.14
-target, and counter preservation needs deliberate adaptation. The initial future
-feasibility gate must prove a Windows 3.14 wheel and exact FEN/history semantics.
-If that fails, reconsider rschess behind a custom binding; do not introduce a
-handwritten move generator or quietly downgrade Python.
+dependency now. Python 3.13 is the explicitly selected runtime target; its
+published wheel passed isolated rules checks without a custom Rust binding.
+Counter preservation still needs deliberate adaptation. Future gates must prove
+exact FEN/history semantics, application integration and frozen packaging.
+If those fail, reconsider rschess behind a custom binding rather than introducing
+a handwritten move generator.
 
 This approach is simpler to contain than adopting a second library's entire game
 lifecycle. It is not the smallest possible amount of notation code: rschess
@@ -27,6 +31,10 @@ the app's PGN-tree or UCI-process work, and rschess has its own terminal-state
 semantics to reconcile. Do not combine two rules engines just to obtain SAN.
 
 ## Candidate comparison
+
+The table records the original source audit, including its Python 3.14 concerns.
+For the active Python 3.13 target, installation/import and 12 isolated rules tests
+have now passed; upgrading the binding is no longer the planned integration step.
 
 | Criterion | cozy-chess-py / cozy-chess | rschess |
 | --- | --- | --- |
@@ -43,7 +51,8 @@ semantics to reconcile. Do not combine two rules engines just to obtain SAN.
 
 Repository `pushed_at` values were fetched directly from the GitHub API [4]. They
 are activity indicators, not release dates or proof of maintenance quality.
-No candidate build/install was attempted, and no Python 3.14 support is claimed
+No candidate build/install was attempted during the original audit; the later
+Python 3.13 wheel test is linked above. No Python 3.14 support is claimed
 merely because a Rust crate itself is platform-independent.
 
 ## Compatibility findings that change the design
@@ -117,14 +126,15 @@ selected or copied in this audit.
 
 ## Packaging plan and gates
 
-1. Upgrade the permissive wrapper to a currently supported PyO3 with explicit
-   CPython 3.14 support. PyO3 0.25 introduced 3.14 beta support; that is evidence
-   that 0.23 is too old to assume support, not a recommendation to pin the beta-era
-   release for production. Test the selected modern version against 3.14.7. [13]
-2. Build pinned Windows x64 wheels using maturin, Rust and MSVC build tools in
-   CI. End users should install a wheel without needing Rust. Start with cp314;
-   adopt abi3 only after confirming the binding supports the limited API. Do not
-   treat free-threaded 3.14t or Windows ARM64 as automatically covered. [14]
+1. Use the published `cozy-chess-py==0.1.1` cp313 Windows x64 wheel for a future
+   adapter prototype, recording its hash. No PyO3 upgrade or custom Rust binding
+   is required for the tested Python 3.13 API. Do not add it to runtime requirements
+   until migration work is separately authorized.
+2. Qualify that wheel in the frozen application on clean Windows x64 hosts.
+   A source rebuild with maturin/Rust/MSVC is a fallback, not the current plan. [14]
+   Do not assume free-threaded Python, Windows ARM64 or Python 3.14 compatibility.
+   Historically, PyO3 0.25 introduced 3.14 beta support; the wrapper's 0.23 pin
+   remains a concern only if revisiting a 3.14 source build. [13]
 3. Use baseline CPU features: no `target-cpu=native`/mandatory BMI2 for general
    distribution. Pin Rust dependencies and audit transitive licences. Bundle the
    MIT notices and rebuildable source/patch provenance. [2][6]
@@ -145,14 +155,16 @@ selected or copied in this audit.
 - Castling encodings, en-passant canonicalization and counter bounds affect
   legal moves, engine matching, animation and books.
 - Draw policies differ between provider state, GUI state and exported PGN.
-- A small Python wrapper with no published 3.14 wheels becomes a maintenance
-  responsibility; neither candidate has been runtime-qualified here.
+- The small Python wrapper still carries maintenance and binary-portability
+  risk; its 3.13 wheel has passed isolation tests, but application/frozen-build
+  qualification remains outstanding. rschess has not been runtime-qualified.
 - Existing test coverage is insufficient for certifying a rules engine.
 
-Baseline: **37 tests, 36 passed, 1 failed** on Windows/CPython 3.14.7. The failing
+Historical audit baseline: **37 tests, 36 passed, 1 failed** on Windows/CPython 3.14.7. The failing
 legacy renderer test expects two geometry caches but observes three; see the
 [exact command, traceback and diagnosis](python-chess-replacement-audit.md#full-baseline-test-result).
-No failing test was edited or suppressed.
+No failing test was edited or suppressed during that audit. Stage 0 subsequently
+corrected the stale cache expectation; Stage 1 passed **37/37 on Python 3.13.12**.
 
 ## Authoritative evidence
 

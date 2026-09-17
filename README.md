@@ -31,14 +31,20 @@ matching `vMAJOR.MINOR.PATCH` Git tag.
 
 ## Run on Windows
 
-Install Python 3.14 with Tkinter support and use a graphics driver that supports
+Install Python 3.13 (64-bit) with Tkinter support and use a graphics driver that supports
 OpenGL 2.1. From the project folder:
 
 ```powershell
-py -3.14 -m venv .venv
+py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe main.py
 ```
+
+Python 3.13 is the active supported runtime and chess-migration target. If your
+existing `.venv` uses 3.14, create a fresh 3.13 environment rather than reusing it
+(use another directory name to retain the old environment). Dependency pins are
+unchanged. See the [3.13 compatibility results](docs/python-313-compatibility.md);
+historical 3.14 test results remain recorded in the backend audit.
 
 This is a source release; a standalone Windows installer is not included.
 The app opens one window. When upgrading from 7.3.x, rerun the requirements
@@ -167,7 +173,7 @@ is not yet implemented.
 ## Tests
 
 The Windows CI workflow runs on pushes, pull requests, and manual dispatches.
-It uses Python 3.14, installs the pinned dependencies, checks Python syntax, and
+It uses Python 3.13, installs the pinned dependencies, checks Python syntax, and
 runs backend, notation, and asset tests without a graphics context. Native
 Qt/GLFW rendering tests remain part of the local full-suite command below.
 

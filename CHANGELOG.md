@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Set Python 3.13 as the supported runtime and migration target in Windows CI,
+  setup instructions and distribution planning. Dependency pins and the existing
+  python-chess backend remain unchanged.
+
 ## 8.4.0 - 2026-09-17
 
 - Recover games, positions, move review and clocks automatically using atomic

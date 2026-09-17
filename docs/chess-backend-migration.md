@@ -2,6 +2,12 @@
 
 ## Current state
 
+The active runtime and migration target is **Python 3.13 on Windows x64**.
+The [application baseline](python-313-compatibility.md) and
+[isolated candidate-wheel tests](cozy-chess-isolation-results.md) passed on 3.13.
+Use the published 3.13 wheel for future candidate work; a custom Python 3.14
+Rust binding is not the current plan. No backend migration has begun.
+
 Application code imports `otb_chess.chess_backend`, never `chess` directly.
 An architecture test enforces this boundary. This is migration infrastructure,
 not an alternative chess implementation or a licensing workaround. The shipped

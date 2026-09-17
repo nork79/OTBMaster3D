@@ -8,6 +8,13 @@ is changed by this task. This is engineering preparation, not a legal opinion.
 
 ## Dynamic folder deployment
 
+The active runtime and migration target is standard CPython 3.13 on Windows x64.
+Use a fresh 3.13 build environment with the existing dependency pins. The
+[compatibility baseline](python-313-compatibility.md) validates the source app;
+it does not qualify a frozen distribution. Existing notices/BOM runtime versions
+describe the earlier audited environment and must be regenerated and verified
+against the actual 3.13 release build before shipping.
+
 `packaging/windows-folder.spec` is an unbuilt PyInstaller onedir draft, not an
 installer or a validated redistribution configuration. No Qt source or library
 is statically linked by this plan. PySide6 stays the UI framework. All Qt DLLs,
@@ -21,7 +28,7 @@ Expected folder layout (actual hook output must be inspected):
 ```text
 OTBMaster3D/
   OTBMaster3D.exe
-  python314.dll and audited runtime dependencies
+  python313.dll and audited runtime dependencies
   PySide6/Qt6Core.dll, Qt6Gui.dll, Qt6Widgets.dll
   PySide6/Qt6OpenGL.dll, Qt6OpenGLWidgets.dll
   PySide6/*.pyd and supporting Python files
@@ -69,7 +76,7 @@ does not by itself satisfy all LGPL obligations.
 ## Before release
 
 1. Resolve python-chess and verify no GPL-only runtime dependency is packaged.
-2. Select and pin a packaging tool version compatible with Python 3.14; audit
+2. Select and pin a packaging tool version compatible with Python 3.13; audit
    PyInstaller's bootloader exception and its dependency licences. It is not
    installed or executed by this preparation task.
 3. Complete the exact binary SBOM, native dependency closure and source archives:
