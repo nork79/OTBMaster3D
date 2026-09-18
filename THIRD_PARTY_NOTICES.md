@@ -100,3 +100,7 @@ restrictions, replacement instructions, matching-source obligations and release 
 - **Chessnut** by Alexis Luengas, Apache-2.0. Source: https://github.com/LexLuengas/chessnut-pieces. Original SVGs rasterised to PNG; no design changes. Licence: [assets/pieces_2d/chessnut/LICENSE](assets/pieces_2d/chessnut/LICENSE).
 
 - **Firi** by James Faure (jfaure), CC-BY-4.0. Source: https://github.com/jfaure/Firi-pieceset. Standard chess SVGs from out/ rasterised to PNG; no design changes. Licence: [assets/pieces_2d/firi/LICENSE](assets/pieces_2d/firi/LICENSE).
+
+## Maia and Leela Chess Zero
+
+Difficulty presets use the official [Lc0 0.32.1 CPU/OpenBLAS runtime](https://github.com/LeelaChessZero/lc0/releases/tag/v0.32.1) and [Maia v1 models](https://github.com/CSSLab/maia-chess/releases/tag/v1.0) for ratings 1100, 1300, 1400, 1500, 1600 and 1800. The runtime and repository GPL notices are retained in `engines/maia`, together with bundled allocator notices and an installation hash manifest. Upstream corresponding source: [Lc0](https://github.com/LeelaChessZero/lc0/tree/v0.32.1), [OpenBLAS](https://github.com/OpenMathLib/OpenBLAS), [Maia](https://github.com/CSSLab/maia-chess). The development inventory records model-specific redistribution terms as requiring release review.

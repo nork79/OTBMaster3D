@@ -1,18 +1,21 @@
 # Build the application folder consumed by packaging/windows-installer.iss.
 from pathlib import Path
+from PyInstaller.utils.hooks import collect_dynamic_libs
 
 root = Path(SPECPATH).parent
 qt_modules = {'QtCore','QtGui','QtWidgets','QtOpenGL','QtOpenGLWidgets'}
 a = Analysis(
     [str(root/'main.py')], pathex=[str(root)],
     datas=[(str(root/'assets'),'assets'), (str(root/'licenses'),'licenses'),
+           (str(root/'LICENSE'),'.'),
            (str(root/'THIRD_PARTY_NOTICES.md'),'.'), (str(root/'third_party_bom.json'),'.'),
            (str(root/'engines'/'stockfish-19'),'engines/stockfish-19'),
+           (str(root/'engines'/'maia'),'engines/maia'),
            (str(root/'engines'/'README.md'),'engines'),
            (str(root/'books'/'sources'),'books/sources'),
            (str(root/'books'/'README.md'),'books'),
            *[(str(p),'books') for p in sorted((root/'books').glob('lichess-*.bin'))]],
-    binaries=[], hiddenimports=['cozy_chess'],
+    binaries=collect_dynamic_libs('glfw'), hiddenimports=['cozy_chess'],
     excludes=['PySide6.QtTest','PySide6.QtNetwork','OpenGL.GLUT','OpenGL.GLE'],
     module_collection_mode={'PySide6':'py','shiboken6':'py'},
     noarchive=False,
@@ -22,6 +25,11 @@ a = Analysis(
 # Keep the Windows platform and ICO decoder; PNG support is in QtGui itself.
 a.binaries = [entry for entry in a.binaries
               if not any(name in Path(entry[0]).name.lower() for name in ('freeglut', 'gle32'))
+              # Dependencies of removed PDF/SVG and virtual-keyboard plugins.
+              and Path(entry[0]).name.lower() not in (
+                  'qt6pdf.dll', 'qt6svg.dll', 'qt6network.dll', 'qt6virtualkeyboard.dll',
+                  'qt6quick.dll', 'qt6qml.dll', 'qt6qmlmeta.dll', 'qt6qmlmodels.dll',
+                  'qt6qmlworkerscript.dll')
               and ('plugins/' not in entry[0].replace('\\','/').lower()
                    or Path(entry[0]).name.lower() in ('qwindows.dll', 'qico.dll'))]
 

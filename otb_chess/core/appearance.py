@@ -137,7 +137,7 @@ class AppearanceSettings:
         save_config(
             {
                 **{key: self.cfg.get(key, default_config()[key]) for key in
-                   ("window_size", "sidebar_width", "sidebar_visible", "focus_mode", "engine_panel_open", "always_show_static_evaluation", "interface_theme", "engine_elo", "engine_rating", "engine_style", "engine_defaults_applied")},
+                   ("window_size", "sidebar_width", "sidebar_visible", "focus_mode", "engine_panel_open", "analysis_enabled", "always_show_static_evaluation", "interface_theme", "engine_elo", "engine_rating", "engine_style", "engine_defaults_applied", "engine_difficulty")},
                 "light_square": list(self.light_square),
                 "dark_square": list(self.dark_square),
                 "frame_color": list(self.frame_color),
@@ -156,6 +156,7 @@ class AppearanceSettings:
                 "show_coordinates": self.show_coordinates,
                 "show_move_indicator": self.show_move_indicator,
                 "sound_enabled": self.sound_enabled,
+                "sound_profile": self.sound_profile,
                 "time_control": (
                     self.time_control_var.get()
                     if hasattr(self, "time_control_var") and self.time_control_var

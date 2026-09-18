@@ -1,18 +1,24 @@
 # OTBMaster3D
 
-**1.0.0 Beta 1** ? a free, open-source desktop chess app for Windows, with a
+**1.2.0 Beta 1** ? a free, open-source desktop chess app for Windows, with a
 3D tournament board, a flat 2D view, Stockfish support and over-the-board clocks.
 Application source is licensed under **GPL-3.0-or-later**; see [LICENSE](LICENSE).
 Third-party assets and dependencies retain their own licences.
 
 <img src="assets/app-icon.png" alt="OTBMaster3D knight icon" width="96">
 
-This is the first official public beta, tagged `v1.0.0-beta.1`. Earlier 7.x/8.x
+This is beta release 1.2, tagged `v1.2.0-beta.1`. Earlier 7.x/8.x
 versions were development milestones; their tags and history are preserved.
-The beta is a **source release**. Windows installer work is paused and no installer
-is attached. See [beta release notes](docs/releases/1.0.0-beta.1.md).
+The GitHub beta is a **source release**. A Windows installer can also be built
+locally; see [installer instructions](docs/windows-installer.md). See the
+[beta release notes](docs/releases/1.2.0-beta.1.md) for the published source release.
 
 ## Features
+
+- Difficulty presets automatically choose Maia or Stockfish, with saved custom settings.
+- Setup Position offers live FEN editing, Textbook pieces, and click-to-pick-up/drop placement.
+- A clickable static evaluation graph lets you review positions across a game.
+- Eight selectable sound profiles, including a No sounds option.
 
 - The board fills the main area; a resizable sidebar keeps the clocks and moves visible.
 - Large clock cards show the active player and can be pressed in OTB mode.
@@ -25,7 +31,7 @@ is attached. See [beta release notes](docs/releases/1.0.0-beta.1.md).
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
 
-Public beta versions use `1.0.0-beta.N`; the first stable release will be `1.0.0`.
+Public beta versions use `MAJOR.MINOR.PATCH-beta.N`.
 
 ## Run on Windows
 
@@ -36,6 +42,7 @@ OpenGL 2.1. From the project folder:
 py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe tools/install_stockfish.py
+.\.venv\Scripts\python.exe tools/install_maia.py
 .\.venv\Scripts\python.exe main.py
 ```
 
@@ -48,7 +55,8 @@ historical 3.14 test results remain recorded in the backend audit.
 This is a source release; a standalone Windows installer is not included.
 The app opens one window. The optional Stockfish setup downloads the official
 Windows x64 release, verifies its SHA-256 hash, and preserves its source and licence.
-Skip that command to use your own UCI engine or play without an engine.
+The optional Maia setup installs the CPU runtime and six human-move models for difficulty presets.
+Skip engine setup commands to use your own UCI engine or play without an engine.
 
 ## Board and pieces
 

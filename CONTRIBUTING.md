@@ -13,4 +13,4 @@ Include a small regression test for game, engine or persistence bugs. Never comm
 personal settings, game recovery files, virtual environments or downloaded engines.
 
 For bugs, include reproduction steps, the version, board mode and relevant PGN/FEN.
-Installer development is paused for the source beta; packaging files are unfinished.
+See docs/windows-installer.md for the installer build and verification process.

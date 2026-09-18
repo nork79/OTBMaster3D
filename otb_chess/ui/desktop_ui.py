@@ -103,7 +103,7 @@ class DesktopGame(Chess3D):
         self.engine_loading = False
         self.engine_load_result = None
         self.analysis_busy = False
-        self.analysis_enabled = False
+        self.analysis_enabled = bool(self.cfg.get("analysis_enabled", False))
         self.analysis_stamp = 0
         self.closed = False
 
@@ -149,7 +149,7 @@ class DesktopGame(Chess3D):
     def selected_time_control(self):
         name = self.time_control_var.get()
         if name != "Custom":
-            return TIME_CONTROLS.get(name, TIME_CONTROLS["Bullet 1+0"])
+            return TIME_CONTROLS.get(name, TIME_CONTROLS["Bullet 2+1"])
         initial, increment = float(self.custom_initial_var.get()), float(self.custom_increment_var.get())
         if not math.isfinite(initial) or not math.isfinite(increment) or initial <= 0 or increment < 0:
             QMessageBox.warning(self.owner, "Time control", "Enter a positive duration and a nonnegative increment.")
@@ -170,7 +170,8 @@ class DesktopGame(Chess3D):
     def request_analysis(self):
         manager = self.engine_manager
         if (self.closed or not self.analysis_enabled or self.engine_loading or self.analysis_busy
-                or manager.thinking or not manager.engine or self.owner.new_game_pending):
+                or manager.thinking or not manager.engine or self.owner.new_game_pending
+                or self.owner.pending_difficulty is not None):
             return
         # Never queue analysis in front of the engine's turn.
         if (self.game_started and not self.game_over and not self.clock_paused
@@ -349,17 +350,17 @@ class ClockCard(QPushButton):
         layout.addWidget(self.digits)
         for widget in (self.name,self.state,self.digits):
             widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.clicked.connect(lambda: owner.edit_clock(color) if owner.game.clock_paused else owner.hit_clock(color))
+        self.clicked.connect(lambda: owner.edit_clock(color) if owner.game.clocks_editable() else owner.hit_clock(color))
         self.setToolTip("In OTB mode, click the running clock after making your move.")
 
     def refresh(self, game):
         self.digits.setText(game.fmt_clock(game.white_time if self.color else game.black_time))
         active = game.game_started and not game.game_over and game.active_clock_color == self.color
         waiting = active and game.awaiting_clock_press
-        editable = game.clock_paused and not game.game_over
+        editable = game.clocks_editable()
         first_move = game.game_started and not game.game_over and not game.board.move_stack
         self.state.setText("CLICK TO EDIT" if editable else "WAITING FOR MOVE" if first_move else "PRESS CLOCK" if waiting else "RUNNING" if active else "")
-        self.setToolTip("Click to adjust this clock while paused." if editable else "In OTB mode, click the running clock after making your move.")
+        self.setToolTip("Click to adjust this clock before the first move or while paused." if editable else "In OTB mode, click the running clock after making your move.")
         self.setCursor(Qt.CursorShape.PointingHandCursor if editable else Qt.CursorShape.ArrowCursor)
         if self.property("active") != active or self.property("waiting") != waiting:
             self.setProperty("active",active)
@@ -380,9 +381,9 @@ class MainWindow(DocumentActions, QMainWindow):
         self.session = SessionStore()
         self.session.restore(self.game)
         cfg = self.game.cfg
-        self.interface_theme = cfg.get("interface_theme","Blue")
+        self.interface_theme = cfg.get("interface_theme","Dark")
         if self.interface_theme not in THEMES:
-            self.interface_theme = "Blue"
+            self.interface_theme = "Dark"
         self.setStyleSheet(themed_stylesheet(STYLE,self.interface_theme))
         size = cfg.get("window_size",[1280,840])
         self.resize(max(760,min(3840,int(size[0]))),max(560,min(2160,int(size[1]))))
@@ -418,6 +419,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.last_search = None
         self.closing = False
         self.new_game_pending = False
+        self.pending_difficulty = None
         remembered = self.game.engine_var.get()
         if remembered and Path(remembered).is_file():
             QTimer.singleShot(0,lambda: self.game.load_engine_path(remembered))
@@ -506,9 +508,10 @@ class MainWindow(DocumentActions, QMainWindow):
         self.engine_name.setObjectName("hint")
         self.engine_name.setWordWrap(True)
         engine_layout.addWidget(self.engine_name)
-        self.analysis_button = QPushButton("Start analysis")
+        self.analysis_button = QPushButton("Stop analysis" if self.game.analysis_enabled else "Start analysis")
         self.analysis_button.setObjectName("toggleEngineAnalysis")
         self.analysis_button.setCheckable(True)
+        self.analysis_button.setChecked(self.game.analysis_enabled)
         self.analysis_button.setEnabled(False)
         self.analysis_button.setToolTip(
             "Start or stop automatic line calculation. The current short search may finish.\n"
@@ -549,6 +552,7 @@ class MainWindow(DocumentActions, QMainWindow):
         g = self.game
         game = self.menuBar().addMenu("Game")
         self.action(game,"New game…",self.new_game,"Ctrl+N")
+        self.setup_position_action = self.action(game,"Setup Position…",self.setup_position)
         self.action(game,"Start / pause clock",self.play_pause,"Ctrl+P")
         self.action(game,"Press OTB clock",lambda: self.hit_clock(),"Space")
         game.addSeparator()
@@ -595,8 +599,24 @@ class MainWindow(DocumentActions, QMainWindow):
         self.focus_action = self.action(view,"Focus mode (board and clocks)",lambda _:self.apply_visibility(),"Ctrl+Shift+F",True)
         self.fullscreen_action = self.action(view,"Fullscreen",self.set_fullscreen,"F11",True)
         engine = self.menuBar().addMenu("Engine")
+        from otb_chess.services.difficulty import DIFFICULTIES
+        difficulty = engine.addMenu("Difficulty")
+        difficulty.setToolTipsVisible(True)
+        difficulty_group = QActionGroup(self)
+        self.difficulty_actions = {}
+        for key,preset in DIFFICULTIES.items():
+            action = self.action(difficulty,preset.label,lambda _,k=key:self.select_difficulty(k),
+                                 checkable=True,checked=g.cfg.get("engine_difficulty")==key)
+            action.setToolTip(preset.description)
+            difficulty_group.addAction(action)
+            self.difficulty_actions[key] = action
+        self.custom_difficulty_action = self.action(difficulty,"Custom settings…",lambda _:self.engine_settings("custom"),
+                                                    checkable=True,checked=g.cfg.get("engine_difficulty","custom")=="custom")
+        difficulty_group.addAction(self.custom_difficulty_action)
         self.action(engine,"Engine and opening book…",self.engine_settings)
-        self.analysis_action = self.action(engine,"Analyse position",self.toggle_analysis,"Ctrl+A",True)
+        self.analysis_action = self.action(engine,"Analyse position",self.toggle_analysis,"Ctrl+A",True,
+                                           checked=g.analysis_enabled)
+        self.action(engine,"Open Evaluation Graph",self.open_evaluation_graph)
         self.action(engine,"Show engine output",lambda:self.engine_toggle.setChecked(not self.engine_toggle.isChecked()))
         self.static_evaluation_action = self.action(
             engine, "Always show static evaluation", self.toggle_static_evaluation,
@@ -640,7 +660,16 @@ class MainWindow(DocumentActions, QMainWindow):
         self.action(background,"Choose solid colour…",lambda:self.choose_color("background"))
         self.action(background,"Choose image…",self.choose_background)
         self.action(background,"Remove background image",self.clear_background)
-        self.action(settings,"Sound",lambda v:self.set_option("sound_enabled",v),checkable=True,checked=g.sound_enabled)
+        from otb_chess.services.audio import SOUND_PROFILES
+        sounds = settings.addMenu("Sound profile")
+        sound_group = QActionGroup(self)
+        self.sound_profile_actions = {}
+        for key,label in [(None,"No sounds"),*SOUND_PROFILES.items()]:
+            action = self.action(sounds,label,lambda _,k=key:self.set_sound_profile(k),
+                                 checkable=True,checked=(g.sound_enabled and g.sound_profile==key)
+                                 if key is not None else not g.sound_enabled)
+            sound_group.addAction(action)
+            self.sound_profile_actions[key] = action
         help_menu = self.menuBar().addMenu("Help")
         self.action(help_menu,"Open Source Licences",lambda:show_licenses(self))
         self.action(help_menu,"Controls",self.show_controls)
@@ -678,7 +707,7 @@ class MainWindow(DocumentActions, QMainWindow):
         dialog.deleteLater()
 
     def set_interface_theme(self, name):
-        self.interface_theme = name if name in THEMES else "Blue"
+        self.interface_theme = name if name in THEMES else "Dark"
         self.setStyleSheet(themed_stylesheet(STYLE,self.interface_theme))
         self.interface_theme_actions[self.interface_theme].setChecked(True)
         self.game.cfg["interface_theme"] = self.interface_theme
@@ -729,6 +758,14 @@ class MainWindow(DocumentActions, QMainWindow):
         else:
             super().keyPressEvent(event)
 
+    def open_evaluation_graph(self):
+        from otb_chess.ui.evaluation_graph import EvaluationGraph
+        if not hasattr(self, "evaluation_graph"):
+            self.evaluation_graph = EvaluationGraph(self)
+        self.evaluation_graph.show()
+        self.evaluation_graph.raise_()
+        self.evaluation_graph.activateWindow()
+
     def navigate_history(self, step):
         current = len(self.game.board.move_stack)
         end = len(self.game.history_board().move_stack)
@@ -741,6 +778,7 @@ class MainWindow(DocumentActions, QMainWindow):
         g = self.game
         current = len(g.board.move_stack)
         end = len(g.history_board().move_stack)
+        self.setup_position_action.setEnabled(not end and not g.game_over and g._review_live is None)
         allowed = not (g.game_started and not g.game_over and not g.clock_paused and current)
         for symbol in ("<<","<"):
             self.move_navigation[symbol].setEnabled(allowed and current > 0)
@@ -784,13 +822,43 @@ class MainWindow(DocumentActions, QMainWindow):
     def confirm(self, title, text):
         return QMessageBox.question(self,title,text) == QMessageBox.StandardButton.Yes
 
-    def new_game(self):
+    def setup_position(self):
+        g = self.game
+        if g.history_board().move_stack or g.game_over or g._review_live is not None:
+            g.result_text = "Choose New game before setting up a position."
+            return
+        if g.engine_loading or g.engine_manager.thinking or self.new_game_pending:
+            g.result_text = "Wait for the engine operation to finish before setting up a position."
+            return
+        from otb_chess.ui.position_setup import PositionSetup
+        dialog = PositionSetup(self,g.board.fen(en_passant='fen'))
+        timer_running = self.timer.isActive()
+        self.timer.stop()
+        try:
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                g.load_document(dialog.board)
+                g.move_animation = None
+                g.engine_output = None
+                g.reset_clock()
+                g.active_clock_color = g.board.turn
+                g.result_text = "Position ready — press Start game."
+                self.last_fen = self.last_output = self.last_search = None
+                self.refresh_moves()
+                self.session.save(g,force=True)
+                self.board_widget.update()
+        finally:
+            dialog.deleteLater()
+            if timer_running:
+                self.timer.start()
+
+    def new_game(self, starting_fen=None):
         g = self.game
         if self.new_game_pending:
             return
         if g.board.move_stack and not self.confirm("New game","Start a new game? The current moves will be cleared."):
             return
         self.new_game_pending = True
+        self.pending_start_fen = starting_fen
         self.start_pending_game()
 
     def start_pending_game(self):
@@ -810,11 +878,15 @@ class MainWindow(DocumentActions, QMainWindow):
         g.move_animation = None
         g.cancel_selection()
         self.last_fen = self.last_output = self.last_search = None
-        g.start_game()
+        g.start_game(getattr(self,"pending_start_fen",None))
+        self.pending_start_fen = None
 
     def play_pause(self):
         if not self.game.game_started or self.game.game_over:
-            self.new_game()
+            g = self.game
+            starting_fen = (g.board.fen(en_passant='fen')
+                            if not g.game_over and not g.history_board().move_stack else None)
+            self.new_game(starting_fen)
         else:
             self.game.stop_clock()
 
@@ -838,7 +910,7 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def edit_clock(self, color):
         g = self.game
-        if not g.clock_paused or g.game_over:
+        if not g.clocks_editable():
             return
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Adjust {'White' if color else 'Black'} clock")
@@ -866,12 +938,12 @@ class MainWindow(DocumentActions, QMainWindow):
 
         minutes = time_field("Minutes",1440,remaining // 60)
         seconds = time_field("Seconds",59,remaining % 60)
-        form.addRow(QLabel("The game stays paused after saving."))
+        form.addRow(QLabel("The game stays paused after saving." if g.clock_paused else "Clocks start after the first legal move."))
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save|QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         form.addRow(buttons)
-        if dialog.exec() == QDialog.DialogCode.Accepted and g.clock_paused and not g.game_over:
+        if dialog.exec() == QDialog.DialogCode.Accepted and g.clocks_editable():
             value = minutes.value()*60+seconds.value()
             if color:
                 g.white_time = value
@@ -926,7 +998,7 @@ class MainWindow(DocumentActions, QMainWindow):
                                (g.custom_increment_var,increment.value()),(g.clock_mode_var,mode.currentText()),
                                (g.clock_binding_var,binding.currentText())):
                 cell.set(value)
-            if not g.game_started:
+            if not g.game_started or g.clocks_waiting_for_first_move():
                 tc = g.selected_time_control()
                 g.white_time = g.black_time = tc.initial_seconds
                 g.increment = tc.increment_seconds
@@ -936,12 +1008,61 @@ class MainWindow(DocumentActions, QMainWindow):
                 self.black_clock.refresh(g)
             g.persist()
 
-    def engine_settings(self):
+    def refresh_difficulty_actions(self):
+        key = self.pending_difficulty or self.game.cfg.get("engine_difficulty","custom")
+        for name,action in self.difficulty_actions.items():
+            action.setChecked(name == key)
+        self.custom_difficulty_action.setChecked(key not in self.difficulty_actions)
+
+    def select_difficulty(self, key):
+        from otb_chess.services.difficulty import DIFFICULTIES, missing_files, engine_path
+        g = self.game
+        missing = missing_files(key)
+        if missing:
+            QMessageBox.warning(self,"Difficulty unavailable",", ".join(missing)+" is missing. Reinstall the bundled engines.")
+            self.refresh_difficulty_actions()
+            return
+        if g.engine_loading or g.engine_manager.thinking or g.analysis_busy or g.engine_load_result is not None:
+            self.pending_difficulty = key
+            self.refresh_difficulty_actions()
+            g.result_text = "Difficulty will change when the current engine operation finishes."
+            return
+        self.pending_difficulty = None
+        preset = DIFFICULTIES[key]
+        g.pending_engine_move = g.pending_engine_position = None
+        g.pending_engine_error = g.engine_output = g.last_engine_search = None
+        self.last_output = self.last_search = None
+        g.cfg.update(engine_difficulty=key,engine_elo=preset.rating if preset.engine == "stockfish" else None,
+                     engine_rating=preset.rating or 1500,engine_style="Balanced")
+        g.book_var.set("")
+        g.book_path = ""
+        if g.engine_side_var.get() == "None":
+            g.engine_side_var.set("Black")
+        g.engine_side = chess.WHITE if g.engine_side_var.get() == "White" else chess.BLACK
+        path = str(engine_path(key))
+        g.engine_var.set(path)
+        g.persist()
+        self.refresh_difficulty_actions()
+        g.load_engine_path(path)
+
+    def engine_settings(self, initial_difficulty=None):
         g = self.game
         dialog = QDialog(self)
         dialog.setWindowTitle("Engine and opening book")
         dialog.setMinimumWidth(520)
         form = QFormLayout(dialog)
+        from otb_chess.services.difficulty import DIFFICULTIES
+        presets = QComboBox()
+        presets.setObjectName("engineDifficulty")
+        presets.addItem("Custom settings", "custom")
+        for key,preset in DIFFICULTIES.items():
+            presets.addItem(preset.label,key)
+        presets.setCurrentIndex(max(0,presets.findData(initial_difficulty if initial_difficulty is not None
+                                                      else g.cfg.get("engine_difficulty","custom"))))
+        preset_note = QLabel("Choose a level to set the engine and strength automatically. Ratings are approximate practice levels.")
+        preset_note.setWordWrap(True)
+        form.addRow("Difficulty",presets)
+        form.addRow(preset_note)
         engine = QComboBox()
         engine.setEditable(True)
         engine.addItems([""]+[str(p) for p in sorted(ENGINE_DIR.rglob("*.exe"))])
@@ -1004,9 +1125,35 @@ class MainWindow(DocumentActions, QMainWindow):
         note.setObjectName("hint")
         form.addRow(note)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save|QDialogButtonBox.StandardButton.Cancel)
+        def preset_changed():
+            preset = DIFFICULTIES.get(presets.currentData())
+            if preset:
+                from otb_chess.services.difficulty import engine_path
+                engine.setCurrentText(str(engine_path(presets.currentData()) or ""))
+                book.setCurrentText("")
+                rating.setRange(0,10000)
+                rating.setValue(preset.rating or 1500)
+                strength.setCurrentIndex(1 if preset.rating is not None else 0)
+                style.setCurrentText("Balanced")
+            for widget in (engine,book,strength,rating,style):
+                widget.setEnabled(preset is None)
+            if preset:
+                preset_note.setText(preset.description+" Opening books are disabled for presets.")
+            else:
+                preset_note.setText("Custom engine settings. Ratings are estimates.")
+                update_limits()
+        presets.currentIndexChanged.connect(preset_changed)
+        preset_changed()
         def accept():
             if g.engine_manager.thinking or g.engine_loading or g.analysis_busy:
                 QMessageBox.information(dialog,"Engine busy","Wait for the current engine operation to finish.")
+                return
+            from otb_chess.services.difficulty import missing_files
+            if presets.currentData() != "custom":
+                if missing_files(presets.currentData()):
+                    QMessageBox.warning(dialog,"Engine missing","Reinstall the bundled engines to use this preset.")
+                    return
+                dialog.accept()
                 return
             for path in (engine.currentText().strip(),book.currentText().strip()):
                 if path and not Path(path).is_file():
@@ -1017,7 +1164,14 @@ class MainWindow(DocumentActions, QMainWindow):
         buttons.rejected.connect(dialog.reject)
         form.addRow(buttons)
         if dialog.exec() == QDialog.DialogCode.Accepted:
+            previous_difficulty = g.cfg.get("engine_difficulty","custom")
             g.engine_side_var.set(side.currentText())
+            if presets.currentData() != "custom":
+                self.select_difficulty(presets.currentData())
+                dialog.deleteLater()
+                return
+            g.cfg["engine_difficulty"] = "custom"
+            self.refresh_difficulty_actions()
             g.book_var.set(book.currentText().strip())
             if strength.isEnabled():
                 rating.interpretText()
@@ -1025,10 +1179,12 @@ class MainWindow(DocumentActions, QMainWindow):
                 g.cfg["engine_elo"] = rating.value() if strength.currentIndex() else None
             g.cfg["engine_style"] = style.currentText()
             path = engine.currentText().strip()
-            if path != g.engine_manager.path or (path and g.engine_manager.engine is None):
+            if (path != g.engine_manager.path or (path and g.engine_manager.engine is None)
+                    or previous_difficulty != "custom"):
                 g.load_engine_path(path)
             else:
                 g.persist()
+        self.refresh_difficulty_actions()
 
     def choose_color(self, which):
         g = self.game
@@ -1085,8 +1241,24 @@ class MainWindow(DocumentActions, QMainWindow):
         self.game.background_image_path = ""
         self.game.persist()
 
+    def set_sound_profile(self, profile):
+        from otb_chess.services.audio import ensure_sounds, SOUND_PROFILES
+        g = self.game
+        if profile is not None and profile not in SOUND_PROFILES:
+            return
+        g.sound_enabled = profile is not None
+        if profile is not None:
+            g.sound_profile = profile
+            for event,path in ensure_sounds(profile).items():
+                setattr(g,"sound_"+event,path)
+        for key,action in self.sound_profile_actions.items():
+            action.setChecked(key == profile)
+        g.persist()
+
     def toggle_analysis(self, enabled):
         self.game.analysis_enabled = enabled
+        self.game.cfg["analysis_enabled"] = enabled
+        self.game.persist()
         self.analysis_action.setChecked(enabled)
         self.analysis_button.setChecked(enabled)
         self.analysis_button.setText("Stop analysis" if enabled else "Start analysis")
@@ -1143,7 +1315,7 @@ class MainWindow(DocumentActions, QMainWindow):
             return
         g = self.game
         g.update_clock()
-        if not self.new_game_pending:
+        if not self.new_game_pending and self.pending_difficulty is None:
             g.apply_pending_engine_move()
         self.session.save(g)
         g.maybe_persist_camera()
@@ -1155,10 +1327,10 @@ class MainWindow(DocumentActions, QMainWindow):
             if not path or not ok:
                 g.engine_side = None
             g.persist()
-            if ok and path:
-                self.engine_toggle.setChecked(True)
-                self.analysis_action.setChecked(True)
-                self.toggle_analysis(True)
+            if ok and path and self.pending_difficulty is None and not self.new_game_pending:
+                g.maybe_request_engine_move()
+        if self.pending_difficulty is not None:
+            self.select_difficulty(self.pending_difficulty)
         self.start_pending_game()
         self.black_clock.refresh(g)
         self.white_clock.refresh(g)
@@ -1170,7 +1342,11 @@ class MainWindow(DocumentActions, QMainWindow):
         self.clock_summary.setText(f"{g.time_control_var.get()}  ·  {'Manual clock' if g.clock_mode == 'OTB' else 'Automatic clock'}")
         self.statusBar().showMessage(self.session.error or g.result_text)
         self.board_status.setText(f"{g.board_mode}  ·  {g.piece_sets[g.piece_set].name}")
-        self.engine_name.setText(Path(g.engine_manager.path).name if g.engine_manager.engine else "No engine loaded · Engine → Configure")
+        from otb_chess.services.difficulty import DIFFICULTIES
+        preset = DIFFICULTIES.get(g.cfg.get("engine_difficulty"))
+        engine_label = (("Maia · " if preset.engine == "maia" else "Stockfish · ")+preset.label
+                        if preset else Path(g.engine_manager.path).name)
+        self.engine_name.setText(engine_label if g.engine_manager.engine else "No engine loaded · Engine → Difficulty")
         self.analysis_button.setEnabled(g.engine_manager.engine is not None and not g.engine_loading)
         fen = g.board.fen()
         if fen != self.last_fen:

@@ -11,10 +11,9 @@ from otb_chess.graphics.piece_sets import discover_sets
 import glfw
 import math
 import random
-import threading
 import time
 from otb_chess.services.settings import DEFAULT_BACKGROUND, HEIGHT, PIECE_DIR, TIME_CONTROLS, WIDTH, ensure_dirs, load_config
-from otb_chess.services.audio import ensure_sounds, play_sound
+from otb_chess.services.audio import ensure_sounds, play_sound, SOUND_PROFILES, DEFAULT_SOUND_PROFILE
 from otb_chess.graphics.gl_primitives import setup_gl
 from otb_chess.services.engine import EngineManager
 from otb_chess.graphics.rendering import BoardRendering
@@ -56,9 +55,9 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.board = chess.Board()
         self.move_animation_ms = max(0,min(1500,int(self.cfg.get("move_animation_ms",0))))
         self.move_animation = None
-        self.board_type = self.cfg.get("board_type","classic")
+        self.board_type = self.cfg.get("board_type","tournament")
         if self.board_type not in BOARD_TYPES:
-            self.board_type = "classic"
+            self.board_type = "tournament"
         self.board_surface_renderer = BoardSurfaceRenderer()
         self.board_mode = self.cfg.get("board_mode", "3D")
         if self.board_mode not in ("2D", "3D"):
@@ -68,9 +67,9 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.two_d_pan_x = float(self.cfg.get("two_d_pan_x", 0.0))
         self.two_d_pan_z = float(self.cfg.get("two_d_pan_z", 0.0))
         self.flat_piece_renderer = FlatPieceRenderer()
-        self.flat_piece_set = self.cfg.get("flat_piece_set","classic")
+        self.flat_piece_set = self.cfg.get("flat_piece_set","textbook")
         if self.flat_piece_set not in FLAT_SETS:
-            self.flat_piece_set = "classic"
+            self.flat_piece_set = "textbook"
         self.piece_sets = discover_sets(PIECE_DIR)
         self.piece_set = self.cfg.get("piece_set", "tournament")
         if self.piece_set not in self.piece_sets:
@@ -101,8 +100,11 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.show_coordinates = bool(self.cfg["show_coordinates"])
         self.show_move_indicator = bool(self.cfg.get("show_move_indicator", True))
         self.sound_enabled = bool(self.cfg.get("sound_enabled", True))
+        self.sound_profile = self.cfg.get("sound_profile", DEFAULT_SOUND_PROFILE)
+        if self.sound_profile not in SOUND_PROFILES:
+            self.sound_profile = DEFAULT_SOUND_PROFILE
         self.yaw = float(self.cfg.get("camera_yaw", 0.0))
-        self.pitch = float(self.cfg.get("camera_pitch", math.radians(34)))
+        self.pitch = float(self.cfg.get("camera_pitch", math.radians(40)))
         self.distance = float(self.cfg.get("camera_distance", 12.4))
         self.pan_x = float(self.cfg.get("camera_pan_x", 0.0))
         self.pan_z = float(self.cfg.get("camera_pan_z", 0.0))
@@ -123,7 +125,8 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.pan_start_offset = (0.0, 0.0)
         self.camera_dirty = False
         self.last_camera_change = 0.0
-        self.sound_move, self.sound_capture, self.sound_check = ensure_sounds()
+        for event, path in ensure_sounds(self.sound_profile).items():
+            setattr(self, "sound_" + event, path)
         tc = TIME_CONTROLS.get(self.cfg["time_control"], TIME_CONTROLS["Bullet 1+0"])
         self.white_time = tc.initial_seconds
         self.black_time = tc.initial_seconds
@@ -192,6 +195,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             choices = {move.promotion for move in self.board.legal_moves
                        if move.from_square == fr and move.to_square == to}
             if not choices:
+                self.play_game_sound(self.sound_illegal)
                 return False
             if promotion is None and not is_engine:
                 position = self.board.fen()
@@ -203,9 +207,12 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
                 return False
         mv = chess.Move(fr, to, promotion=promotion)
         if mv not in self.board.legal_moves:
+            if not is_engine:
+                self.play_game_sound(self.sound_illegal)
             return False
         mover = self.board.turn
         capture = self.board.is_capture(mv)
+        castle = self.board.is_castling(mv)
         if self.game_started:
             self.clock_history.append(
                 (self.white_time, self.black_time, self.active_clock_color)
@@ -236,18 +243,19 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
                     self.black_time += self.increment
                 self.active_clock_color = self.board.turn
                 self.last_clock_tick = time.perf_counter()
-        self.play_game_sound(self.sound_capture if capture else self.sound_move)
-        if self.board.is_check():
-            threading.Timer(
-                0.15, lambda: self.play_game_sound(self.sound_check)
-            ).start()
         self.refresh_move_list()
         self.update_game_end()
+        if not self.game_over:
+            sound = (self.sound_promote if promotion else self.sound_castle if castle
+                     else self.sound_check if self.board.is_check()
+                     else self.sound_capture if capture else self.sound_move)
+            self.play_game_sound(sound)
         if self.game_started and not self.game_over and not self.awaiting_clock_press:
             self.maybe_request_engine_move()
         return True
 
     def update_game_end(self):
+        was_over = self.game_over
         if self.board.is_checkmate():
             self.game_over = True
             self.game_started = False
@@ -260,6 +268,8 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             self.game_over = True
             self.game_started = False
             self.result_text = "Draw - insufficient material"
+        if self.game_over and not was_over:
+            self.play_game_sound(self.sound_game_end)
 
     def play_game_sound(self, path):
         if self.sound_enabled:
@@ -300,7 +310,10 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.result_text = "Board reset"
         self.refresh_move_list()
 
-    def start_game(self):
+    def start_game(self, starting_fen=None):
+        starting_board = chess.Board(starting_fen) if starting_fen is not None else chess.Board()
+        if not starting_board.is_valid():
+            raise ValueError("The starting position is not valid")
         self._review_live = self._pgn_document = None
         time_control = self.selected_time_control()
         if time_control is None:
@@ -318,12 +331,12 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             requested_engine_side = None
             self.engine_side_var.set("None")
 
-        self.board.reset()
+        self.board = starting_board
         self.clock_history.clear()
         self.white_time = time_control.initial_seconds
         self.black_time = time_control.initial_seconds
         self.increment = time_control.increment_seconds
-        self.active_clock_color = chess.WHITE
+        self.active_clock_color = self.board.turn
         self.last_clock_tick = time.perf_counter()
         self.clock_paused = False
         self.awaiting_clock_press = False
@@ -341,6 +354,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.clock_binding = self.clock_binding_var.get()
         self.engine_side = requested_engine_side
         self.book_path = self.book_var.get()
+        self.play_game_sound(self.sound_game_start)
         self.refresh_move_list()
         self.persist()
         self.maybe_request_engine_move()
@@ -351,12 +365,15 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             self.game_started = False
             self.game_over = True
             self.result_text = f"{loser} resigned"
+            self.play_game_sound(self.sound_game_end)
 
     def offer_draw(self):
         if self.game_started and not self.game_over:
             self.result_text = "Draw offered"
 
     def pick_book_move(self):
+        if self.cfg.get("engine_difficulty", "custom") != "custom":
+            return None  # Presets should play at their chosen strength from move one.
         path = self.book_var.get() if self.book_var else self.book_path
         if not path or not Path(path).exists():
             return None

@@ -3,6 +3,7 @@ import chess as _chess
 import chess.engine as _engine
 import subprocess
 import sys
+import random
 from otb_chess_core import Move
 from otb_chess.engine_state import EngineScore, EngineEvaluation, EngineResult
 
@@ -83,3 +84,33 @@ class Engine:
 
     def quit(self):
         self._transport.quit()
+
+
+class MaiaEngine(Engine):
+    """Maia networks require policy-only (one-node) play rather than search."""
+
+    @classmethod
+    def open_model(cls, executable, weights, mistakes=0.0):
+        engine = cls.open([str(executable), '--weights='+str(weights),
+                           '--backend=blas', '--threads=1', '--minibatch-size=1'])
+        engine.mistakes = mistakes
+        return engine
+
+    def strength_range(self):
+        return None
+
+    def configure_strength(self, elo=None):
+        pass  # Strength is chosen by the network, not UCI_Elo.
+
+    def play(self, history, seconds=0.12, style="Balanced"):
+        board = _board(history)
+        if self.mistakes and random.random() < self.mistakes:
+            moves = list(board.legal_moves)
+            chosen = _move(random.choice(moves)) if moves else None
+            return EngineResult(chosen, None, EngineEvaluation(history.final_fen, pv=(chosen,) if chosen else ()))
+        result = self._transport.play(board, _engine.Limit(nodes=1), info=_engine.INFO_ALL)
+        return EngineResult(_move(result.move), None, _evaluation(history.final_fen,result.info))
+
+    def analyse(self, history, seconds=0.25):
+        info = self._transport.analyse(_board(history), _engine.Limit(nodes=1))
+        return _evaluation(history.final_fen,info)

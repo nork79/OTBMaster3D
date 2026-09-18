@@ -18,7 +18,18 @@ class EngineManager:
     def load(self, path):
         self.unload()
         try:
-            self.engine = uci.Engine.open(path)
+            from otb_chess.services.difficulty import DIFFICULTIES, engine_path, weights_path
+            key = self.app.cfg.get("engine_difficulty", "custom")
+            preset = DIFFICULTIES.get(key)
+            if Path(path).resolve() == engine_path("club").resolve():
+                if not preset or preset.engine != "maia":
+                    rating = self.app.cfg.get("engine_rating",1100)
+                    key = min((k for k,p in DIFFICULTIES.items() if p.engine == "maia" and not p.mistakes),
+                              key=lambda k:abs(DIFFICULTIES[k].model-rating))
+                    preset = DIFFICULTIES[key]
+                self.engine = uci.MaiaEngine.open_model(path,weights_path(key),preset.mistakes)
+            else:
+                self.engine = uci.Engine.open(path)
             self.engine.configure_strength(self.app.cfg.get("engine_elo"))
             self.path = path
             return True, f"Loaded engine: {Path(path).name}"

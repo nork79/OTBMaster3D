@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0-beta.1 - 2026-09-18
+
+- Add Maia difficulty presets, custom engine settings and persistent analysis state.
+- Add position setup with live FEN and click-to-move editing, plus an interactive evaluation graph.
+- Add eight sound profiles, improved pre-game clock editing, viewport-fitting Reset View and revised defaults.
+- Update installer build support. See [release notes](docs/releases/1.2.0-beta.1.md).
+
 ## 1.0.0-beta.1 - 2026-09-18
 
 First official public beta. Version numbering restarts at 1.0; earlier tags remain development history.

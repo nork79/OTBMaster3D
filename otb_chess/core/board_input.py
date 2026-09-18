@@ -190,13 +190,55 @@ class BoardInput:
             self.result_text = "View reset"
             return
         self.yaw = 0.0
-        self.pitch = math.radians(34)
-        self.distance = 12.4
+        self.pitch = math.radians(40)
         self.pan_x = 0.0
-        self.pan_z = 0.0
+        self.fit_board_view()
         self.mark_camera_dirty()
         self.persist()
         self.result_text = "View reset"
+
+    def fit_board_view(self):
+        """Fit and visually center the board and piece envelope at reset yaw."""
+        aspect = self.width / max(1, self.height)
+        tangent = math.tan(math.radians(20))
+        cp, sp = math.cos(self.pitch), math.sin(self.pitch)
+        # Include the frame underside and space for tall pieces on any square.
+        points = [(x,y,z) for half,heights in ((4.36,(-.46,.025)),(3.92,(0,1.65)))
+                  for x in (-half,half) for y in heights for z in (-half,half)]
+
+        def bounds(distance, pan):
+            projected = []
+            for x,y,z in points:
+                y -= self.target_y
+                z += pan
+                depth = distance - sp*y + cp*z
+                projected.append((x/(depth*tangent*aspect),(cp*y+sp*z)/(depth*tangent)))
+            return (max(abs(x) for x,y in projected),
+                    min(y for x,y in projected),max(y for x,y in projected))
+
+        def centered(distance):
+            low,high = -3.0,3.0
+            for _ in range(40):
+                pan = (low+high)/2
+                _,bottom,top = bounds(distance,pan)
+                if bottom+top < 0:
+                    low = pan
+                else:
+                    high = pan
+            return (low+high)/2
+
+        low,high = 7.0,100.0
+        for _ in range(40):
+            distance = (low+high)/2
+            pan = centered(distance)
+            width,bottom,top = bounds(distance,pan)
+            if max(width,abs(bottom),abs(top)) > .93:
+                low = distance
+            else:
+                high = distance
+        self.pan_z = centered(high)
+        # camera() applies this aspect correction when rendering.
+        self.distance = high / max(1,1.48/aspect)
 
     def flip_board(self):
         if self.board_mode == "2D":

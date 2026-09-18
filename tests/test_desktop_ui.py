@@ -299,6 +299,250 @@ class DesktopTests(unittest.TestCase):
         self.assertTrue(self.window.moves.isVisible())
         self.assertGreater(self.widget.width(),300)
 
+    def test_sound_profiles_switch_all_events_and_restore_muted_choice(self):
+        from otb_chess.services.audio import SOUND_PROFILES, ensure_sounds
+        import wave
+        w,g = self.window,self.game
+        self.assertEqual(len(w.sound_profile_actions),9)
+        for profile in SOUND_PROFILES:
+            w.sound_profile_actions[profile].trigger()
+            self.assertTrue(g.sound_enabled)
+            self.assertEqual(g.sound_profile,profile)
+            self.assertEqual(sum(a.isChecked() for a in w.sound_profile_actions.values()),1)
+            for event,path in ensure_sounds(profile).items():
+                self.assertEqual(getattr(g,'sound_'+event),path)
+                with wave.open(str(path)) as wav:
+                    self.assertGreater(wav.getnframes(),0)
+            self.assertEqual(settings.load_config()['sound_profile'],profile)
+        for muted in (False,True):
+            if muted:
+                w.sound_profile_actions[None].trigger()
+            restored = MainWindow()
+            restored.timer.stop()
+            try:
+                self.assertEqual(restored.game.sound_profile,g.sound_profile)
+                self.assertEqual(restored.game.sound_enabled,not muted)
+                self.assertTrue(restored.sound_profile_actions[None if muted else g.sound_profile].isChecked())
+                self.assertEqual(restored.game.sound_move,g.sound_move)
+                if muted:
+                    with patch('otb_chess.core.game.play_sound') as sound:
+                        for event,path in ensure_sounds(g.sound_profile).items():
+                            restored.game.play_game_sound(path)
+                        sound.assert_not_called()
+            finally:
+                restored.close()
+        w.sound_profile_actions['03_Tournament_Wood'].trigger()
+        self.assertTrue(g.sound_enabled)
+        self.assertFalse(w.sound_profile_actions[None].isChecked())
+
+    def test_sound_pack_event_mapping_and_mute(self):
+        g = self.game
+        cases = (
+            (chess.STARTING_FEN,'e2e4','move'),
+            ('4k3/8/8/8/3p4/4P3/8/4K3 w - - 0 1','e3d4','capture'),
+            ('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1','e1g1','castle'),
+            ('4k3/8/8/8/8/8/R7/4K3 w - - 0 1','a2e2','check'),
+            ('7k/P7/8/8/8/8/8/4K3 w - - 0 1','a7a8q','promote'),
+            (chess.STARTING_FEN,'e2e5','illegal'),
+            ('7k/5Q2/6K1/8/8/8/8/8 w - - 0 1','f7g7','game_end'),
+        )
+        for fen,uci,event in cases:
+            g.load_document(chess.Board(fen))
+            move = chess.Move.from_uci(uci)
+            with patch.object(g,'play_game_sound') as sound:
+                g.try_move(move.from_square,move.to_square,promotion=move.promotion)
+                sound.assert_called_once_with(getattr(g,'sound_'+event))
+        with patch.object(g,'play_game_sound') as sound:
+            g.start_game()
+            sound.assert_called_once_with(g.sound_game_start)
+            sound.reset_mock()
+            g.resign()
+            sound.assert_called_once_with(g.sound_game_end)
+        g.sound_enabled = False
+        with patch('otb_chess.core.game.play_sound') as playback:
+            g.play_game_sound(g.sound_move)
+            playback.assert_not_called()
+
+    def test_position_setup_live_fen_placement_and_validation(self):
+        from otb_chess.ui.position_setup import PositionSetup
+        dialog = PositionSetup(self.window,self.game.board.fen())
+        try:
+            ok = dialog.buttons.button(QDialogButtonBox.StandardButton.Ok)
+            self.assertTrue(ok.isEnabled())
+            dialog.replace_board(chess.Board(None))
+            self.assertFalse(ok.isEnabled())
+            for square,symbol in ((chess.E1,'K'),(chess.E8,'k'),(chess.A2,'P')):
+                dialog.selected_piece = symbol
+                QTest.mouseClick(dialog.squares[square],Qt.MouseButton.LeftButton)
+            self.assertTrue(ok.isEnabled())
+            self.assertEqual(chess.Board(dialog.fen.text()).piece_at(chess.A2).symbol(),'P')
+            self.assertTrue(all(not icon.isNull() for icon in dialog.piece_icons.values()))
+            self.assertFalse(dialog.squares[chess.A2].icon().isNull())
+            QTest.mouseClick(dialog.squares[chess.A2],Qt.MouseButton.RightButton)
+            self.assertEqual(chess.Board(dialog.fen.text()).piece_at(chess.A2).symbol(),'p')
+            QTest.mouseClick(dialog.squares[chess.A2],Qt.MouseButton.RightButton)
+            self.assertEqual(chess.Board(dialog.fen.text()).piece_at(chess.A2).symbol(),'P')
+            QTest.mouseClick(dialog.squares[chess.A2],Qt.MouseButton.MiddleButton)
+            self.assertIsNone(chess.Board(dialog.fen.text()).piece_at(chess.A2))
+            self.assertTrue(dialog.squares[chess.A2].icon().isNull())
+            fen = 'r3k2r/8/8/3pP3/8/8/8/R3K2R w KQkq d6 0 23'
+            dialog.fen.setText(fen)
+            self.assertTrue(ok.isEnabled())
+            self.assertEqual(dialog.board.fen(),fen.replace('d6 0 23','- 0 1'))
+            self.assertEqual(dialog.fen.text(),dialog.board.fen())
+            self.assertIsNone(dialog.board.ep_square)
+            self.assertEqual(dialog.board.fullmove_number,1)
+            self.assertFalse(dialog.findChildren(QSpinBox))
+            self.assertTrue(all(c.isChecked() for c in dialog.castling.values()))
+            dialog.fen.setText('not a FEN')
+            self.assertFalse(ok.isEnabled())
+            dialog.accept()
+            self.assertNotEqual(dialog.result(),QDialog.DialogCode.Accepted)
+            dialog.replace_board(chess.Board())
+            self.assertTrue(ok.isEnabled())
+        finally:
+            dialog.close()
+
+    def test_setup_click_pickup_drop_replaces_and_cancels(self):
+        from otb_chess.ui.position_setup import PositionSetup
+        dialog = PositionSetup(self.window,self.game.board.fen())
+        try:
+            original = dialog.board.fen()
+            def click(square,button=Qt.MouseButton.LeftButton):
+                QTest.mouseClick(dialog.squares[square],button)
+            click(chess.B1)
+            self.assertEqual(dialog.picked_square,chess.B1)
+            self.assertEqual(dialog.board.fen(),original)
+            self.assertTrue(dialog.squares[chess.B1].icon().isNull())
+            click(chess.E7)
+            self.assertIsNone(dialog.picked_square)
+            self.assertIsNone(dialog.board.piece_at(chess.B1))
+            self.assertEqual(dialog.board.piece_at(chess.E7).symbol(),'N')
+            self.assertEqual(chess.Board(dialog.fen.text()).piece_at(chess.E7).symbol(),'N')
+            click(chess.E7)
+            click(chess.E7)
+            self.assertEqual(dialog.board.piece_at(chess.E7).symbol(),'N')
+            click(chess.E7)
+            click(chess.E7,Qt.MouseButton.RightButton)
+            click(chess.D4)
+            self.assertEqual(dialog.board.piece_at(chess.D4).symbol(),'n')
+            click(chess.D4)
+            dialog.select_piece('Q')
+            self.assertIsNone(dialog.picked_square)
+            self.assertFalse(dialog.squares[chess.D4].icon().isNull())
+            click(chess.D4)
+            click(chess.D4,Qt.MouseButton.MiddleButton)
+            self.assertIsNone(dialog.picked_square)
+            self.assertIsNone(dialog.board.piece_at(chess.D4))
+        finally:
+            dialog.close()
+
+    def test_setup_position_cancel_and_start_preserve_custom_root(self):
+        from otb_chess.ui.position_setup import PositionSetup
+        w,g = self.window,self.game
+        original = g.board.fen()
+        fen = 'r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 7 23'
+        expected = fen.replace('7 23','0 1')
+        for accept in (False,True):
+            def choose():
+                dialog = QApplication.activeModalWidget()
+                self.assertIsInstance(dialog,PositionSetup)
+                dialog.fen.setText(fen)
+                dialog.accept() if accept else dialog.reject()
+            QTimer.singleShot(0,choose)
+            w.setup_position()
+            self.assertEqual(g.board.fen(),expected if accept else original)
+        self.assertFalse(g.game_started)
+        w.play_pause()
+        self.assertTrue(g.game_started)
+        self.assertEqual(g.board.fen(),expected)
+        self.assertEqual(g.active_clock_color,chess.BLACK)
+        with patch.object(g,'play_game_sound'):
+            self.assertTrue(g.try_move(chess.E8,chess.G8))
+        self.assertEqual(g.history_board().root().fen(),expected)
+        self.assertIn('[SetUp "1"]',g.export_pgn())
+        self.assertIn('1... O-O',g.export_pgn())
+        self.assertFalse(w.setup_position_action.isEnabled())
+        with patch.object(w,'confirm',return_value=True):
+            w.new_game()
+        self.assertEqual(g.board.fen(),chess.Board().fen())
+
+    def test_evaluation_graph_reviews_full_game_and_updates_on_new_game(self):
+        from otb_chess.core.evaluation import evaluate_position
+        w,g = self.window,self.game
+        g.start_game()
+        with patch.object(g,'play_game_sound'):
+            for source,target in ((chess.E2,chess.E4),(chess.D7,chess.D5),(chess.E4,chess.D5)):
+                self.assertTrue(g.try_move(source,target))
+        live = g.board.fen()
+        w.open_evaluation_graph()
+        graph = w.evaluation_graph
+        self.assertEqual(len(graph.chart.values),4)
+        self.assertEqual(graph.chart.values[-1],evaluate_position(g.board).centipawns/100)
+        rect = graph.chart.plot_rect()
+        QTest.mouseClick(graph.chart,Qt.MouseButton.LeftButton,
+                         pos=QPoint(round(rect.left()+rect.width()/3),round(rect.center().y())))
+        self.assertTrue(g.clock_paused)
+        self.assertEqual(len(g.board.move_stack),1)
+        self.assertEqual(len(graph.chart.values),4)
+        self.assertEqual(len(g.history_board().move_stack),3)
+        self.assertEqual(graph.chart.current,1)
+        graph.select_ply(0)
+        self.assertEqual(len(g.board.move_stack),0)
+        graph.select_ply(3)
+        self.assertEqual(g.board.fen(),live)
+        self.assertIsNone(g._review_live)
+        self.assertFalse(g.analysis_enabled)
+        w.open_evaluation_graph()
+        self.assertIs(w.evaluation_graph,graph)
+        g.start_game()
+        graph.refresh()
+        self.assertEqual(graph.chart.values,[0])
+        graph.close()
+        self.assertFalse(graph.timer.isActive())
+
+    def test_evaluation_graph_imported_black_move_and_checkmate(self):
+        import math
+        w,g = self.window,self.game
+        board = chess.Board()
+        board.push_uci('f2f3')
+        board = chess.Board(board.fen())
+        for move in ('e7e5','g2g4','d8h4'):
+            board.push_uci(move)
+        g.load_document(board)
+        w.open_evaluation_graph()
+        graph = w.evaluation_graph
+        self.assertIn('1... e5',graph.labels[1])
+        self.assertEqual(graph.chart.values[-1],-math.inf)
+        self.assertIn('checkmate',graph.labels[-1])
+        graph.chart.grab()
+        graph.select_ply(1)
+        self.assertEqual(len(g.board.move_stack),1)
+        self.assertEqual(len(graph.chart.values),4)
+
+    def test_reset_view_centers_and_fits_board_to_viewport(self):
+        g = self.game
+        for width,height in ((900,760),(500,760),(1600,760)):
+            g.width,g.height = width,height
+            g.yaw,g.pan_x,g.pan_z,g.distance = 1,2,-2,20
+            g.reset_view()
+            self.widget.makeCurrent()
+            from OpenGL.GL import glViewport
+            glViewport(0,0,width,height)
+            g.camera()
+            points = [gluProject(x,y,z+g.pan_z)
+                      for half,heights in ((4.36,(-.46,.025)),(3.92,(0,1.65)))
+                      for x in (-half,half) for y in heights for z in (-half,half)]
+            left,right = min(p[0] for p in points),max(p[0] for p in points)
+            bottom,top = min(p[1] for p in points),max(p[1] for p in points)
+            self.assertAlmostEqual((left+right)/2,width/2,places=3)
+            self.assertAlmostEqual((bottom+top)/2,height/2,places=3)
+            self.assertAlmostEqual(max((right-left)/width,(top-bottom)/height),.93,places=3)
+            self.assertGreater(left,0)
+            self.assertLess(right,width)
+            self.assertGreater(bottom,0)
+            self.assertLess(top,height)
+
     def test_2d_click_drag_zoom_pan_and_3d_switch(self):
         w,g,b = self.window,self.game,self.widget
         w.mode_actions["2D"].trigger()
@@ -514,6 +758,8 @@ class DesktopTests(unittest.TestCase):
     def test_clock_settings_preserve_paused_game(self):
         w,g = self.window,self.game
         g.start_game()
+        with patch.object(g,"play_game_sound"):
+            g.try_move(chess.E2,chess.E4)
         g.clock_paused = True
         g.white_time,g.black_time = 41,52
         original_increment = g.increment
@@ -525,6 +771,42 @@ class DesktopTests(unittest.TestCase):
         QTimer.singleShot(0,choose)
         w.clock_settings()
         self.assertEqual((g.white_time,g.black_time,g.increment),(41,52,original_increment))
+
+    def test_new_game_clock_presets_apply_before_first_move(self):
+        w,g = self.window,self.game
+        w.new_game()
+        self.assertTrue(g.game_started)
+        for preset,seconds,increment in (("Bullet 2+1",120,1),("Classical 30+0",1800,0)):
+            def choose():
+                dialog = QApplication.activeModalWidget()
+                dialog.findChildren(QComboBox)[0].setCurrentText(preset)
+                dialog.accept()
+            QTimer.singleShot(0,choose)
+            w.clock_settings()
+            self.assertEqual((g.white_time,g.black_time,g.increment),(seconds,seconds,increment))
+            self.assertEqual(w.white_clock.digits.text(),g.fmt_clock(seconds))
+            self.assertEqual(w.black_clock.digits.text(),g.fmt_clock(seconds))
+
+    def test_new_game_clocks_can_be_edited_until_first_move(self):
+        w,g = self.window,self.game
+        w.new_game()
+        for card,color in ((w.white_clock,chess.WHITE),(w.black_clock,chess.BLACK)):
+            card.refresh(g)
+            self.assertEqual(card.state.text(),"CLICK TO EDIT")
+            def choose():
+                dialog = QApplication.activeModalWidget()
+                fields = dialog.findChildren(QSpinBox)
+                fields[0].setValue(2)
+                fields[1].setValue(15)
+                dialog.accept()
+            QTimer.singleShot(0,choose)
+            QTest.mouseClick(card,Qt.MouseButton.LeftButton)
+            self.assertEqual(g.white_time if color else g.black_time,135)
+            self.assertFalse(g.clock_paused)
+        with patch.object(g,"play_game_sound"):
+            self.assertTrue(g.try_move(chess.E2,chess.E4))
+        self.assertFalse(g.clocks_editable())
+        self.assertFalse(g.clocks_waiting_for_first_move())
 
     def test_edit_each_paused_clock_and_cancel(self):
         w,g = self.window,self.game
@@ -599,7 +881,7 @@ class DesktopTests(unittest.TestCase):
         g.apply_pending_engine_move()
         self.assertEqual(len(g.board.move_stack),1)
 
-    def test_engine_load_enables_current_evaluation_and_saves_strength_style(self):
+    def test_engine_load_preserves_analysis_and_saves_strength_style(self):
         from otb_chess.ui.desktop_ui import ENGINE_DIR
         executable = next(ENGINE_DIR.rglob("stockfish*.exe"), None)
         if executable is None or sys.platform != "win32":
@@ -609,6 +891,9 @@ class DesktopTests(unittest.TestCase):
         deadline = time.monotonic() + 8
         while g.engine_loading and time.monotonic() < deadline:
             QTest.qWait(10)
+        w.tick()
+        self.assertFalse(g.analysis_enabled)
+        w.toggle_analysis(True)
         w.tick()
         self.assertTrue(g.analysis_enabled)
         self.assertTrue(w.analysis_action.isChecked())
@@ -720,6 +1005,130 @@ class DesktopTests(unittest.TestCase):
         self.assertFalse(w.move_list_evaluation.isVisible())
         self.assertTrue(w.static_evaluation.isVisible())
         self.assertFalse(settings.load_config()["always_show_static_evaluation"])
+
+    def test_analysis_preference_restored_and_not_overridden_by_engine_load(self):
+        for enabled in (True,False):
+            self.window.toggle_analysis(enabled)
+            self.assertEqual(settings.load_config()['analysis_enabled'],enabled)
+            restored = MainWindow()
+            restored.timer.stop()
+            try:
+                self.assertEqual(restored.game.analysis_enabled,enabled)
+                self.assertEqual(restored.analysis_action.isChecked(),enabled)
+                self.assertEqual(restored.analysis_button.isChecked(),enabled)
+                self.assertEqual(restored.analysis_button.text(),'Stop analysis' if enabled else 'Start analysis')
+                restored.game.engine_load_result = ('stockfish.exe',(True,'Loaded'))
+                with patch.object(restored.game,'request_analysis') as request:
+                    restored.tick()
+                    self.assertEqual(request.called,enabled)
+                self.assertEqual(restored.game.analysis_enabled,enabled)
+                self.assertEqual(settings.load_config()['analysis_enabled'],enabled)
+            finally:
+                restored.close()
+
+    def test_difficulty_presets_choose_engine_strength_and_persist(self):
+        from otb_chess.services.difficulty import DIFFICULTIES
+        w,g = self.window,self.game
+        with patch('otb_chess.services.difficulty.missing_files',return_value=[]), \
+                patch('otb_chess.services.difficulty.engine_path',side_effect=lambda key:Path(self.folder.name)/('lc0.exe' if DIFFICULTIES[key].engine=='maia' else 'stockfish.exe')), \
+                patch.object(g,'load_engine_path') as load:
+            for key,preset in DIFFICULTIES.items():
+                w.difficulty_actions[key].trigger()
+                self.assertEqual(g.cfg['engine_difficulty'],key)
+                self.assertEqual(g.cfg['engine_elo'],preset.rating if preset.engine=='stockfish' else None)
+                self.assertEqual(g.cfg['engine_style'],'Balanced')
+                self.assertEqual(g.book_var.get(),'')
+                self.assertTrue(w.difficulty_actions[key].isChecked())
+                self.assertEqual(settings.load_config()['engine_difficulty'],key)
+                self.assertEqual(Path(load.call_args.args[0]).name,'lc0.exe' if preset.engine=='maia' else 'stockfish.exe')
+            g.engine_manager.thinking = True
+            load.reset_mock()
+            w.select_difficulty('club')
+            self.assertEqual(w.pending_difficulty,'club')
+            load.assert_not_called()
+            g.pending_engine_move = OwnedMove(chess.E2,chess.E4)
+            g.engine_manager.thinking = False
+            w.tick()
+            self.assertIsNone(w.pending_difficulty)
+            self.assertIsNone(g.pending_engine_move)
+            self.assertFalse(g.board.move_stack)
+            self.assertEqual(g.cfg['engine_difficulty'],'club')
+            load.assert_called_once()
+
+    def test_engine_maia_preset_loads_plays_and_switches_to_stockfish(self):
+        from otb_chess.services.difficulty import DIFFICULTIES
+        w,g = self.window,self.game
+        with patch.object(settings,'ENGINE_DIR',settings.APP_DIR/'engines'):
+            w.select_difficulty('club')
+            deadline = time.monotonic()+8
+            while g.engine_loading and time.monotonic()<deadline:
+                QTest.qWait(10)
+            w.tick()
+            self.assertIsInstance(g.engine_manager.engine,uci.MaiaEngine)
+            self.assertEqual(g.cfg['engine_difficulty'],'club')
+            self.assertIn('Maia',w.engine_name.text())
+            g.start_game()
+            with patch.object(g,'play_game_sound'):
+                self.assertTrue(g.try_move(chess.E2,chess.E4))
+                while g.engine_manager.thinking and time.monotonic()<deadline:
+                    QTest.qWait(10)
+                w.tick()
+            self.assertEqual(len(g.board.move_stack),2)
+            self.assertEqual(g.last_engine_search[1].nodes,1)
+            w.select_difficulty('cm_practice')
+            while g.engine_loading and time.monotonic()<deadline:
+                QTest.qWait(10)
+            w.tick()
+            self.assertIsNotNone(g.engine_manager.engine)
+            self.assertNotIsInstance(g.engine_manager.engine,uci.MaiaEngine)
+            self.assertEqual(g.cfg['engine_elo'],2000)
+            self.assertEqual(settings.load_config()['engine_difficulty'],'cm_practice')
+
+    def test_engine_custom_menu_opens_custom_without_changing_saved_preset(self):
+        w,g = self.window,self.game
+        g.cfg['engine_difficulty'] = 'club'
+        g.persist()
+        w.refresh_difficulty_actions()
+        observed = []
+        def inspect():
+            dialog = QApplication.activeModalWidget()
+            observed.append(dialog.findChild(QComboBox,'engineDifficulty').currentData())
+            observed.append(dialog.findChild(QComboBox,'engineStyle').isEnabled())
+            dialog.reject()
+        QTimer.singleShot(0,inspect)
+        w.custom_difficulty_action.trigger()
+        self.assertEqual(observed,['custom',True])
+        self.assertEqual(g.cfg['engine_difficulty'],'club')
+        self.assertEqual(settings.load_config()['engine_difficulty'],'club')
+        self.assertTrue(w.difficulty_actions['club'].isChecked())
+        self.assertFalse(w.custom_difficulty_action.isChecked())
+
+    def test_engine_difficulty_dialog_save_and_cancel(self):
+        w,g = self.window,self.game
+        original = g.cfg['engine_difficulty']
+        for accept in (False,True):
+            def choose():
+                dialog = QApplication.activeModalWidget()
+                combo = dialog.findChild(QComboBox,'engineDifficulty')
+                combo.setCurrentIndex(combo.findData('beginner'))
+                self.assertEqual(dialog.findChild(QSpinBox,'engineRating').value(),300)
+                self.assertFalse(dialog.findChild(QSpinBox,'engineRating').isEnabled())
+                dialog.accept() if accept else dialog.reject()
+            with patch('otb_chess.services.difficulty.missing_files',return_value=[]), \
+                    patch('otb_chess.services.difficulty.engine_path',return_value=Path(self.folder.name)/'lc0.exe'), \
+                    patch.object(g,'load_engine_path') as load:
+                QTimer.singleShot(0,choose)
+                w.engine_settings()
+                self.assertEqual(g.cfg['engine_difficulty'],'beginner' if accept else original)
+                self.assertEqual(load.called,accept)
+        restored = MainWindow()
+        restored.timer.stop()
+        try:
+            self.assertEqual(restored.game.cfg['engine_difficulty'],'beginner')
+            self.assertTrue(restored.difficulty_actions['beginner'].isChecked())
+            self.assertEqual(restored.game.cfg['engine_rating'],300)
+        finally:
+            restored.close()
 
     def test_engine_output_analysis_button_and_menu_stay_in_sync(self):
         w, g = self.window, self.game

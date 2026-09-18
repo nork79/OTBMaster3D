@@ -14,6 +14,12 @@ class ClockControls:
     is created here: the UI calls update_clock from its event loop.
     """
 
+    def clocks_editable(self):
+        return not self.game_over and (self.clock_paused or self.clocks_waiting_for_first_move())
+
+    def clocks_waiting_for_first_move(self):
+        return not self.game_over and not self.board.move_stack and self._review_live is None
+
     def hit_clock(self):
         if (
             self.clock_mode != "OTB"
@@ -99,12 +105,14 @@ class ClockControls:
                 self.game_started = False
                 self.game_over = True
                 self.result_text = "White flagged"
+                self.play_game_sound(self.sound_game_end)
         else:
             self.black_time = max(0, self.black_time - e)
             if self.black_time <= 0:
                 self.game_started = False
                 self.game_over = True
                 self.result_text = "Black flagged"
+                self.play_game_sound(self.sound_game_end)
 
     @staticmethod
     def fmt_clock(s):

@@ -18,6 +18,8 @@ session.tmp
 # User-provided engines and opening books
 engines/*.exe
 engines/stockfish-19/
+engines/maia/
+sound_options/
 saved-games/
 books/*.bin
 !books/lichess-all.bin

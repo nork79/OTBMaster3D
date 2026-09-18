@@ -429,6 +429,26 @@
           "sha256": "b0795076b6787cb92063ffd73df82a6930705dca321b249e10a9ad5175428fff"
         }
       ]
+    },
+    {
+      "name": "Lc0 CPU runtime",
+      "version": "0.32.1",
+      "apparent_license": "GPL-3.0-or-later",
+      "category": "engine",
+      "redistribution": "intended",
+      "source": "https://github.com/LeelaChessZero/lc0/tree/v0.32.1",
+      "evidence": "Official Windows OpenBLAS release, verified against GitHub SHA-256; bundled COPYING and runtime notices in engines/maia.",
+      "license_files": []
+    },
+    {
+      "name": "Maia human-move models",
+      "version": "v1.0 (1100, 1300, 1400, 1500, 1600, 1800)",
+      "apparent_license": "GPL repository; model-specific terms require release review",
+      "category": "engine",
+      "redistribution": "intended",
+      "source": "https://github.com/CSSLab/maia-chess",
+      "evidence": "Official release model files. Repository GPL licence included as engines/maia/Maia-LICENSE.txt. Training rating is not calibrated engine Elo.",
+      "license_files": []
     }
   ],
   "imports": [

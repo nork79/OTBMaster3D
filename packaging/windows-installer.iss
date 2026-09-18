@@ -1,5 +1,5 @@
 #define AppName "OTBMaster3D"
-#define AppVersion "1.0.0-beta.1"
+#define AppVersion "1.2.0-beta.1"
 
 [Setup]
 AppId={{5E090E3F-4FD2-4E88-B0BE-81A3C7347D19}
@@ -22,7 +22,7 @@ WizardStyle=modern
 DisableProgramGroupPage=yes
 CloseApplications=yes
 RestartApplications=no
-VersionInfoVersion=1.0.0.0
+VersionInfoVersion=1.2.0.1
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"; Flags: unchecked
