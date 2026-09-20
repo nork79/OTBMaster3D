@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0-beta.1 - 2026-09-19
+
+- Stabilization snapshot with bookmark folders, ordering, restoration and the Bookmarks menu.
+- Preserve bookmark panel size and position across restarts.
+- Write preferences atomically and include new project source files in local build archives.
+- Retain the compact game controls, switch-sides action and timeout flag styling.
+- See [release notes](docs/releases/1.4.0-beta.1.md).
+
 ## 1.2.0-beta.1 - 2026-09-18
 
 - Add Maia difficulty presets, custom engine settings and persistent analysis state.

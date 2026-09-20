@@ -1,9 +1,10 @@
 # Third-party notices and bill of materials
 
-OTBMaster3D 1.0.0 Beta 1 application source is GPL-3.0-or-later; see LICENSE.
-Third-party files retain their original licences. This source beta does not distribute
-a frozen Python/Qt runtime or an installer. The inventory below includes historical
-binary-packaging audit notes, which are not a declaration of the current source payload.
+OTBMaster3D 1.4.0-beta.1 application source is GPL-3.0-or-later; see LICENSE.
+Third-party files retain their original licences. The private Windows beta bundles
+Python/Qt, engines and assets. The historical inventory below is not a complete
+binary licence clearance; current findings and unresolved items are recorded in
+[the private release review](docs/private-release-review.md).
 
 Machine-readable evidence: [third_party_bom.json](third_party_bom.json). It records versions,
 installed metadata, import locations, licence-file hashes and redistribution intent.
@@ -52,7 +53,7 @@ QtTest is test-only; native QtOpenGL is a transitive runtime component.
 Optional numpy / PyOpenGL_accelerate are not installed or required by this application.
 Standard-library tkinter brings Tcl/Tk into the reachable legacy UI dependency graph.
 Pillow/Qt embedded codecs and native support DLLs need a build-specific closure audit.
-No final Windows package has been built or certified. Do not confuse wheel metadata
+A private Windows beta has been built and smoke-tested; this is not licensing certification. Do not confuse wheel metadata
 with a complete licence inventory for every binary inside it.
 
 ## Authoritative sources
@@ -104,3 +105,9 @@ restrictions, replacement instructions, matching-source obligations and release 
 ## Maia and Leela Chess Zero
 
 Difficulty presets use the official [Lc0 0.32.1 CPU/OpenBLAS runtime](https://github.com/LeelaChessZero/lc0/releases/tag/v0.32.1) and [Maia v1 models](https://github.com/CSSLab/maia-chess/releases/tag/v1.0) for ratings 1100, 1300, 1400, 1500, 1600 and 1800. The runtime and repository GPL notices are retained in `engines/maia`, together with bundled allocator notices and an installation hash manifest. Upstream corresponding source: [Lc0](https://github.com/LeelaChessZero/lc0/tree/v0.32.1), [OpenBLAS](https://github.com/OpenMathLib/OpenBLAS), [Maia](https://github.com/CSSLab/maia-chess). The development inventory records model-specific redistribution terms as requiring release review.
+
+## cozy-chess-py
+
+Version 0.1.1 is a runtime dependency. Its installed distribution declares MIT;
+the exact supplied licence is retained in [licenses/cozy-chess-py/LICENSE](licenses/cozy-chess-py/LICENSE).
+Bundled runtime package versions are recorded in build-info.json.

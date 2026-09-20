@@ -104,14 +104,14 @@ class ClockControls:
             if self.white_time <= 0:
                 self.game_started = False
                 self.game_over = True
-                self.result_text = "White flagged"
+                self.result_text = "Black wins on time"
                 self.play_game_sound(self.sound_game_end)
         else:
             self.black_time = max(0, self.black_time - e)
             if self.black_time <= 0:
                 self.game_started = False
                 self.game_over = True
-                self.result_text = "Black flagged"
+                self.result_text = "White wins on time"
                 self.play_game_sound(self.sound_game_end)
 
     @staticmethod

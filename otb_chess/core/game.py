@@ -104,6 +104,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         if self.sound_profile not in SOUND_PROFILES:
             self.sound_profile = DEFAULT_SOUND_PROFILE
         self.yaw = float(self.cfg.get("camera_yaw", 0.0))
+        self._three_d_facing = "white"
         self.pitch = float(self.cfg.get("camera_pitch", math.radians(40)))
         self.distance = float(self.cfg.get("camera_distance", 12.4))
         self.pan_x = float(self.cfg.get("camera_pan_x", 0.0))
@@ -275,25 +276,47 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         if self.sound_enabled:
             play_sound(path)
 
+    def switch_sides(self):
+        if self.engine_side is None or self.engine_manager.engine is None or self.game_over:
+            return
+        self.return_to_live()
+        self.update_clock()
+        if self.game_over:
+            return
+        self.clock_paused = True
+        self.engine_manager.search_generation += 1
+        if self.engine_manager.thinking:
+            self.engine_manager.stop_search()
+        self.pending_engine_move = self.pending_engine_position = self.pending_engine_error = None
+        self.last_engine_search = None
+        self.move_animation = None
+        self.cancel_selection()
+        self.engine_side = not self.engine_side
+        self.engine_side_var.set("White" if self.engine_side else "Black")
+        self.last_clock_tick = time.perf_counter()
+        self.result_text = "Sides switched - clocks paused"
+
     def takeback(self):
         self.return_to_live()
-        if self.engine_manager.thinking or not self.board.move_stack:
+        if not self.board.move_stack:
             return
-        pops = (
-            2 if self.engine_side is not None and len(self.board.move_stack) >= 2 else 1
-        )
-        for _ in range(pops):
-            if self.board.move_stack:
-                self.board.pop()
-            if self.clock_history:
-                self.white_time, self.black_time, self.active_clock_color = (
-                    self.clock_history.pop()
-                )
+        self.clock_paused = True
+        self.engine_manager.search_generation += 1
+        if self.engine_manager.thinking:
+            self.engine_manager.stop_search()
+        self.pending_engine_move = self.pending_engine_position = self.pending_engine_error = None
+        self.last_engine_search = None
+        self.move_animation = None
+        self.board.pop()
+        if self.clock_history:
+            self.white_time, self.black_time, self.active_clock_color = self.clock_history.pop()
+        self.active_clock_color = self.board.turn
+        self.game_started = True
         self.selected = None
         self.game_over = False
         self.awaiting_clock_press = False
         self.awaiting_clock_color = None
-        self.result_text = "Move taken back"
+        self.result_text = "Move taken back — clocks paused"
         self.last_clock_tick = time.perf_counter()
         self.refresh_move_list()
 
@@ -359,9 +382,9 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.persist()
         self.maybe_request_engine_move()
 
-    def resign(self):
+    def resign(self, color=None):
         if self.game_started and not self.game_over:
-            loser = "White" if self.board.turn == chess.WHITE else "Black"
+            loser = "White" if (self.board.turn if color is None else color) == chess.WHITE else "Black"
             self.game_started = False
             self.game_over = True
             self.result_text = f"{loser} resigned"
@@ -400,6 +423,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             return
         bm = self.pick_book_move()
         if bm:
+            self.pending_engine_generation = self.engine_manager.search_generation
             self.pending_engine_position = self.board.fen()
             self.pending_engine_move = bm
         elif self.engine_manager.engine:
@@ -415,6 +439,10 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         if mv is None:
             return
         self.pending_engine_move = None
+        generation = getattr(self, "pending_engine_generation", self.engine_manager.search_generation)
+        if generation != self.engine_manager.search_generation:
+            self.pending_engine_position = None
+            return
         source = self.pending_engine_position
         self.pending_engine_position = None
         if source is not None and source != self.board.fen():

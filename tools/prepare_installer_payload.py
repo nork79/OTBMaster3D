@@ -20,6 +20,11 @@ def prepare():
     tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
     paths = set(filter(None, tracked)) | {"tools/prepare_installer_payload.py", "tools/build_installer.ps1",
                                         "docs/windows-installer.md"}
+    # Include newly added project files before staging, without collecting user data.
+    for folder in ("otb_chess", "otb_chess_core", "tests", "tools", "packaging", "docs"):
+        for path in (ROOT / folder).rglob("*"):
+            if path.is_file() and path.suffix in {".py", ".ps1", ".md", ".spec", ".iss", ".txt"}:
+                paths.add(path.relative_to(ROOT).as_posix())
     with zipfile.ZipFile(source / "OTBMaster3D-source.zip", "w", zipfile.ZIP_DEFLATED) as archive:
         for name in sorted(paths):
             path = ROOT / name

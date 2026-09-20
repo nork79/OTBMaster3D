@@ -24,4 +24,4 @@ jobs:
         run: python -m compileall -q main.py otb_chess tests tools
       # Qt/GLFW rendering tests require a working native OpenGL display.
       - name: Run tests without a graphics context
-        run: python -m unittest -v tests.test_chess_backend tests.test_documents tests.test_notation_boundary tests.test_otb_chess_core tests.test_board_highlights tests.test_static_evaluation tests.test_engine_features tests.test_difficulty tests.test_piece_sets.AssetTests
+        run: python -m unittest -v tests.test_bookmarks tests.test_bookmark_ui.BookmarkIntegrationTests tests.test_chess_backend tests.test_documents tests.test_notation_boundary tests.test_otb_chess_core tests.test_board_highlights tests.test_static_evaluation tests.test_engine_features tests.test_difficulty tests.test_piece_sets.AssetTests

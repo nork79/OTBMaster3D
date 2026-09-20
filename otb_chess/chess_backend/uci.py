@@ -45,6 +45,37 @@ class Engine:
         option = self._transport.options.get("UCI_Elo")
         return (option.min, option.max) if option and "UCI_LimitStrength" in self._transport.options else None
 
+    def configuration_snapshot(self):
+        """Persistent UCI settings, excluding temporary search/analysis overrides.
+
+        Call while holding the engine manager's lock (no active search).
+        """
+        return {"name": self._transport.id.get("name"),
+                "uci_options": dict(self._transport.protocol.target_config)}
+
+    def stop_search(self):
+        """Request UCI stop without waiting for the manager's search lock."""
+        self._transport.protocol.loop.call_soon_threadsafe(self._transport.protocol.send_line, "stop")
+
+    def restore_options(self, options):
+        # Managed options belong to the transport's per-search state.
+        from pathlib import Path
+        configured = {}
+        for name, value in options.items():
+            option = self._transport.options.get(name)
+            if option is None:
+                raise ValueError(f"Saved engine option is unavailable: {name}")
+            if (isinstance(value, str) and value and value != option.default
+                    and any(word in name.lower() for word in ("personalityfile", "weightsfile", "evalfile"))
+                    and not Path(value).is_file()):
+                raise ValueError(f"Saved engine resource is unavailable: {name}")
+            if not option.is_managed():
+                parsed = option.parse(value)
+                if parsed != value:
+                    raise ValueError(f"Saved engine option has changed: {name}")
+                configured[name] = value
+        self._transport.configure(configured)
+
     def configure_strength(self, elo=None):
         limits = self.strength_range()
         if limits:

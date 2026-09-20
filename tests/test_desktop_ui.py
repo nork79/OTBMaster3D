@@ -281,7 +281,7 @@ class DesktopTests(unittest.TestCase):
         self.assertIsNone(self.game.window)  # No second GLFW window.
         self.assertGreater(self.widget.width(),self.window.sidebar.width()*2)
         self.assertEqual([a.text() for a in self.window.menuBar().actions()],
-                         ["Game","File","View","Engine","Settings","Help"])
+                         ["Game","File","View","Engine","Settings","Bookmarks","Help"])
         self.assertTrue(self.window.white_clock.isVisible())
         self.assertTrue(self.window.moves.isVisible())
         self.assertFalse(self.window.engine_panel.isVisible())

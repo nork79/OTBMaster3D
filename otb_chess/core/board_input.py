@@ -9,6 +9,19 @@ from otb_chess.graphics.gl_primitives import setup_gl
 class BoardInput:
     """Translate pointer gestures into camera changes and game moves."""
 
+    @property
+    def board_facing(self):
+        """Semantic side selected by Flip/Reset, independent of camera orbit."""
+        if self.board_mode == "2D":
+            return "black" if self.two_d_flipped else "white"
+        return getattr(self, "_three_d_facing", "white")
+
+    def set_board_facing(self, facing):
+        if facing not in ("white", "black"):
+            raise ValueError("Facing must be white or black")
+        if self.board_facing != facing:
+            self.flip_board()
+
     @staticmethod
     def _s(w):
         return glfw.get_window_user_pointer(w)
@@ -190,6 +203,7 @@ class BoardInput:
             self.result_text = "View reset"
             return
         self.yaw = 0.0
+        self._three_d_facing = "white"
         self.pitch = math.radians(40)
         self.pan_x = 0.0
         self.fit_board_view()
@@ -247,6 +261,7 @@ class BoardInput:
             self.two_d_pan_z = -self.two_d_pan_z
             self.persist()
             return
+        self._three_d_facing = "black" if self.board_facing == "white" else "white"
         self.yaw = (self.yaw + math.pi) % math.tau
         self.pan_x = -self.pan_x
         self.pan_z = -self.pan_z

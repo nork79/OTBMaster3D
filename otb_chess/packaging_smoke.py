@@ -25,6 +25,8 @@ def run(report_path):
         app = QApplication([])
         app.setWindowIcon(QIcon(str(settings.APP_DIR / "assets" / "app-icon.ico")))
         window = MainWindow()
+        # Analysis is an opt-in preference; request it explicitly for verification.
+        window.game.analysis_enabled = True
         window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, True)
         window.show()
         started = time.monotonic()

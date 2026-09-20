@@ -6,6 +6,8 @@ import json
 import math
 import sys
 import os
+import logging
+import tempfile
 
 
 APP_DIR = Path(sys.executable).resolve().parent if getattr(sys,"frozen",False) else Path(__file__).resolve().parents[2]
@@ -110,6 +112,7 @@ def default_config():
         "two_d_pan_z": 0.0,
         "window_size": [1280, 840],
         "sidebar_width": 300,
+        "bookmark_panel_geometry": None,
         "sidebar_visible": True,
         "focus_mode": False,
         "engine_panel_open": False,
@@ -163,10 +166,27 @@ def load_config():
 
 
 def save_config(config):
+    temporary = None
     try:
-        CONFIG_PATH.write_text(json.dumps(config, indent=2), encoding="utf-8")
-    except Exception:
-        pass
+        payload = json.dumps(config, indent=2, allow_nan=False)
+        CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=CONFIG_PATH.parent,
+                                         prefix=CONFIG_PATH.name + ".", suffix=".tmp", delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, CONFIG_PATH)
+        return True
+    except (OSError, ValueError, TypeError) as exc:
+        logging.getLogger(__name__).warning("Configuration could not be saved: %s", exc)
+        return False
+    finally:
+        if temporary is not None:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                logging.getLogger(__name__).warning("Could not remove configuration temporary file %s", temporary)
 
 
 def ensure_dirs():

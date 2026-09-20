@@ -7,6 +7,8 @@ Push-Location (Split-Path $PSScriptRoot -Parent)
 try {
     & $Python -c "import sys; assert sys.version_info[:2] == (3, 13), 'Build with Python 3.13'"
     if ($LASTEXITCODE) { throw 'Incorrect build runtime' }
+    & $Python -c "import tkinter; tkinter.Tcl()"
+    if ($LASTEXITCODE) { throw 'Tcl/Tk cannot initialize. Use a complete Python installation with desktop access before building.' }
     & $Python tools/install_stockfish.py
     if ($LASTEXITCODE) { throw 'Stockfish setup failed' }
     & $Python tools/install_maia.py

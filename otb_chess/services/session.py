@@ -2,7 +2,6 @@
 import json
 import math
 import os
-from pathlib import Path
 import time
 
 from otb_chess.services import settings

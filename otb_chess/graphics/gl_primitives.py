@@ -192,6 +192,27 @@ def draw_disc(x, y, z, radius, color, segments=32):
     glEnable(GL_LIGHTING)
 
 
+def draw_check_halo(x, z):
+    """Soft red ring around the king's base, shared by both board modes."""
+    from OpenGL import GL as gl
+    gl.glPushAttrib(gl.GL_ENABLE_BIT | gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT | gl.GL_CURRENT_BIT)
+    gl.glDisable(gl.GL_LIGHTING)
+    gl.glDisable(gl.GL_TEXTURE_2D)
+    gl.glDisable(gl.GL_CULL_FACE)
+    gl.glEnable(gl.GL_BLEND)
+    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+    gl.glDepthMask(gl.GL_FALSE)
+    for inner, outer, alpha in ((.32, .40, .32), (.40, .45, .88), (.45, .49, .28)):
+        gl.glColor4f(1.0, .06, .05, alpha)
+        gl.glBegin(gl.GL_QUAD_STRIP)
+        for step in range(65):
+            angle = math.tau * step / 64
+            for radius in (inner, outer):
+                gl.glVertex3f(x + radius * math.cos(angle), .045, z + radius * math.sin(angle))
+        gl.glEnd()
+    gl.glPopAttrib()
+
+
 def draw_glyph(ch, x, y, z, view_yaw, scale=0.18):
     """Draw a board label flat on the board and readable from the current view."""
     segs = GLYPHS.get(ch.upper())

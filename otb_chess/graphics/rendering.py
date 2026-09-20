@@ -8,7 +8,7 @@ import glfw
 import math
 import time
 from otb_chess.services.settings import BOARD_Y, SELECT, TURN_INDICATOR
-from otb_chess.graphics.gl_primitives import draw_box, draw_disc, draw_glyph
+from otb_chess.graphics.gl_primitives import draw_box, draw_disc, draw_glyph, draw_check_halo
 from OpenGL.GL import GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST, GL_FALSE, GL_LIGHT0, GL_LIGHT1, GL_LIGHTING, GL_MODELVIEW, GL_MODELVIEW_MATRIX, GL_POSITION, GL_PROJECTION, GL_PROJECTION_MATRIX, GL_QUADS, GL_TEXTURE_2D, GL_TRUE, GL_VIEWPORT, glBegin, glBindTexture, glClear, glClearColor, glColor3f, glDepthMask, glDisable, glEnable, glEnd, glGetDoublev, glGetIntegerv, glLightfv, glLoadIdentity, glMatrixMode, glOrtho, glPopMatrix, glPushMatrix, glTexCoord2f, glTranslatef, glVertex2f
 from OpenGL.GLU import gluLookAt, gluPerspective, gluUnProject
 
@@ -177,6 +177,10 @@ class BoardRendering:
         glTranslatef(pan_x, 0, pan_z)
         positions = self.animated_piece_positions()
         self.draw_board()
+        checked_king = self.board.king(self.board.turn) if self.board.is_check() else None
+        if checked_king is not None:
+            x, z = positions.get(checked_king, (3.5-chess.square_file(checked_king), chess.square_rank(checked_king)-3.5))
+            draw_check_halo(x, z)
         for sq, p in self.board.piece_map().items():
             if self.drag_piece == sq and self.was_drag and self.drag_world:
                 continue

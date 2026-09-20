@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .venv/
+.venv-test/
 .tmp/
 .build-tools/
 .venv-build/
@@ -11,9 +12,12 @@ installer-output/
 
 # User-specific application state
 config.json
+config.json.*.tmp
 session.json
 session.backup.json
 session.tmp
+bookmarks.json
+bookmarks.json.*.tmp
 
 # User-provided engines and opening books
 engines/*.exe

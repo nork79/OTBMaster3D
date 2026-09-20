@@ -1,7 +1,7 @@
 # Windows installer
 
 The installer is built with Python 3.13, PyInstaller 6.22.3 and Inno Setup 6.4.3.
-It contains the application, Python/Qt runtime, assets, Stockfish 19 and all three
+It contains the application, Python/Qt runtime, assets, Stockfish 19, Maia CPU models and all three
 opening books. Users do not need to install Python separately.
 
 It installs for the current user under `%LOCALAPPDATA%\Programs\OTBMaster3D`,
@@ -11,6 +11,10 @@ Uninstalling removes program files and shortcuts while preserving that user data
 
 ## Build
 
+Use a complete Python 3.13 installation with Tkinter and native desktop access.
+The build checks Tcl initialization before packaging; a restrictive sandbox can
+prevent this even when Tcl files are installed.
+
 Create a Python 3.13 virtual environment, install requirements.txt, then install
 `pyinstaller==6.22.3`. Install Inno Setup separately. From the repository root:
 
@@ -18,7 +22,7 @@ Create a Python 3.13 virtual environment, install requirements.txt, then install
 .\tools\build_installer.ps1 -Python .\.venv\Scripts\python.exe -Compiler 'C:\path\to\ISCC.exe'
 ```
 
-The result is `installer-output/OTBMaster3D-1.2.0-beta.1-Setup.exe`.
+The result is `installer-output/OTBMaster3D-1.4.0-beta.1-Setup.exe`.
 `dist/OTBMaster3D` is the complete standalone application folder; the executable
 needs its neighbouring files. Do not copy just OTBMaster3D.exe.
 

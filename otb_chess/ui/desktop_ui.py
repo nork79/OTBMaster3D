@@ -1,6 +1,5 @@
 """Single-window desktop UI. Game logic and rendering live in dedicated modules."""
 
-from otb_chess.chess_backend import uci
 from otb_chess.chess_backend import notation
 from otb_chess.chess_backend import rules as chess
 
@@ -10,7 +9,7 @@ import threading
 import time
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QSize
 from PySide6.QtGui import QAction, QActionGroup, QColor, QIcon, QKeySequence, QSurfaceFormat
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import (
@@ -18,7 +17,7 @@ from PySide6.QtWidgets import (
     QPushButton, QToolButton, QSplitter, QTableWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView, QDialog, QFormLayout, QComboBox,
     QDoubleSpinBox, QSpinBox, QAbstractSpinBox, QDialogButtonBox, QFileDialog, QColorDialog,
-    QMessageBox, QLineEdit, QPlainTextEdit, QSlider,
+    QMessageBox, QPlainTextEdit, QSlider, QSizePolicy,
 )
 
 from otb_chess.core.game import Chess3D
@@ -31,6 +30,7 @@ from otb_chess.ui.document_actions import DocumentActions
 from otb_chess.graphics.board_types import BOARD_TYPES
 from otb_chess.graphics.board_colors import BOARD_COLOR_THEMES
 from otb_chess.ui.licenses_dialog import show_licenses
+from otb_chess.ui.chess_symbols import promotion_icon, flag_icon, clock_engine_label
 
 
 STYLE = """
@@ -49,9 +49,9 @@ QPushButton, QToolButton { background: #2b3543; border: 1px solid #3b4759;
     border-radius: 6px; padding: 8px 12px; }
 QPushButton:hover, QToolButton:hover { background: #39475b; }
 QPushButton:disabled { color: #748095; }
-QPushButton#moveNavigation { background: transparent; border: none;
+QPushButton#moveNavigation, QPushButton#humanGameAction { background: transparent; border: none;
     border-radius: 3px; padding: 2px; font-size: 12px; }
-QPushButton#moveNavigation:hover { background: #39475b; }
+QPushButton#moveNavigation:hover, QPushButton#humanGameAction:hover { background: #39475b; }
 QPushButton#primary { background: #d5944a; color: #161a20; border: none; font-weight: 600; }
 QPushButton#primary:hover { background: #e5a65c; }
 QPushButton#clock { background: #252e3a; border: 2px solid #364152; padding: 8px; }
@@ -60,6 +60,9 @@ QPushButton#clock[waiting="true"] { border: 2px solid #80bfab; }
 QLabel#clockDigits { font-family: 'Consolas'; font-size: 39px; font-weight: 600; }
 QTableWidget { background: #1b212b; alternate-background-color: #202834;
     border: none; selection-background-color: #364253; gridline-color: #303a49; }
+QTreeWidget { background: #1b212b; border: none; selection-background-color: #364253; }
+QTreeWidget::item { padding: 4px 0px; }
+QTreeWidget::item:selected { background: #364253; color: #e8eaf0; }
 QTableWidget::item { padding: 6px; }
 QHeaderView::section { background: #1b212b; color: #a3afc1; border: none;
     padding: 9px 4px; font-size: 11px; font-weight: 600; }
@@ -122,7 +125,11 @@ class DesktopGame(Chess3D):
             dialog.accept()
         for label, piece_type in (("Queen", chess.QUEEN), ("Rook", chess.ROOK),
                                   ("Bishop", chess.BISHOP), ("Knight", chess.KNIGHT)):
-            button = QPushButton(label)
+            button = QPushButton()
+            button.setIcon(promotion_icon(self, piece_type, color))
+            button.setIconSize(QSize(64, 64))
+            button.setFixedSize(82, 82)
+            button.setAccessibleName(label)
             button.setObjectName("promote" + label)
             button.setDefault(piece_type == chess.QUEEN)
             button.clicked.connect(lambda _, p=piece_type: choose(p))
@@ -195,6 +202,8 @@ class DesktopGame(Chess3D):
         threading.Thread(target=worker, daemon=True).start()
 
     def load_engine_path(self, path):
+        if getattr(self.owner, "bookmark_pending", None) is not None:
+            return
         if self.engine_loading or self.engine_manager.thinking or self.analysis_busy:
             self.result_text = "Wait for the current engine search to finish."
             return
@@ -331,7 +340,7 @@ class ClockCard(QPushButton):
     def __init__(self, name, color, owner):
         super().__init__()
         self.setObjectName("clock")
-        self.setMinimumHeight(96)
+        self.setMinimumHeight(106)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.color = color
         layout = QVBoxLayout(self)
@@ -339,22 +348,44 @@ class ClockCard(QPushButton):
         row = QHBoxLayout()
         self.name = QLabel(name.upper())
         self.name.setObjectName("section")
+        self.engine_label = QLabel("")
+        self.engine_label.setObjectName("hint")
+        self.engine_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.state = QLabel("")
         self.state.setObjectName("hint")
         row.addWidget(self.name)
-        row.addStretch()
-        row.addWidget(self.state)
+        row.addWidget(self.engine_label, 1)
         layout.addLayout(row)
         self.digits = QLabel("0:00")
         self.digits.setObjectName("clockDigits")
-        layout.addWidget(self.digits)
-        for widget in (self.name,self.state,self.digits):
+        time_row = QHBoxLayout()
+        time_row.addWidget(self.digits)
+        self.fallen_flag = QLabel()
+        self.fallen_flag.setObjectName("fallenFlag")
+        self.fallen_flag.setPixmap(flag_icon().pixmap(28, 28))
+        self.fallen_flag.setAccessibleName("Time expired")
+        self.fallen_flag.setToolTip("Time expired")
+        self.fallen_flag.hide()
+        time_row.addWidget(self.fallen_flag)
+        time_row.addStretch()
+        layout.addLayout(time_row)
+        layout.addWidget(self.state)
+        for widget in (self.name,self.engine_label,self.state,self.digits,self.fallen_flag):
             widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.clicked.connect(lambda: owner.edit_clock(color) if owner.game.clocks_editable() else owner.hit_clock(color))
         self.setToolTip("In OTB mode, click the running clock after making your move.")
 
     def refresh(self, game):
-        self.digits.setText(game.fmt_clock(game.white_time if self.color else game.black_time))
+        remaining = game.white_time if self.color else game.black_time
+        self.digits.setText(game.fmt_clock(remaining))
+        label = clock_engine_label(game, self.color)
+        self.engine_label.setToolTip(label)
+        self.engine_label.setText(self.engine_label.fontMetrics().elidedText(label, Qt.TextElideMode.ElideRight, self.engine_label.width()))
+        background = self.palette().color(self.backgroundRole())
+        if getattr(self, "_flag_background", None) != background.name():
+            self._flag_background = background.name()
+            self.fallen_flag.setPixmap(flag_icon(background).pixmap(28, 28))
+        self.fallen_flag.setVisible(game.game_over and remaining <= 0)
         active = game.game_started and not game.game_over and game.active_clock_color == self.color
         waiting = active and game.awaiting_clock_press
         editable = game.clocks_editable()
@@ -420,6 +451,8 @@ class MainWindow(DocumentActions, QMainWindow):
         self.closing = False
         self.new_game_pending = False
         self.pending_difficulty = None
+        self.bookmark_panel = None
+        self.bookmark_pending = None
         remembered = self.game.engine_var.get()
         if remembered and Path(remembered).is_file():
             QTimer.singleShot(0,lambda: self.game.load_engine_path(remembered))
@@ -435,6 +468,22 @@ class MainWindow(DocumentActions, QMainWindow):
         self.white_clock = ClockCard("White",chess.WHITE,self)
         layout.addWidget(self.black_clock)
         layout.addWidget(self.white_clock)
+        self.game_actions_row = QWidget()
+        actions = QHBoxLayout(self.game_actions_row)
+        actions.setContentsMargins(0, 0, 0, 0)
+        actions.setSpacing(3)
+        self.clock_actions = {}
+        for key, symbol in (("resign", "⚑"), ("draw", "="), ("takeback", "−"), ("switch_sides", "⇄")):
+            button = QPushButton(symbol)
+            button.setObjectName("humanGameAction")
+            button.setFixedSize(28, 24)
+            button.setStyleSheet("QPushButton#humanGameAction { font-size: 18px; } QToolTip { font-size: 12px; padding: 4px 6px; }")
+            button.clicked.connect(lambda checked=False, action=key: self.invoke(self.human_game_action, action))
+            self.clock_actions[key] = button
+            actions.addWidget(button)
+        actions.addStretch()
+        layout.addWidget(self.game_actions_row)
+        self.refresh_game_actions()
         self.clock_summary = QLabel("")
         self.clock_summary.setObjectName("hint")
         layout.addWidget(self.clock_summary)
@@ -557,6 +606,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.action(game,"Press OTB clock",lambda: self.hit_clock(),"Space")
         game.addSeparator()
         self.action(game,"Take back",g.takeback,"U")
+        self.switch_sides_action = self.action(game,"Switch sides",lambda: self.human_game_action("switch_sides"))
         self.action(game,"Go to starting position",lambda:g.navigate_to_ply(0))
         self.action(game,"Return to latest move",g.return_to_live)
         self.action(game,"Resign…",self.resign)
@@ -598,6 +648,8 @@ class MainWindow(DocumentActions, QMainWindow):
         self.sidebar_action = self.action(view,"Show sidebar",lambda _:self.apply_visibility(),"Ctrl+B",True,True)
         self.focus_action = self.action(view,"Focus mode (board and clocks)",lambda _:self.apply_visibility(),"Ctrl+Shift+F",True)
         self.fullscreen_action = self.action(view,"Fullscreen",self.set_fullscreen,"F11",True)
+        from otb_chess.ui.bookmark_panel import BookmarkMenu
+        self.bookmarks_menu = BookmarkMenu(self)
         engine = self.menuBar().addMenu("Engine")
         from otb_chess.services.difficulty import DIFFICULTIES
         difficulty = engine.addMenu("Difficulty")
@@ -670,6 +722,7 @@ class MainWindow(DocumentActions, QMainWindow):
                                  if key is not None else not g.sound_enabled)
             sound_group.addAction(action)
             self.sound_profile_actions[key] = action
+        self.menuBar().addMenu(self.bookmarks_menu)
         help_menu = self.menuBar().addMenu("Help")
         self.action(help_menu,"Open Source Licences",lambda:show_licenses(self))
         self.action(help_menu,"Controls",self.show_controls)
@@ -890,6 +943,48 @@ class MainWindow(DocumentActions, QMainWindow):
         else:
             self.game.stop_clock()
 
+    def human_player_color(self):
+        g = self.game
+        engine_side = g.engine_side if g.engine_manager.engine is not None else None
+        return not engine_side if engine_side is not None else g.board.turn
+
+    def refresh_game_actions(self):
+        g = self.game
+        side = "White" if self.human_player_color() else "Black"
+        for key, label in (("resign", f"Resign {side}"), ("draw", f"Offer draw as {side}"),
+                           ("takeback", "Take back one move"), ("switch_sides", "Switch sides and pause")):
+            button = self.clock_actions[key]
+            button.setToolTip(label)
+            button.setAccessibleName(label)
+            button.setEnabled(self.can_switch_sides() if key == "switch_sides"
+                              else bool(g.history_board().move_stack) if key == "takeback"
+                              else g.game_started and not g.game_over)
+
+        if hasattr(self, "switch_sides_action"):
+            self.switch_sides_action.setEnabled(self.can_switch_sides())
+
+    def can_switch_sides(self):
+        g = self.game
+        return (g.engine_side is not None and g.engine_manager.engine is not None
+                and not g.game_over and not g.engine_loading
+                and not getattr(self, "new_game_pending", False)
+                and getattr(self, "bookmark_pending", None) is None)
+
+    def human_game_action(self, action):
+        g = self.game
+        if action == "switch_sides":
+            if self.can_switch_sides():
+                g.switch_sides()
+                self.white_clock.refresh(g)
+                self.black_clock.refresh(g)
+        elif action == "takeback":
+            g.takeback()
+        elif action == "resign":
+            g.resign(self.human_player_color())
+        elif action == "draw":
+            g.offer_draw()
+        self.refresh_game_actions()
+
     def resign(self):
         if self.game.game_started and self.confirm("Resign","Resign the current game?"):
             self.game.resign()
@@ -953,11 +1048,97 @@ class MainWindow(DocumentActions, QMainWindow):
             self.black_clock.refresh(g)
         dialog.deleteLater()
 
+    @staticmethod
+    def time_control_panel_width():
+        return 410
+
+    def get_bookmark_panel(self):
+        if self.bookmark_panel is None:
+            from otb_chess.ui.bookmark_panel import BookmarkPanel
+            self.bookmark_panel = BookmarkPanel(self)
+        return self.bookmark_panel
+
+    def toggle_bookmarks(self, visible):
+        if visible:
+            self.get_bookmark_panel().show_panel()
+        elif self.bookmark_panel is not None:
+            self.bookmark_panel.hide()
+
+    def open_bookmark(self, node):
+        from otb_chess.services.bookmark_actions import validate_restore
+        try:
+            validate_restore(node)
+            if self.bookmark_pending is not None:
+                raise ValueError("A bookmark is already opening.")
+        except (ValueError, KeyError, TypeError) as exc:
+            QMessageBox.warning(self, "Bookmarks", str(exc))
+            return
+        g = self.game
+        g.update_clock()
+        g.clock_paused = True
+        self.new_game_pending = False
+        self.pending_difficulty = None
+        self.bookmark_pending = {"node": node, "analysis": g.analysis_enabled, "stage": "waiting"}
+        g.analysis_enabled = False
+        g.result_text = "Opening bookmark — clocks paused"
+        self.board_widget.setEnabled(False)
+        self.sidebar.setEnabled(False)
+        self.menuBar().setEnabled(False)
+        self.advance_bookmark_restore()
+
+    def advance_bookmark_restore(self):
+        pending = self.bookmark_pending
+        g = self.game
+        if pending["stage"] == "waiting":
+            # Drain existing workers before discarding their results. No position
+            # from an old search can arrive after the new board is installed.
+            if g.engine_manager.thinking or g.analysis_busy:
+                g.engine_manager.stop_search()
+            if g.engine_loading or g.engine_manager.thinking or g.analysis_busy:
+                return
+            g.engine_load_result = None
+            g.pending_engine_move = g.pending_engine_position = g.pending_engine_error = None
+            g.engine_output = None
+            pending["stage"] = "engine"
+            def worker():
+                try:
+                    pending["result"] = g.engine_manager.restore_configuration(pending["node"].get("engine"))
+                except Exception as exc:
+                    pending["result"] = (False, str(exc))
+            threading.Thread(target=worker, daemon=True).start()
+            return
+        if "result" not in pending:
+            return
+        try:
+            from otb_chess.services.bookmark_actions import restore_bookmark
+            self.board_widget.makeCurrent()
+            restore_bookmark(g, pending["node"], pending["result"])
+            self.last_fen = self.last_output = self.last_search = None
+            self.engine_line.clear()
+            self.refresh_moves()
+            self.refresh_difficulty_actions()
+            self.black_clock.refresh(g)
+            self.white_clock.refresh(g)
+            self.play_button.setText("Resume clock")
+            self.clock_summary.setText(f"{g.time_control_var.get()} · {'Manual clock' if g.clock_mode == 'OTB' else 'Automatic clock'}")
+            self.statusBar().showMessage(g.result_text)
+            self.session.save(g, force=True)
+        except Exception as exc:
+            QMessageBox.warning(self, "Could not open bookmark", str(exc))
+        finally:
+            g.clock_paused = True
+            g.analysis_enabled = pending["analysis"]
+            self.bookmark_pending = None
+            self.board_widget.setEnabled(True)
+            self.sidebar.setEnabled(True)
+            self.menuBar().setEnabled(True)
+            self.board_widget.update()
+
     def clock_settings(self):
         g = self.game
         dialog = QDialog(self)
         dialog.setWindowTitle("Time control and clock")
-        dialog.setMinimumWidth(410)
+        dialog.setMinimumWidth(self.time_control_panel_width())
         form = QFormLayout(dialog)
         preset = QComboBox()
         preset.addItems(list(TIME_CONTROLS)+["Custom"])
@@ -1313,6 +1494,9 @@ class MainWindow(DocumentActions, QMainWindow):
     def tick(self):
         if self.closing:
             return
+        if self.bookmark_pending is not None:
+            self.advance_bookmark_restore()
+            return
         g = self.game
         g.update_clock()
         if not self.new_game_pending and self.pending_difficulty is None:
@@ -1334,6 +1518,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.start_pending_game()
         self.black_clock.refresh(g)
         self.white_clock.refresh(g)
+        self.refresh_game_actions()
         self.play_button.setText("Starting game…" if self.new_game_pending else "Start game" if not g.game_started or g.game_over else "Resume clock" if g.clock_paused else "Pause clock")
         self.play_button.setEnabled(not self.new_game_pending and
                                     (not g.game_started or g.game_over or
@@ -1344,6 +1529,9 @@ class MainWindow(DocumentActions, QMainWindow):
         self.board_status.setText(f"{g.board_mode}  ·  {g.piece_sets[g.piece_set].name}")
         from otb_chess.services.difficulty import DIFFICULTIES
         preset = DIFFICULTIES.get(g.cfg.get("engine_difficulty"))
+        loaded = g.engine_manager.loaded_configuration
+        if preset and loaded and loaded["engine_id"] != preset.engine:
+            preset = None
         engine_label = (("Maia · " if preset.engine == "maia" else "Stockfish · ")+preset.label
                         if preset else Path(g.engine_manager.path).name)
         self.engine_name.setText(engine_label if g.engine_manager.engine else "No engine loaded · Engine → Difficulty")
@@ -1372,7 +1560,7 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def closeEvent(self, event):
         g = self.game
-        if g.engine_loading:
+        if g.engine_loading or self.bookmark_pending is not None:
             g.result_text = "Finishing engine load before closing…"
             QTimer.singleShot(100,self.close)
             event.ignore()
@@ -1384,6 +1572,8 @@ class MainWindow(DocumentActions, QMainWindow):
         self.session.save(g,force=True)
         if self.sidebar.isVisible():
             self.sidebar_width = self.sidebar.width()
+        if self.bookmark_panel is not None:
+            self.bookmark_panel.remember_geometry()
         normal_size = self.normalGeometry().size() if self.isFullScreen() or self.isMaximized() else self.size()
         g.cfg.update(window_size=[normal_size.width(),normal_size.height()],sidebar_width=self.sidebar_width,
                      sidebar_visible=self.sidebar_action.isChecked(),focus_mode=self.focus_action.isChecked(),
