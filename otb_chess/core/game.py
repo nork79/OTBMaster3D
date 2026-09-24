@@ -185,6 +185,8 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         )
 
     def try_move(self, fr, to, is_engine=False, promotion=None):
+        if self.game_over:
+            return False
         if fr is None or to is None or fr == to:
             return False
         if not is_engine and not self.human_can_move():
@@ -257,18 +259,13 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
 
     def update_game_end(self):
         was_over = self.game_over
-        if self.board.is_checkmate():
+        reason = chess.termination_reason(self.board)
+        if reason is not None:
             self.game_over = True
             self.game_started = False
-            self.result_text = "Checkmate"
-        elif self.board.is_stalemate():
-            self.game_over = True
-            self.game_started = False
-            self.result_text = "Stalemate"
-        elif self.board.is_insufficient_material():
-            self.game_over = True
-            self.game_started = False
-            self.result_text = "Draw - insufficient material"
+            self.awaiting_clock_press = False
+            self.awaiting_clock_color = None
+            self.result_text = reason
         if self.game_over and not was_over:
             self.play_game_sound(self.sound_game_end)
 
@@ -308,6 +305,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.last_engine_search = None
         self.move_animation = None
         self.board.pop()
+        self._declared_result = None
         if self.clock_history:
             self.white_time, self.black_time, self.active_clock_color = self.clock_history.pop()
         self.active_clock_color = self.board.turn
@@ -320,7 +318,10 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.last_clock_tick = time.perf_counter()
         self.refresh_move_list()
 
+        self.update_game_end()
+
     def reset_board(self):
+        self._declared_result = None
         self._review_live = self._pgn_document = None
         self.board.reset()
         self.clock_history.clear()
@@ -355,6 +356,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             self.engine_side_var.set("None")
 
         self.board = starting_board
+        self._declared_result = None
         self.clock_history.clear()
         self.white_time = time_control.initial_seconds
         self.black_time = time_control.initial_seconds
@@ -380,19 +382,52 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.play_game_sound(self.sound_game_start)
         self.refresh_move_list()
         self.persist()
+        self.update_game_end()
         self.maybe_request_engine_move()
 
     def resign(self, color=None):
         if self.game_started and not self.game_over:
-            loser = "White" if (self.board.turn if color is None else color) == chess.WHITE else "Black"
+            color = self.board.turn if color is None else color
+            loser = "White" if color == chess.WHITE else "Black"
             self.game_started = False
             self.game_over = True
-            self.result_text = f"{loser} resigned"
+            if self.board.has_insufficient_material(not color):
+                self.result_text = 'Draw - resignation with insufficient material'
+                self._declared_result = '1/2-1/2'
+            else:
+                self.result_text = f"{loser} resigned"
+                self._declared_result = '0-1' if loser == 'White' else '1-0'
             self.play_game_sound(self.sound_game_end)
 
     def offer_draw(self):
         if self.game_started and not self.game_over:
             self.result_text = "Draw offered"
+
+    def claim_draw(self, intended_move=None):
+        if self.game_over or self._review_live is not None:
+            return False
+        if (self.game_started and self.engine_side == self.board.turn
+                and self.engine_manager.engine is not None):
+            self.result_text = "Only the player to move can claim a draw"
+            return False
+        if isinstance(intended_move, str):
+            try:
+                intended_move = chess.Move.from_uci(intended_move.strip())
+            except ValueError:
+                self.result_text = "Enter a move such as e2e4 or a7a8q"
+                return False
+        reason = chess.draw_claim_reason(self.board, intended_move)
+        if reason is None:
+            self.result_text = "No valid draw claim for this position or intended move"
+            return False
+        self.game_started = False
+        self.game_over = True
+        self.awaiting_clock_press = False
+        self.awaiting_clock_color = None
+        self.result_text = reason
+        self._declared_result = '1/2-1/2'
+        self.play_game_sound(self.sound_game_end)
+        return True
 
     def pick_book_move(self):
         if self.cfg.get("engine_difficulty", "custom") != "custom":

@@ -104,14 +104,20 @@ class ClockControls:
             if self.white_time <= 0:
                 self.game_started = False
                 self.game_over = True
-                self.result_text = "Black wins on time"
+                self.result_text = ("Draw - timeout with insufficient material"
+                                    if self.board.has_insufficient_material(chess.BLACK)
+                                    else "Black wins on time")
+                self._declared_result = '1/2-1/2' if self.result_text.startswith('Draw') else '0-1'
                 self.play_game_sound(self.sound_game_end)
         else:
             self.black_time = max(0, self.black_time - e)
             if self.black_time <= 0:
                 self.game_started = False
                 self.game_over = True
-                self.result_text = "White wins on time"
+                self.result_text = ("Draw - timeout with insufficient material"
+                                    if self.board.has_insufficient_material(chess.WHITE)
+                                    else "White wins on time")
+                self._declared_result = '1/2-1/2' if self.result_text.startswith('Draw') else '1-0'
                 self.play_game_sound(self.sound_game_end)
 
     @staticmethod

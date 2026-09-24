@@ -11,7 +11,7 @@ import colorsys
 from tkinter import filedialog
 import glfw
 import math
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog
 import tkinter as tk
 from tkinter import ttk
 from otb_chess.services.settings import BOOK_DIR, ENGINE_DIR, TIME_CONTROLS
@@ -20,6 +20,13 @@ from otb_chess.graphics.board_colors import BOARD_COLOR_THEMES
 
 class LegacyUI:
     """Optional Tk host methods; the normal application uses desktop_ui."""
+
+    def prompt_draw_claim(self):
+        move = simpledialog.askstring(
+            "Claim draw", "Leave blank to claim the current position, or enter your intended move\n"
+            "(for example e2e4 or a7a8q). The move will not be played.", parent=self.ui)
+        if move is not None:
+            self.claim_draw(move.strip() or None)
 
     def choose_promotion(self, color, square):
         dialog = tk.Toplevel(self.ui)
@@ -380,6 +387,9 @@ class LegacyUI:
             side="left", expand=True, fill="x", padx=2
         )
         ttk.Button(game, text="Takeback", command=self.takeback).pack(
+            fill="x", padx=6, pady=3
+        )
+        ttk.Button(game, text="Claim draw", command=self.prompt_draw_claim).pack(
             fill="x", padx=6, pady=3
         )
         row2 = ttk.Frame(game)

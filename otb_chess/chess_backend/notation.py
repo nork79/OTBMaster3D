@@ -35,7 +35,7 @@ def read_pgn(text):
     return documents
 
 
-def export_pgn(history: History, original: Document | None = None):
+def export_pgn(history: History, original: Document | None = None, result=None):
     if (original is not None and original.history.root_fen == history.root_fen
             and original.history.moves == history.moves):
         # Retain the entire imported annotation/variation tree, not just mainline.
@@ -53,6 +53,8 @@ def export_pgn(history: History, original: Document | None = None):
             for key, value in original.headers.items():
                 if key not in ('FEN', 'SetUp', 'Result'):
                     game.headers[key] = value
+    if result is not None:
+        game.headers['Result'] = result
     return _serialize(game)
 
 

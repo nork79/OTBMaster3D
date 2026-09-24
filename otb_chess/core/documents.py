@@ -20,6 +20,7 @@ def read_fen(text):
 class GameDocuments:
     _review_live = None
     _pgn_document = None
+    _declared_result = None
 
     def history_board(self):
         return self._review_live if self._review_live is not None else self.board
@@ -53,6 +54,9 @@ class GameDocuments:
         board = chess.restore_history(board) if isinstance(board, History) else board.copy()
         self._review_live = None
         self._pgn_document = document
+        self._declared_result = (document.headers.get('Result') if document is not None else None)
+        if self._declared_result not in ('1-0', '0-1', '1/2-1/2'):
+            self._declared_result = None
         self.board = board
         self.game_started = self.game_over = False
         self.clock_paused = True
@@ -64,7 +68,18 @@ class GameDocuments:
         self.last_engine_search = None
         self.selected = self.drag_piece = self.drag_world = None
         self.result_text = "Loaded game/position — clocks stopped"
+        reason = chess.termination_reason(self.board)
+        if reason is not None:
+            self.game_over = True
+            self.result_text = reason
+        elif self._declared_result is not None:
+            self.game_over = True
+            self.result_text = 'Imported result - ' + self._declared_result
         self.refresh_move_list()
 
     def export_pgn(self):
-        return notation.export_pgn(chess.snapshot_history(self.history_board()), self._pgn_document)
+        board = self.history_board()
+        result = self._declared_result if self.game_over else None
+        if self.game_over and chess.termination_reason(board) is not None:
+            result = board.result()
+        return notation.export_pgn(chess.snapshot_history(board), self._pgn_document, result)

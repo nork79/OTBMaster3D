@@ -6,6 +6,7 @@ import time
 
 from otb_chess.services import settings
 from otb_chess.core.documents import read_pgn
+from otb_chess.chess_backend import rules
 
 
 FIELDS = ('white_time','black_time','increment','active_clock_color',
@@ -96,6 +97,15 @@ class SessionStore:
             game.load_document(board,document)
             for key in FIELDS:
                 setattr(game,key,data['state'][key])
+            reason = rules.termination_reason(game.board)
+            if reason is None and game._declared_result is not None:
+                reason = game.result_text if game.game_over else 'Imported result - ' + game._declared_result
+            if reason is not None:
+                game.game_over = True
+                game.game_started = False
+                game.awaiting_clock_press = False
+                game.awaiting_clock_color = None
+                game.result_text = reason
             game.clock_paused = True
             game.last_clock_tick = time.perf_counter()
             game.clock_mode_var.set(game.clock_mode)

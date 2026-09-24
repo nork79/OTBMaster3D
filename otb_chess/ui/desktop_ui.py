@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QPushButton, QToolButton, QSplitter, QTableWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView, QDialog, QFormLayout, QComboBox,
     QDoubleSpinBox, QSpinBox, QAbstractSpinBox, QDialogButtonBox, QFileDialog, QColorDialog,
-    QMessageBox, QPlainTextEdit, QSlider, QSizePolicy,
+    QMessageBox, QPlainTextEdit, QSlider, QSizePolicy, QInputDialog,
 )
 
 from otb_chess.core.game import Chess3D
@@ -611,6 +611,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.action(game,"Return to latest move",g.return_to_live)
         self.action(game,"Resign…",self.resign)
         self.action(game,"Offer draw",g.offer_draw)
+        self.action(game,"Claim draw",self.prompt_draw_claim)
         self.action(game,"Reset board…",self.reset_board)
         self.action(game,"Reset clock…",self.reset_clock)
         game.addSeparator()
@@ -984,6 +985,13 @@ class MainWindow(DocumentActions, QMainWindow):
         elif action == "draw":
             g.offer_draw()
         self.refresh_game_actions()
+
+    def prompt_draw_claim(self):
+        move, accepted = QInputDialog.getText(
+            self, "Claim draw", "Leave blank to claim the current position, or enter your intended move\n"
+            "(for example e2e4 or a7a8q). The move will not be played.")
+        if accepted:
+            self.game.claim_draw(move.strip() or None)
 
     def resign(self):
         if self.game.game_started and self.confirm("Resign","Resign the current game?"):
