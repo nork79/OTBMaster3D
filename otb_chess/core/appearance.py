@@ -150,6 +150,8 @@ class AppearanceSettings:
                 "board_mode": self.board_mode,
                 "board_type": self.board_type,
                 "two_d_flipped": self.two_d_flipped,
+                "three_d_facing": self._three_d_facing,
+                "engine_enabled": self.engine_enabled,
                 "two_d_scale": self.two_d_scale,
                 "two_d_pan_x": self.two_d_pan_x,
                 "two_d_pan_z": self.two_d_pan_z,

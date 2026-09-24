@@ -82,6 +82,117 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual(len(g.board_surface_renderer.textures),3)
         self.assertFalse(g.board_surface_renderer.failed)
 
+    def test_engine_off_cancels_pending_moves_and_allows_legal_free_play(self):
+        g, w = self.game, self.window
+        g.start_game()
+        g.engine_manager.engine = Mock()
+        g.engine_side = chess.BLACK
+        g.clock_mode = 'OTB'
+        g.awaiting_clock_press = True
+        before = (g.board.fen(), tuple(g.board.move_stack), g.white_time, g.black_time)
+        with patch.object(g.engine_manager, 'request_move') as request, patch.object(g, 'pick_book_move') as book:
+            QTest.mouseClick(w.engine_enabled_button, Qt.MouseButton.LeftButton)
+            self.assertFalse(g.engine_enabled)
+            self.assertEqual((g.board.fen(), tuple(g.board.move_stack), g.white_time, g.black_time), before)
+            g.engine_manager.engine.stop_search.assert_called_once()
+            g.pending_engine_move = OwnedMove(chess.E2, chess.E4)
+            g.pending_engine_position = g.board.fen()
+            g.apply_pending_engine_move()
+            self.assertEqual(g.board.fen(), before[0])
+            self.assertFalse(g.try_move(chess.E2, chess.E5))
+            self.assertTrue(g.try_move(chess.E2, chess.E4))
+            self.assertTrue(g.try_move(chess.E7, chess.E5))
+            self.assertFalse(g.awaiting_clock_press)
+            g.maybe_request_engine_move()
+            g.request_analysis()
+            request.assert_not_called()
+            book.assert_not_called()
+            self.assertFalse(g.try_move(chess.G1, chess.F3, is_engine=True))
+            position = (g.board.fen(), tuple(g.board.move_stack))
+            g.set_engine_enabled(True)
+            self.assertEqual((g.board.fen(), tuple(g.board.move_stack)), position)
+            g.game_over = True
+            g.result_text = 'Checkmate'
+            g.set_engine_enabled(False)
+            self.assertTrue(g.game_over)
+            self.assertEqual(g.result_text, 'Checkmate')
+
+    def test_free_play_before_start_and_engine_reenable_during_game(self):
+        g = self.game
+        g.set_engine_enabled(False)
+        self.assertTrue(g.try_move(chess.E2, chess.E4))
+        self.assertTrue(g.try_move(chess.E7, chess.E5))
+        g.game_started = True
+        g.engine_manager.engine = Mock()
+        g.engine_side = g.board.turn
+        g.engine_manager.thinking = True
+        before = (g.board.fen(), tuple(g.board.move_stack))
+        with patch.object(g.engine_manager, 'request_move') as request, patch.object(g, 'pick_book_move', return_value=None):
+            g.set_engine_enabled(True)
+            request.reset_mock()
+            g.engine_manager.thinking = False
+            self.window.tick()
+            request.assert_called_once()
+        self.assertEqual((g.board.fen(), tuple(g.board.move_stack)), before)
+
+    def test_engine_disabled_setting_survives_reopen(self):
+        self.game.set_engine_enabled(False)
+        self.window.close()
+        self.window = MainWindow()
+        self.window.timer.stop()
+        self.assertFalse(self.window.game.engine_enabled)
+        self.assertFalse(self.window.engine_enabled_button.isChecked())
+        with patch.object(self.window.game.engine_manager, 'request_move') as request:
+            self.window.game.start_game()
+            self.window.game.maybe_request_engine_move()
+            request.assert_not_called()
+
+    def test_flip_persists_in_both_modes_and_setup_shortcut_preserves_position(self):
+        for mode in ('2D', '3D'):
+            g = self.window.game
+            self.window.set_mode(mode)
+            g.set_board_facing('white')
+            g.flip_board()
+            expected_yaw = g.yaw
+            self.window.close()
+            self.window = MainWindow()
+            self.window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, True)
+            self.window.show()
+            self.qt.processEvents()
+            self.window.timer.stop()
+            g = self.window.game
+            self.assertEqual(g.board_facing, 'black')
+            self.assertEqual(g.yaw, expected_yaw)
+            before = g.board.fen(en_passant='fen')
+            observed = []
+            def inspect():
+                dialog = self.qt.activeModalWidget()
+                observed.append(dialog.flipped)
+                original = dialog.board.fen(en_passant='fen')
+                dialog.activateWindow()
+                dialog.fen.setFocus()
+                self.qt.processEvents()
+                QTest.keyClick(dialog.fen, Qt.Key.Key_F, Qt.KeyboardModifier.ControlModifier)
+                observed.append(dialog.flipped)
+                observed.append(dialog.board.fen(en_passant='fen') == original)
+                observed.append(dialog.board_grid.itemAtPosition(7, 0).widget() is dialog.squares[chess.A1])
+                QTest.mouseClick(dialog.flip_button, Qt.MouseButton.LeftButton)
+                observed.append(dialog.flipped)
+                dialog.reject()
+            QTimer.singleShot(0, inspect)
+            self.window.setup_position()
+            self.assertEqual(observed, [True, False, True, True, True])
+            self.assertEqual(g.board.fen(en_passant='fen'), before)
+            self.assertEqual(g.board_facing, 'black')
+
+    def test_white_clock_stays_above_black_after_flips(self):
+        for mode in ('2D', '3D'):
+            self.window.set_mode(mode)
+            for _ in range(2):
+                self.game.flip_board()
+                self.qt.processEvents()
+                self.assertLess(self.window.white_clock.y(), self.window.black_clock.y())
+
     def test_open_source_licences_dialog_and_notice_files(self):
         from otb_chess.services.settings import APP_DIR
         from PySide6.QtWidgets import QPlainTextEdit

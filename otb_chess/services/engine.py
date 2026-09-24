@@ -153,7 +153,7 @@ class EngineManager:
             return False, message
 
     def request_move(self):
-        if not self.engine or self.thinking:
+        if not getattr(self.app, "engine_enabled", True) or not self.engine or self.thinking:
             return
         self.thinking = True
         generation = self.search_generation
@@ -162,7 +162,7 @@ class EngineManager:
         def worker():
             try:
                 with self.lock:
-                    if not self.engine:
+                    if not self.engine or not getattr(self.app, "engine_enabled", True) or generation != self.search_generation:
                         return
                     self.engine.configure_strength(self.app.cfg.get("engine_elo"))
                     result = self.engine.play(position, style=self.app.cfg.get("engine_style", "Balanced"))

@@ -176,7 +176,7 @@ class DesktopGame(Chess3D):
 
     def request_analysis(self):
         manager = self.engine_manager
-        if (self.closed or not self.analysis_enabled or self.engine_loading or self.analysis_busy
+        if (self.closed or not self.engine_enabled or not self.analysis_enabled or self.engine_loading or self.analysis_busy
                 or manager.thinking or not manager.engine or self.owner.new_game_pending
                 or self.owner.pending_difficulty is not None):
             return
@@ -191,7 +191,7 @@ class DesktopGame(Chess3D):
         def worker():
             try:
                 with manager.lock:
-                    if manager.engine and not self.closed:
+                    if manager.engine and self.engine_enabled and not self.closed:
                         info = manager.engine.analyse(board)
                         self.engine_output = (board.final_fen, info, None)
             except Exception as exc:
@@ -466,8 +466,15 @@ class MainWindow(DocumentActions, QMainWindow):
         layout.addWidget(label)
         self.black_clock = ClockCard("Black",chess.BLACK,self)
         self.white_clock = ClockCard("White",chess.WHITE,self)
-        layout.addWidget(self.black_clock)
         layout.addWidget(self.white_clock)
+        layout.addWidget(self.black_clock)
+        self.engine_enabled_button = QPushButton()
+        self.engine_enabled_button.setObjectName("engineEnabled")
+        self.engine_enabled_button.setCheckable(True)
+        self.engine_enabled_button.setChecked(self.game.engine_enabled)
+        self.engine_enabled_button.toggled.connect(self.game.set_engine_enabled)
+        self.engine_enabled_button.setText("Engine on" if self.game.engine_enabled else "Engine off - free play")
+        layout.addWidget(self.engine_enabled_button)
         self.game_actions_row = QWidget()
         actions = QHBoxLayout(self.game_actions_row)
         actions.setContentsMargins(0, 0, 0, 0)
@@ -885,7 +892,8 @@ class MainWindow(DocumentActions, QMainWindow):
             g.result_text = "Wait for the engine operation to finish before setting up a position."
             return
         from otb_chess.ui.position_setup import PositionSetup
-        dialog = PositionSetup(self,g.board.fen(en_passant='fen'))
+        dialog = PositionSetup(self,g.board.fen(en_passant='fen'), flipped=g.board_facing == 'black')
+        dialog.orientation_changed.connect(lambda flipped: g.set_board_facing('black' if flipped else 'white'))
         timer_running = self.timer.isActive()
         self.timer.stop()
         try:
@@ -946,7 +954,7 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def human_player_color(self):
         g = self.game
-        engine_side = g.engine_side if g.engine_manager.engine is not None else None
+        engine_side = g.engine_side if g.engine_enabled and g.engine_manager.engine is not None else None
         return not engine_side if engine_side is not None else g.board.turn
 
     def refresh_game_actions(self):
@@ -966,7 +974,7 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def can_switch_sides(self):
         g = self.game
-        return (g.engine_side is not None and g.engine_manager.engine is not None
+        return (g.engine_enabled and g.engine_side is not None and g.engine_manager.engine is not None
                 and not g.game_over and not g.engine_loading
                 and not getattr(self, "new_game_pending", False)
                 and getattr(self, "bookmark_pending", None) is None)
@@ -1507,6 +1515,14 @@ class MainWindow(DocumentActions, QMainWindow):
             return
         g = self.game
         g.update_clock()
+        self.engine_enabled_button.blockSignals(True)
+        self.engine_enabled_button.setChecked(g.engine_enabled)
+        self.engine_enabled_button.setText("Engine on" if g.engine_enabled else "Engine off - free play")
+        self.engine_enabled_button.blockSignals(False)
+        if (getattr(g, '_engine_resume_pending', False) and not g.engine_manager.thinking
+                and not self.new_game_pending and self.pending_difficulty is None):
+            g._engine_resume_pending = False
+            g.maybe_request_engine_move()
         if not self.new_game_pending and self.pending_difficulty is None:
             g.apply_pending_engine_move()
         self.session.save(g)
@@ -1543,7 +1559,7 @@ class MainWindow(DocumentActions, QMainWindow):
         engine_label = (("Maia · " if preset.engine == "maia" else "Stockfish · ")+preset.label
                         if preset else Path(g.engine_manager.path).name)
         self.engine_name.setText(engine_label if g.engine_manager.engine else "No engine loaded · Engine → Difficulty")
-        self.analysis_button.setEnabled(g.engine_manager.engine is not None and not g.engine_loading)
+        self.analysis_button.setEnabled(g.engine_enabled and g.engine_manager.engine is not None and not g.engine_loading)
         fen = g.board.fen()
         if fen != self.last_fen:
             self.refresh_moves()
@@ -1564,6 +1580,8 @@ class MainWindow(DocumentActions, QMainWindow):
                     self.engine_metrics.setText(error)
                 else:
                     self.show_engine_info(source,info)
+        if not g.engine_enabled:
+            self.engine_metrics.setText("Engine off - analysis paused")
         self.board_widget.update()
 
     def closeEvent(self, event):

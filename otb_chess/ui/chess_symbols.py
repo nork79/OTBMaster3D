@@ -30,7 +30,7 @@ def flag_icon(background=None):
 
 def clock_engine_label(game, color):
     manager = game.engine_manager
-    if manager.engine is None or game.engine_side_var.get() != ("White" if color else "Black"):
+    if not getattr(game, "engine_enabled", True) or manager.engine is None or game.engine_side_var.get() != ("White" if color else "Black"):
         return ""
     config = manager.loaded_configuration or {}
     family = config.get("engine_id", "")

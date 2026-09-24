@@ -32,6 +32,8 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
     integrations compatible without forwarding or duplicating mutable values.
     """
 
+    engine_enabled = True
+
     def __init__(self, render_widget=None):
         ensure_dirs()
         self.cfg = load_config()
@@ -104,17 +106,13 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         if self.sound_profile not in SOUND_PROFILES:
             self.sound_profile = DEFAULT_SOUND_PROFILE
         self.yaw = float(self.cfg.get("camera_yaw", 0.0))
-        self._three_d_facing = "white"
+        self._three_d_facing = self.cfg.get("three_d_facing")
+        if self._three_d_facing not in ("white", "black"):
+            self._three_d_facing = "black" if math.cos(self.yaw) < 0 else "white"
         self.pitch = float(self.cfg.get("camera_pitch", math.radians(40)))
         self.distance = float(self.cfg.get("camera_distance", 12.4))
         self.pan_x = float(self.cfg.get("camera_pan_x", 0.0))
         self.pan_z = float(self.cfg.get("camera_pan_z", 0.0))
-        if math.cos(self.yaw) < 0:
-            # Always open from White's side, while keeping a panned board in the
-            # same apparent screen position.
-            self.yaw = (self.yaw + math.pi) % math.tau
-            self.pan_x = -self.pan_x
-            self.pan_z = -self.pan_z
         self.target_y = 0.25
         self.selected = self.drag_piece = self.drag_world = self.left_down_pos = None
         self.was_drag = False
@@ -143,6 +141,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.game_started = False
         self.game_over = False
         self.result_text = "Ready"
+        self.engine_enabled = bool(self.cfg.get("engine_enabled", True))
         self.engine_side = {
             "None": None,
             "White": chess.WHITE,
@@ -176,15 +175,17 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         if self._review_live is not None:
             return False
         engine_has_turn = (
-            self.game_started
+            self.engine_enabled and self.game_started
             and self.engine_manager.engine is not None
             and self.engine_side == self.board.turn
         )
         return (
-            not self.game_over and not self.awaiting_clock_press and not engine_has_turn
+            not self.game_over and not (self.engine_enabled and self.awaiting_clock_press) and not engine_has_turn
         )
 
     def try_move(self, fr, to, is_engine=False, promotion=None):
+        if is_engine and not self.engine_enabled:
+            return False
         if self.game_over:
             return False
         if fr is None or to is None or fr == to:
@@ -231,7 +232,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         if self.game_started:
             if len(self.board.move_stack) == 1:
                 self.last_clock_tick = time.perf_counter()
-            if self.clock_mode == "OTB" and not is_engine:
+            if self.clock_mode == "OTB" and not is_engine and self.engine_enabled:
                 self.awaiting_clock_press = True
                 self.awaiting_clock_color = mover
                 self.active_clock_color = mover
@@ -274,7 +275,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             play_sound(path)
 
     def switch_sides(self):
-        if self.engine_side is None or self.engine_manager.engine is None or self.game_over:
+        if not self.engine_enabled or self.engine_side is None or self.engine_manager.engine is None or self.game_over:
             return
         self.return_to_live()
         self.update_clock()
@@ -406,7 +407,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
     def claim_draw(self, intended_move=None):
         if self.game_over or self._review_live is not None:
             return False
-        if (self.game_started and self.engine_side == self.board.turn
+        if (self.engine_enabled and self.game_started and self.engine_side == self.board.turn
                 and self.engine_manager.engine is not None):
             self.result_text = "Only the player to move can claim a draw"
             return False
@@ -446,7 +447,32 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         except Exception:
             return None
 
+    def set_engine_enabled(self, enabled):
+        enabled = bool(enabled)
+        if enabled == self.engine_enabled:
+            return
+        self.engine_enabled = enabled
+        self._engine_resume_pending = enabled and self.engine_manager.thinking
+        self.cfg["engine_enabled"] = enabled
+        self.engine_manager.search_generation += 1
+        self.pending_engine_move = self.pending_engine_position = self.pending_engine_error = None
+        if not enabled:
+            self.engine_manager.stop_search()
+            self.awaiting_clock_press = False
+            self.awaiting_clock_color = None
+            self.active_clock_color = self.board.turn
+        elif self.engine_side is None:
+            self.engine_side = self.engine_side_var.get() == "White"
+            self.engine_side_var.set("White" if self.engine_side else "Black")
+        if not self.game_over and self._review_live is None:
+            self.result_text = "Engine on" if enabled else "Engine off - free play"
+        self.persist()
+        if enabled:
+            self.maybe_request_engine_move()
+
     def maybe_request_engine_move(self):
+        if not self.engine_enabled:
+            return
         if self.clock_paused or self._review_live is not None or self.pending_engine_move is not None:
             return
         if not (
@@ -465,6 +491,9 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             self.engine_manager.request_move()
 
     def apply_pending_engine_move(self):
+        if not self.engine_enabled:
+            self.pending_engine_move = self.pending_engine_position = self.pending_engine_error = None
+            return
         if self.clock_paused or self._review_live is not None:
             return
         if self.pending_engine_error:

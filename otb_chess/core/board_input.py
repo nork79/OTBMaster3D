@@ -266,4 +266,5 @@ class BoardInput:
         self.pan_x = -self.pan_x
         self.pan_z = -self.pan_z
         self.mark_camera_dirty()
+        self.persist()
 

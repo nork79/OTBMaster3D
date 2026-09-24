@@ -1,6 +1,6 @@
 """Position editor with live FEN import/export and explicit chess state."""
 from PySide6.QtCore import Qt, QSize, Signal
-from PySide6.QtGui import QIcon, QCursor
+from PySide6.QtGui import QIcon, QCursor, QShortcut, QKeySequence
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QToolButton, QButtonGroup, QLineEdit, QComboBox,
     QCheckBox, QFormLayout, QDialogButtonBox, QApplication)
@@ -30,11 +30,14 @@ class SetupSquare(QToolButton):
 
 
 class PositionSetup(QDialog):
-    def __init__(self, parent, fen):
+    orientation_changed = Signal(bool)
+
+    def __init__(self, parent, fen, flipped=False):
         super().__init__(parent)
         self.setWindowTitle('Setup Position')
         self.setObjectName('positionSetup')
         self.board = chess.Board(fen)
+        self.flipped = flipped
         self.selected_piece = 'P'
         self.picked_square = None
         self.piece_icons = {symbol: QIcon(str(APP_DIR/'assets'/'pieces_2d'/'textbook'/
@@ -50,8 +53,17 @@ class PositionSetup(QDialog):
             button.clicked.connect(callback)
             top.addWidget(button)
         layout.addLayout(top)
+        self.flip_button = QPushButton('Flip board (Ctrl+F)')
+        self.flip_button.clicked.connect(self.flip_board)
+        top.addWidget(self.flip_button)
+        self.flip_shortcut = QShortcut(QKeySequence('Ctrl+F'), self)
+        self.flip_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.flip_shortcut.activated.connect(self.flip_board)
         body = QHBoxLayout()
         grid = QGridLayout()
+        self.board_grid = grid
+        self.rank_labels = []
+        self.file_labels = []
         grid.setSpacing(0)
         self.squares = {}
         for row in range(8):
@@ -70,10 +82,13 @@ class PositionSetup(QDialog):
                 button.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
                 grid.addWidget(button,row,file)
                 self.squares[square] = button
-            grid.addWidget(QLabel(str(8-row)),row,8)
+            label = QLabel(str(8-row))
+            self.rank_labels.append(label)
+            grid.addWidget(label,row,8)
         for file in range(8):
             label = QLabel(chr(97+file))
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.file_labels.append(label)
             grid.addWidget(label,8,file)
         body.addLayout(grid)
         palette = QVBoxLayout()
@@ -127,11 +142,29 @@ class PositionSetup(QDialog):
         self.buttons.rejected.connect(self.reject)
         layout.addWidget(self.buttons)
         self.refresh()
+        self.layout_board()
 
     def replace_board(self, board):
         self.picked_square = None
         self.board = board
         self.refresh()
+
+    def layout_board(self):
+        # Relocate square widgets; their square identity and input bindings stay fixed.
+        for button in self.squares.values():
+            self.board_grid.removeWidget(button)
+        for square, button in self.squares.items():
+            file, rank = chess.square_file(square), chess.square_rank(square)
+            self.board_grid.addWidget(button, rank if self.flipped else 7-rank,
+                                      7-file if self.flipped else file)
+        for index in range(8):
+            self.rank_labels[index].setText(str(index+1 if self.flipped else 8-index))
+            self.file_labels[index].setText(chr(104-index if self.flipped else 97+index))
+
+    def flip_board(self):
+        self.flipped = not self.flipped
+        self.layout_board()
+        self.orientation_changed.emit(self.flipped)
 
     def select_piece(self, symbol):
         self.picked_square = None
