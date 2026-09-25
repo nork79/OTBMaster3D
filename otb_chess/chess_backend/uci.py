@@ -116,6 +116,14 @@ class Engine:
     def quit(self):
         self._transport.quit()
 
+    def analyse_variations(self, history, *, seconds=1.0, depth=20, multipv=3, threads=1, hash_mb=64):
+        options = {"UCI_LimitStrength": False, "Skill Level": 20,
+                   "Threads": threads, "Hash": hash_mb}
+        info = self._transport.analyse(
+            _board(history), _engine.Limit(time=seconds, depth=depth or None),
+            multipv=multipv, options=options)
+        return tuple(_evaluation(history.final_fen, item) for item in info)
+
 
 class MaiaEngine(Engine):
     """Maia networks require policy-only (one-node) play rather than search."""

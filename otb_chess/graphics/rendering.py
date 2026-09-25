@@ -106,11 +106,12 @@ class BoardRendering:
         glEnable(GL_LIGHTING)
 
     def draw_board(self):
+        board = getattr(self, 'display_board', self.board)
         flat = self.board_mode == "2D"
         yaw = self.view_yaw()
         last_squares = set()
-        if self.board.move_stack and self.move_animation is None:
-            move = self.board.move_stack[-1]
+        if board.move_stack and self.move_animation is None:
+            move = board.move_stack[-1]
             last_squares = {move.from_square, move.to_square}
         if self.board_type != "classic":
             self.board_surface_renderer.frame(self.board_type,self.frame_color,flat)
@@ -139,7 +140,7 @@ class BoardRendering:
 
         if self.show_move_indicator:
             indicator_x = 4.17 if math.cos(yaw) >= 0 else -4.17
-            indicator_z = -4.17 if self.board.turn == chess.WHITE else 4.17
+            indicator_z = -4.17 if board.turn == chess.WHITE else 4.17
             draw_disc(indicator_x, 0.04, indicator_z, 0.055, TURN_INDICATOR)
 
         if self.show_coordinates:
@@ -155,6 +156,8 @@ class BoardRendering:
                 draw_glyph(ch, rank_label_x, 0.035, r - 3.5, yaw, 0.18)
 
     def animated_piece_positions(self):
+        if getattr(self, 'preview_board', None) is not None:
+            return {}
         animation = self.move_animation
         if animation is None:
             return {}
@@ -169,6 +172,11 @@ class BoardRendering:
                      chess.square_rank(src)*(1-progress)+chess.square_rank(dst)*progress-3.5)
                 for dst,src in origins.items()}
 
+    @property
+    def display_board(self):
+        preview = getattr(self, 'preview_board', None)
+        return preview if preview is not None else self.board
+
     def draw(self):
         self.draw_background()
         self.camera()
@@ -177,11 +185,12 @@ class BoardRendering:
         glTranslatef(pan_x, 0, pan_z)
         positions = self.animated_piece_positions()
         self.draw_board()
-        checked_king = self.board.king(self.board.turn) if self.board.is_check() else None
+        board = getattr(self, 'display_board', self.board)
+        checked_king = board.king(board.turn) if board.is_check() else None
         if checked_king is not None:
             x, z = positions.get(checked_king, (3.5-chess.square_file(checked_king), chess.square_rank(checked_king)-3.5))
             draw_check_halo(x, z)
-        for sq, p in self.board.piece_map().items():
+        for sq, p in board.piece_map().items():
             if self.drag_piece == sq and self.was_drag and self.drag_world:
                 continue
             x,z = positions.get(sq,(3.5-chess.square_file(sq),chess.square_rank(sq)-3.5))

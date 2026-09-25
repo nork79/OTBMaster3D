@@ -98,9 +98,10 @@ class ClockFeedbackTests(unittest.TestCase):
         w.refresh_game_actions()
         self.assertEqual(w.game_status.text(), 'Playing')
 
-    def test_timeout_flag_is_transparent_and_blue_on_black(self):
+    def test_timeout_flag_is_white_except_on_white_backgrounds(self):
         from PySide6.QtGui import QColor
-        for background, expected in (("#252e3a", "#000000"), ("#000000", "#409cff")):
+        for background, expected in (("#252e3a", "#ffffff"), ("#000000", "#ffffff"),
+                                     ("#ffffff", "#000000"), ("#f7fbfd", "#000000")):
             image = chess_symbols.flag_icon(QColor(background)).pixmap(64, 64).toImage()
             self.assertEqual(image.pixelColor(5, 5).alpha(), 0)
             self.assertEqual(image.pixelColor(30, 20).name(), expected)
@@ -109,7 +110,7 @@ class ClockFeedbackTests(unittest.TestCase):
         self.window.black_clock.refresh(self.game)
         image = self.window.black_clock.fallen_flag.pixmap().toImage()
         color = image.pixelColor(13, 9)
-        self.assertGreater(color.blue(), color.red())
+        self.assertEqual(color.name(), '#ffffff')
 
     def test_switch_sides_pauses_and_discards_old_search(self):
         g = self.game

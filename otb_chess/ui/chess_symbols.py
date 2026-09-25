@@ -18,7 +18,7 @@ def flag_icon(background=None):
     pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    color = QColor("#409cff") if background is not None and QColor(background).lightness() < 16 else QColor("black")
+    color = QColor("black") if background is not None and QColor(background).lightness() >= 240 else QColor("white")
     painter.setPen(QPen(color, 4))
     painter.drawLine(19, 12, 19, 53)
     painter.setBrush(color)

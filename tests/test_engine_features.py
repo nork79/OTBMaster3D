@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import chess
 import chess.polyglot
@@ -13,6 +13,22 @@ from otb_chess.services import settings
 
 
 class EngineFeatureTests(unittest.TestCase):
+    def test_analysis_options_and_full_strength_are_sent_to_transport(self):
+        transport = Mock()
+        transport.analyse.return_value = [
+            {'depth': 12, 'pv': [chess.Move.from_uci('e2e4')]},
+            {'depth': 12, 'pv': [chess.Move.from_uci('d2d4')]}]
+        history = rules.snapshot_history(rules.Board())
+        results = uci.Engine(transport).analyse_variations(
+            history, seconds=2, depth=12, multipv=2, threads=2, hash_mb=128)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[1].pv[0].from_square, chess.D2)
+        args, kwargs = transport.analyse.call_args
+        self.assertEqual((args[1].time, args[1].depth), (2, 12))
+        self.assertEqual(kwargs['multipv'], 2)
+        self.assertEqual(kwargs['options'], {'UCI_LimitStrength': False,
+                         'Skill Level': 20, 'Threads': 2, 'Hash': 128})
+
     def test_defaults_migrate_once_and_preserve_selected_engine(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

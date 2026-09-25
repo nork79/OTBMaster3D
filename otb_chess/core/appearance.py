@@ -137,7 +137,7 @@ class AppearanceSettings:
         save_config(
             {
                 **{key: self.cfg.get(key, default_config()[key]) for key in
-                   ("window_size", "bookmark_panel_geometry", "sidebar_width", "sidebar_visible", "focus_mode", "engine_panel_open", "analysis_enabled", "always_show_static_evaluation", "interface_theme", "engine_elo", "engine_rating", "engine_style", "engine_defaults_applied", "engine_difficulty")},
+                   ("window_size", "bookmark_panel_geometry", "sidebar_width", "sidebar_visible", "focus_mode", "engine_panel_open", "analysis_enabled", "analysis_options", "always_show_static_evaluation", "interface_theme", "engine_elo", "engine_rating", "engine_style", "engine_defaults_applied", "engine_difficulty")},
                 "light_square": list(self.light_square),
                 "dark_square": list(self.dark_square),
                 "frame_color": list(self.frame_color),
@@ -152,6 +152,7 @@ class AppearanceSettings:
                 "two_d_flipped": self.two_d_flipped,
                 "three_d_facing": self._three_d_facing,
                 "engine_enabled": self.engine_enabled,
+                "engine_analysis_geometry": self.cfg.get("engine_analysis_geometry"),
                 "two_d_scale": self.two_d_scale,
                 "two_d_pan_x": self.two_d_pan_x,
                 "two_d_pan_z": self.two_d_pan_z,
