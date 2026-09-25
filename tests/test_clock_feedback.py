@@ -54,12 +54,49 @@ class ClockFeedbackTests(unittest.TestCase):
             QTest.mouseClick(self.window.clock_actions["resign"], Qt.MouseButton.LeftButton)
             self.assertEqual(g.result_text, "White resigned")
             self.assertTrue(g.game_over)
-        self.assertEqual(len(self.window.clock_actions), 4)
+        self.assertEqual(len(self.window.clock_actions), 5)
         for button in self.window.clock_actions.values():
             self.assertIs(button.parentWidget(), self.window.game_actions_row)
             self.assertEqual(button.objectName(), "humanGameAction")
         layout = self.window.sidebar.layout()
         self.assertEqual(layout.indexOf(self.window.game_actions_row) + 1, layout.indexOf(self.window.clock_summary))
+
+    def test_claim_icon_is_next_to_offer_and_claims_without_dialog(self):
+        g, w = self.game, self.window
+        actions = w.game_actions_row.layout()
+        self.assertEqual(actions.indexOf(w.clock_actions['claim_draw']),
+                         actions.indexOf(w.clock_actions['draw']) + 1)
+        self.assertIn('Claim draw', w.clock_actions['claim_draw'].accessibleName())
+        with patch('PySide6.QtWidgets.QInputDialog.getText', side_effect=AssertionError('No text dialog')):
+            QTest.mouseClick(w.clock_actions['claim_draw'], Qt.MouseButton.LeftButton)
+            self.assertFalse(g.game_over)
+            for uci in ('g1f3', 'g8f6', 'f3g1', 'f6g8') * 2:
+                g.board.push_uci(uci)
+            before = g.board.fen(), tuple(g.board.move_stack)
+            QTest.mouseClick(w.clock_actions['claim_draw'], Qt.MouseButton.LeftButton)
+        self.assertTrue(g.game_over)
+        self.assertEqual((g.board.fen(), tuple(g.board.move_stack)), before)
+        self.assertEqual(w.game_status.text(), 'Game Drawn')
+        self.assertFalse(w.clock_actions['claim_draw'].isEnabled())
+
+    def test_clock_heading_shows_result_and_clears_for_new_game(self):
+        g, w = self.game, self.window
+        for reason, expected in (('Black resigned', 'Black Resigned'),
+                                 ('White resigned', 'White Resigned'),
+                                 ('Draw - fifty-move rule', 'Game Drawn'),
+                                 ('Checkmate', 'Checkmate'), ('Stalemate', 'Stalemate'),
+                                 ('White wins on time', 'White Wins on Time')):
+            g.game_over = True
+            g.result_text = reason
+            w.refresh_game_actions()
+            self.assertEqual(w.game_status.text(), expected)
+            self.assertEqual(w.game_status.toolTip(), reason)
+        heading = w.sidebar.layout().itemAt(0).layout()
+        self.assertEqual(heading.itemAt(0).widget().text(), 'GAME CLOCK')
+        self.assertIs(heading.itemAt(1).widget(), w.game_status)
+        g.start_game()
+        w.refresh_game_actions()
+        self.assertEqual(w.game_status.text(), 'Playing')
 
     def test_timeout_flag_is_transparent_and_blue_on_black(self):
         from PySide6.QtGui import QColor

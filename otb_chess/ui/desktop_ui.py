@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QPushButton, QToolButton, QSplitter, QTableWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView, QDialog, QFormLayout, QComboBox,
     QDoubleSpinBox, QSpinBox, QAbstractSpinBox, QDialogButtonBox, QFileDialog, QColorDialog,
-    QMessageBox, QPlainTextEdit, QSlider, QSizePolicy, QInputDialog,
+    QMessageBox, QPlainTextEdit, QSlider, QSizePolicy,
 )
 
 from otb_chess.core.game import Chess3D
@@ -463,7 +463,14 @@ class MainWindow(DocumentActions, QMainWindow):
         layout.setSpacing(10)
         label = QLabel("GAME CLOCK")
         label.setObjectName("section")
-        layout.addWidget(label)
+        clock_heading = QHBoxLayout()
+        clock_heading.addWidget(label)
+        self.game_status = QLabel()
+        self.game_status.setObjectName("gameStatus")
+        self.game_status.setWordWrap(True)
+        self.game_status.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        clock_heading.addWidget(self.game_status, 1)
+        layout.addLayout(clock_heading)
         self.black_clock = ClockCard("Black",chess.BLACK,self)
         self.white_clock = ClockCard("White",chess.WHITE,self)
         layout.addWidget(self.white_clock)
@@ -480,7 +487,7 @@ class MainWindow(DocumentActions, QMainWindow):
         actions.setContentsMargins(0, 0, 0, 0)
         actions.setSpacing(3)
         self.clock_actions = {}
-        for key, symbol in (("resign", "⚑"), ("draw", "="), ("takeback", "−"), ("switch_sides", "⇄")):
+        for key, symbol in (("resign", "⚑"), ("draw", "="), ("claim_draw", "½"), ("takeback", "−"), ("switch_sides", "⇄")):
             button = QPushButton(symbol)
             button.setObjectName("humanGameAction")
             button.setFixedSize(28, 24)
@@ -961,16 +968,36 @@ class MainWindow(DocumentActions, QMainWindow):
         g = self.game
         side = "White" if self.human_player_color() else "Black"
         for key, label in (("resign", f"Resign {side}"), ("draw", f"Offer draw as {side}"),
+                           ("claim_draw", "Claim draw in the current position"),
                            ("takeback", "Take back one move"), ("switch_sides", "Switch sides and pause")):
             button = self.clock_actions[key]
             button.setToolTip(label)
             button.setAccessibleName(label)
             button.setEnabled(self.can_switch_sides() if key == "switch_sides"
+                              else not g.game_over and g._review_live is None if key == "claim_draw"
                               else bool(g.history_board().move_stack) if key == "takeback"
                               else g.game_started and not g.game_over)
 
         if hasattr(self, "switch_sides_action"):
             self.switch_sides_action.setEnabled(self.can_switch_sides())
+        reason = g.result_text
+        if g.game_over:
+            if reason.startswith('Draw -') or g._declared_result == '1/2-1/2':
+                status = 'Game Drawn'
+            else:
+                status = reason.replace('resigned', 'Resigned').replace('wins on time', 'Wins on Time')
+        elif g._review_live is not None:
+            status = 'Reviewing'
+        elif reason == 'Draw offered':
+            status = 'Draw Offered'
+        elif g.board.is_check():
+            status = 'Check'
+        elif g.game_started:
+            status = 'Paused' if g.clock_paused else 'Playing'
+        else:
+            status = 'Ready'
+        self.game_status.setText(status)
+        self.game_status.setToolTip(reason)
 
     def can_switch_sides(self):
         g = self.game
@@ -992,14 +1019,12 @@ class MainWindow(DocumentActions, QMainWindow):
             g.resign(self.human_player_color())
         elif action == "draw":
             g.offer_draw()
+        elif action == "claim_draw":
+            g.claim_draw()
         self.refresh_game_actions()
 
     def prompt_draw_claim(self):
-        move, accepted = QInputDialog.getText(
-            self, "Claim draw", "Leave blank to claim the current position, or enter your intended move\n"
-            "(for example e2e4 or a7a8q). The move will not be played.")
-        if accepted:
-            self.game.claim_draw(move.strip() or None)
+        self.human_game_action("claim_draw")
 
     def resign(self):
         if self.game.game_started and self.confirm("Resign","Resign the current game?"):

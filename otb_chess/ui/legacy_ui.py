@@ -11,7 +11,7 @@ import colorsys
 from tkinter import filedialog
 import glfw
 import math
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox
 import tkinter as tk
 from tkinter import ttk
 from otb_chess.services.settings import BOOK_DIR, ENGINE_DIR, TIME_CONTROLS
@@ -22,11 +22,7 @@ class LegacyUI:
     """Optional Tk host methods; the normal application uses desktop_ui."""
 
     def prompt_draw_claim(self):
-        move = simpledialog.askstring(
-            "Claim draw", "Leave blank to claim the current position, or enter your intended move\n"
-            "(for example e2e4 or a7a8q). The move will not be played.", parent=self.ui)
-        if move is not None:
-            self.claim_draw(move.strip() or None)
+        self.claim_draw()
 
     def choose_promotion(self, color, square):
         dialog = tk.Toplevel(self.ui)

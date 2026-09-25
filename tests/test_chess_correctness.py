@@ -338,13 +338,7 @@ class RestorationTests(unittest.TestCase):
         self.assertFalse(game.game_started)
         self.assertIn('fivefold repetition', game.result_text)
 
-    def test_desktop_claim_action_passes_move_and_honors_cancel(self):
+    def test_desktop_claim_action_is_direct(self):
         window = Mock()
-        for text, accepted, expected in (('', True, None), (' f6g8 ', True, 'f6g8')):
-            with patch('otb_chess.ui.desktop_ui.QInputDialog.getText', return_value=(text, accepted)):
-                MainWindow.prompt_draw_claim(window)
-            window.game.claim_draw.assert_called_with(expected)
-        window.game.claim_draw.reset_mock()
-        with patch('otb_chess.ui.desktop_ui.QInputDialog.getText', return_value=('', False)):
-            MainWindow.prompt_draw_claim(window)
-        window.game.claim_draw.assert_not_called()
+        MainWindow.prompt_draw_claim(window)
+        window.human_game_action.assert_called_once_with('claim_draw')
