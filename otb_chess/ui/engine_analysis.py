@@ -2,7 +2,7 @@
 from PySide6.QtCore import Qt, Signal, QByteArray
 from PySide6.QtGui import QShortcut, QKeySequence, QTextCursor, QColor
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QPlainTextEdit, QTextEdit, QFormLayout, QSpinBox, QDoubleSpinBox
-from otb_chess.chess_backend import rules, notation
+from otb_chess.chess_backend.position import ChessPosition
 
 
 class VariationText(QPlainTextEdit):
@@ -96,18 +96,15 @@ class EngineAnalysisWindow(QDialog):
         for info in evaluations:
             if info.source_fen != source:
                 continue
-            board = rules.Board(source)
+            position = ChessPosition(source)
             moves, san = [], []
-            for move in info.pv:
-                native = rules.provider_move(move)
-                if native not in board.legal_moves:
-                    break
-                if board.turn:
-                    san.append(f'{board.fullmove_number}.')
+            positions = position.variation_positions(info.pv, truncate=True)
+            for position, move in zip(positions[:-1], info.pv):
+                if position.turn:
+                    san.append(f'{position.fullmove_number}.')
                 elif not san:
-                    san.append(f'{board.fullmove_number}...')
-                san.append(notation.san(board.fen(), move))
-                board.push(native)
+                    san.append(f'{position.fullmove_number}...')
+                san.append(position.san(move))
                 moves.append(move)
             score = info.score
             value = ('—' if score is None else f'Mate {score.mate:+d}' if score.mate is not None

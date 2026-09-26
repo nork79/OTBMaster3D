@@ -10,7 +10,8 @@ import logging
 import math
 from uuid import UUID, uuid4
 
-from otb_chess.chess_backend import rules
+from otb_chess.chess_backend.position import ChessPosition
+from otb_chess.document_state import History
 from otb_chess.engine_identity import profile_identifier
 
 log = logging.getLogger(__name__)
@@ -42,33 +43,32 @@ def _object(value):
 
 def capture_position(board):
     """Preserve repetition history and raw EP state using the live rules provider."""
-    return {"representation": "fen-history", "fen": board.fen(en_passant="fen"),
-            "root_fen": board.root().fen(en_passant="fen"),
-            "moves": [move.uci() for move in board.move_stack]}
+    history = ChessPosition.from_board(board).history(raw_ep=True)
+    return {"representation": "fen-history", "fen": history.final_fen,
+            "root_fen": history.root_fen,
+            "moves": [ChessPosition.uci(move) for move in history.moves]}
 
 
 def restore_position(position):
     """FEN is authoritative; use optional history only when it agrees exactly."""
     if position.get("representation", "fen-history") != "fen-history":
         raise ValueError("Unsupported position representation")
-    authoritative = rules.Board(position["fen"])
+    authoritative = ChessPosition(position["fen"])
     if not authoritative.is_valid():
         raise ValueError("Invalid chess position")
     if "root_fen" not in position and "moves" not in position:
-        return authoritative
+        return authoritative.legacy_board
     try:
-        board = rules.Board(position["root_fen"])
+        board = ChessPosition(position["root_fen"])
         moves = position["moves"]
         if not isinstance(moves, list) or not board.is_valid():
             raise ValueError("Invalid optional history")
-        for move in moves:
-            board.push_uci(move)
-        if board.fen(en_passant="fen") != authoritative.fen(en_passant="fen"):
-            raise ValueError("History does not match authoritative FEN")
-        return board
+        history = History(board.fen(raw_ep=True), tuple(ChessPosition.parse_uci(move) for move in moves),
+                          authoritative.fen(raw_ep=True))
+        return ChessPosition.from_history(history, raw_ep=True).legacy_board
     except (ValueError, TypeError, KeyError, AttributeError, IndexError) as exc:
         log.warning("Ignoring optional bookmark history: %s", exc)
-        return authoritative
+        return authoritative.legacy_board
 
 
 def capture_engine(manager):

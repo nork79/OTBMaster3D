@@ -1,13 +1,12 @@
 """Display-only PV navigation. The live board is never replaced or pushed."""
 import time
-from otb_chess.chess_backend import rules
 
 
 class VariationPreview:
     variation_preview = None
 
     def analysis_position_token(self):
-        position = (id(self.board), rules.snapshot_history(self.board),
+        position = (id(self.board), self.position.history(),
                     id(self.history_board()), self.game_started, self.game_over)
         if position != getattr(self, '_analysis_position', None):
             self._analysis_position = position
@@ -18,14 +17,10 @@ class VariationPreview:
         self.validate_variation()
         if self.game_over or token != self.analysis_position_token() or source != self.board.fen():
             return False
-        board = self.board.copy()
-        positions = [board.copy()]
-        for move in moves:
-            native = rules.provider_move(move)
-            if native not in board.legal_moves:
-                return False
-            board.push(native)
-            positions.append(board.copy())
+        try:
+            positions = [position.legacy_board for position in self.position.variation_positions(moves)]
+        except ValueError:
+            return False
         if len(positions) == 1:
             return False
         if self.variation_preview is None:

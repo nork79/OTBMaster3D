@@ -1,7 +1,9 @@
 """Game controller: position, moves, game lifecycle and engine coordination."""
 
 from otb_chess.chess_backend import books
-from otb_chess.chess_backend import rules as chess
+from otb_chess.chess_backend import values as chess
+from otb_chess.chess_backend.position import ChessPosition
+from otb_chess_core import Move
 
 from otb_chess.graphics.board_2d import FlatPieceRenderer, FLAT_SETS
 from pathlib import Path
@@ -54,7 +56,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             glfw.make_context_current(self.window)
             glfw.swap_interval(1)
             setup_gl(WIDTH, HEIGHT)
-        self.board = chess.Board()
+        self.board = ChessPosition().legacy_board
         self.move_animation_ms = max(0,min(1500,int(self.cfg.get("move_animation_ms",0))))
         self.move_animation = None
         self.board_type = self.cfg.get("board_type","tournament")
@@ -165,11 +167,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
     def legal_targets(self):
         if self.selected is None:
             return set()
-        return {
-            m.to_square
-            for m in self.board.legal_moves
-            if m.from_square == self.selected
-        }
+        return self.position.legal_targets(self.selected)
 
     def human_can_move(self):
         if self._review_live is not None:
@@ -192,12 +190,11 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             return False
         if not is_engine and not self.human_can_move():
             return False
-        p = self.board.piece_at(fr)
+        p = self.position.piece_at(fr)
         if not p:
             return False
         if p.piece_type == chess.PAWN and chess.square_rank(to) in (0, 7):
-            choices = {move.promotion for move in self.board.legal_moves
-                       if move.from_square == fr and move.to_square == to}
+            choices = self.position.promotion_choices(fr, to)
             if not choices:
                 self.play_game_sound(self.sound_illegal)
                 return False
@@ -209,24 +206,25 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
                     return False
             if promotion not in choices:
                 return False
-        mv = chess.Move(fr, to, promotion=promotion)
-        if mv not in self.board.legal_moves:
+        try:
+            mv = Move(fr, to, promotion=promotion)
+        except ValueError:
+            if not is_engine:
+                self.play_game_sound(self.sound_illegal)
+            return False
+        if not self.position.is_legal(mv):
             if not is_engine:
                 self.play_game_sound(self.sound_illegal)
             return False
         mover = self.board.turn
-        capture = self.board.is_capture(mv)
-        castle = self.board.is_castling(mv)
+        details = self.position.move_details(mv)
+        capture, castle = details.capture, details.castling
         if self.game_started:
             self.clock_history.append(
                 (self.white_time, self.black_time, self.active_clock_color)
             )
-        origins = {to: fr}
-        if self.board.is_castling(mv):
-            rank = chess.square_rank(fr)
-            kingside = chess.square_file(to) > chess.square_file(fr)
-            origins[chess.square(5 if kingside else 3,rank)] = chess.square(7 if kingside else 0,rank)
-        self.board.push(mv)
+        origins = dict(details.origins)
+        self.position.apply(mv)
         self.move_animation = (self.board, self.board.fen(),time.perf_counter(),
                                self.move_animation_ms / 1000,origins) if self.move_animation_ms else None
         if self.game_started:
@@ -251,7 +249,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.update_game_end()
         if not self.game_over:
             sound = (self.sound_promote if promotion else self.sound_castle if castle
-                     else self.sound_check if self.board.is_check()
+                     else self.sound_check if self.position.is_check()
                      else self.sound_capture if capture else self.sound_move)
             self.play_game_sound(sound)
         if self.game_started and not self.game_over and not self.awaiting_clock_press:
@@ -260,13 +258,13 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
 
     def update_game_end(self):
         was_over = self.game_over
-        reason = chess.termination_reason(self.board)
-        if reason is not None:
+        ending = self.position.termination()
+        if ending is not None:
             self.game_over = True
             self.game_started = False
             self.awaiting_clock_press = False
             self.awaiting_clock_color = None
-            self.result_text = reason
+            self.result_text = ending.reason
         if self.game_over and not was_over:
             self.play_game_sound(self.sound_game_end)
 
@@ -305,7 +303,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.pending_engine_move = self.pending_engine_position = self.pending_engine_error = None
         self.last_engine_search = None
         self.move_animation = None
-        self.board.pop()
+        self.position.undo()
         self._declared_result = None
         if self.clock_history:
             self.white_time, self.black_time, self.active_clock_color = self.clock_history.pop()
@@ -324,7 +322,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
     def reset_board(self):
         self._declared_result = None
         self._review_live = self._pgn_document = None
-        self.board.reset()
+        self.position.reset()
         self.clock_history.clear()
         self.selected = None
         self.game_started = False
@@ -336,8 +334,8 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.refresh_move_list()
 
     def start_game(self, starting_fen=None):
-        starting_board = chess.Board(starting_fen) if starting_fen is not None else chess.Board()
-        if not starting_board.is_valid():
+        starting_position = ChessPosition(starting_fen) if starting_fen is not None else ChessPosition()
+        if not starting_position.is_valid():
             raise ValueError("The starting position is not valid")
         self._review_live = self._pgn_document = None
         time_control = self.selected_time_control()
@@ -356,7 +354,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             requested_engine_side = None
             self.engine_side_var.set("None")
 
-        self.board = starting_board
+        self.board = starting_position.legacy_board
         self._declared_result = None
         self.clock_history.clear()
         self.white_time = time_control.initial_seconds
@@ -389,15 +387,10 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
     def resign(self, color=None):
         if self.game_started and not self.game_over:
             color = self.board.turn if color is None else color
-            loser = "White" if color == chess.WHITE else "Black"
             self.game_started = False
             self.game_over = True
-            if self.board.has_insufficient_material(not color):
-                self.result_text = 'Draw - resignation with insufficient material'
-                self._declared_result = '1/2-1/2'
-            else:
-                self.result_text = f"{loser} resigned"
-                self._declared_result = '0-1' if loser == 'White' else '1-0'
+            ending = self.position.loss_outcome(color)
+            self.result_text, self._declared_result = ending.reason, ending.result
             self.play_game_sound(self.sound_game_end)
 
     def offer_draw(self):
@@ -413,14 +406,17 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             return False
         if isinstance(intended_move, str):
             try:
-                intended_move = chess.Move.from_uci(intended_move.strip())
+                intended_move = self.position.parse_uci(intended_move.strip())
             except ValueError:
                 self.result_text = "Enter a move such as e2e4 or a7a8q"
                 return False
-        reason = chess.draw_claim_reason(self.board, intended_move)
+        reason = self.position.draw_claim_reason(intended_move)
         if reason is None:
             self.result_text = "No valid draw claim for this position or intended move"
             return False
+        # Application lifecycle is separate from position.termination(): imported
+        # results, claims, resignation and timeout may finish a nonterminal board.
+        # TODO extraction: consolidate these flags in a game-session record.
         self.game_started = False
         self.game_over = True
         self.awaiting_clock_press = False
@@ -511,6 +507,6 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.pending_engine_position = None
         if source is not None and source != self.board.fen():
             return
-        if chess.provider_move(mv) in self.board.legal_moves:
+        if self.position.is_legal(mv):
             self.try_move(mv.from_square, mv.to_square, True, promotion=mv.promotion)
 

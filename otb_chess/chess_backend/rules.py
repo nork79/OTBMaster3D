@@ -1,7 +1,8 @@
 """Rules provider boundary. Board, Move and Piece remain provider-native today.
 
-Replace these bindings with compatible adapters during rules migration. See
-docs/chess-backend-migration.md for the required behaviour and remaining leaks.
+New domain consumers should use chess_backend.position.ChessPosition. These
+bindings remain for setup/rendering compatibility and provider internals. See
+docs/chess_core_architecture.md for the current boundary and extraction steps.
 """
 
 from chess import Board, Move, Piece

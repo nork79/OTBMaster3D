@@ -1,7 +1,7 @@
 """UCI engine lifecycle and background move requests."""
 
 from otb_chess.chess_backend import uci
-from otb_chess.chess_backend import rules
+from otb_chess.chess_backend.position import ChessPosition
 from otb_chess.engine_identity import identify_engine
 
 from pathlib import Path
@@ -157,7 +157,7 @@ class EngineManager:
             return
         self.thinking = True
         generation = self.search_generation
-        position = rules.snapshot_history(self.app.board)
+        position = ChessPosition.from_board(self.app.board).history()
 
         def worker():
             try:

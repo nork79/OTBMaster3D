@@ -2,6 +2,7 @@
 
 from otb_chess.chess_backend import notation
 from otb_chess.chess_backend import rules as chess
+from otb_chess.chess_backend.position import ChessPosition
 
 import math
 import sys
@@ -183,7 +184,7 @@ class DesktopGame(VariationPreview, Chess3D):
         if (self.closed or not self.analysis_enabled or self.analysis_busy
                 or self.owner.new_game_pending or self.owner.pending_difficulty is not None):
             return
-        board = chess.snapshot_history(self.board)
+        board = self.position.history()
         token = self.analysis_position_token()
         revision = self.analysis_revision
         options = dict(self.cfg.get("analysis_options", {}))
@@ -1026,7 +1027,7 @@ class MainWindow(DocumentActions, QMainWindow):
             status = 'Reviewing'
         elif reason == 'Draw offered':
             status = 'Draw Offered'
-        elif g.board.is_check():
+        elif g.position.is_check():
             status = 'Check'
         elif g.game_started:
             status = 'Paused' if g.clock_paused else 'Playing'
@@ -1574,7 +1575,7 @@ class MainWindow(DocumentActions, QMainWindow):
     def refresh_material(self):
         from otb_chess.ui.material import material_summary
         board = self.game.display_board
-        position = chess.snapshot_history(board)
+        position = ChessPosition.from_board(board).history()
         if position == self._material_position:
             return
         self._material_position = position

@@ -1,6 +1,7 @@
 """Clock timing, increments, manual presses and time-control selection."""
 
 from otb_chess.chess_backend import values as chess
+from otb_chess.chess_backend.position import ChessPosition
 
 from tkinter import messagebox
 import time
@@ -104,20 +105,16 @@ class ClockControls:
             if self.white_time <= 0:
                 self.game_started = False
                 self.game_over = True
-                self.result_text = ("Draw - timeout with insufficient material"
-                                    if self.board.has_insufficient_material(chess.BLACK)
-                                    else "Black wins on time")
-                self._declared_result = '1/2-1/2' if self.result_text.startswith('Draw') else '0-1'
+                ending = ChessPosition.from_board(self.board).loss_outcome(chess.WHITE, on_time=True)
+                self.result_text, self._declared_result = ending.reason, ending.result
                 self.play_game_sound(self.sound_game_end)
         else:
             self.black_time = max(0, self.black_time - e)
             if self.black_time <= 0:
                 self.game_started = False
                 self.game_over = True
-                self.result_text = ("Draw - timeout with insufficient material"
-                                    if self.board.has_insufficient_material(chess.WHITE)
-                                    else "White wins on time")
-                self._declared_result = '1/2-1/2' if self.result_text.startswith('Draw') else '1-0'
+                ending = ChessPosition.from_board(self.board).loss_outcome(chess.BLACK, on_time=True)
+                self.result_text, self._declared_result = ending.reason, ending.result
                 self.play_game_sound(self.sound_game_end)
 
     @staticmethod

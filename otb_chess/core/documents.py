@@ -1,26 +1,38 @@
 """Notation import/export and non-destructive move-history browsing."""
 
-from otb_chess.chess_backend import notation
-from otb_chess.chess_backend import rules as chess
-
 from otb_chess.document_state import History
+from otb_chess.chess_backend.position import ChessPosition
 
 
 def read_pgn(text):
-    return notation.read_pgn(text)
+    return ChessPosition.read_pgn(text)
 
 
 def read_fen(text):
-    board = chess.Board(text.strip())
-    if not board.is_valid():
-        raise ValueError("The FEN does not describe a valid chess position.")
-    return board
+    return ChessPosition.from_fen(text).legacy_board
 
 
 class GameDocuments:
     _review_live = None
     _pgn_document = None
     _declared_result = None
+
+    @property
+    def position(self):
+        """Authoritative chess state for the currently displayed controller board."""
+        return self._position
+
+    @property
+    def board(self):
+        # TODO extraction: migrate legacy consumers, then remove native exposure.
+        return self.position.legacy_board
+
+    @board.setter
+    def board(self, board):
+        self._position = ChessPosition.from_board(board)
+
+    def history_position(self):
+        return ChessPosition.from_board(self.history_board())
 
     def history_board(self):
         return self._review_live if self._review_live is not None else self.board
@@ -42,16 +54,15 @@ class GameDocuments:
             self.return_to_live()
         else:
             self._review_live = live
-            self.board = live.copy()
-            while len(self.board.move_stack) > ply:
-                self.board.pop()
+            self.board = self.history_position().at_ply(ply).legacy_board
             self.selected = self.drag_piece = self.drag_world = None
             self.result_text = "Reviewing moves — return to latest move to continue play"
             self.refresh_move_list()
         return True
 
     def load_document(self, board, document=None):
-        board = chess.restore_history(board) if isinstance(board, History) else board.copy()
+        board = (ChessPosition.from_history(board).legacy_board if isinstance(board, History)
+                 else ChessPosition.from_board(board, copy=True).legacy_board)
         self._review_live = None
         self._pgn_document = document
         self._declared_result = (document.headers.get('Result') if document is not None else None)
@@ -68,18 +79,19 @@ class GameDocuments:
         self.last_engine_search = None
         self.selected = self.drag_piece = self.drag_world = None
         self.result_text = "Loaded game/position — clocks stopped"
-        reason = chess.termination_reason(self.board)
-        if reason is not None:
+        ending = self.position.termination()
+        if ending is not None:
             self.game_over = True
-            self.result_text = reason
+            self.result_text = ending.reason
         elif self._declared_result is not None:
             self.game_over = True
             self.result_text = 'Imported result - ' + self._declared_result
         self.refresh_move_list()
 
     def export_pgn(self):
-        board = self.history_board()
+        position = self.history_position()
         result = self._declared_result if self.game_over else None
-        if self.game_over and chess.termination_reason(board) is not None:
-            result = board.result()
-        return notation.export_pgn(chess.snapshot_history(board), self._pgn_document, result)
+        ending = position.termination() if self.game_over else None
+        if ending is not None:
+            result = ending.result
+        return position.export_pgn(self._pgn_document, result)

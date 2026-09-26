@@ -6,6 +6,7 @@ intended as immediate board feedback, not a substitute for tactical analysis.
 from dataclasses import dataclass
 
 from otb_chess.chess_backend import values as chess
+from otb_chess.chess_backend.position import ChessPosition
 
 
 MATERIAL = {chess.PAWN: 100, chess.KNIGHT: 320, chess.BISHOP: 330,
@@ -24,14 +25,15 @@ class StaticEvaluation:
 
 
 def evaluate_position(board):
-    if board.is_checkmate():
-        return StaticEvaluation(None, f"{'Black' if board.turn else 'White'} wins — checkmate")
-    if board.is_stalemate():
+    position = ChessPosition.from_board(board)
+    if position.is_checkmate():
+        return StaticEvaluation(None, f"{'Black' if position.turn else 'White'} wins — checkmate")
+    if position.is_stalemate():
         return StaticEvaluation(0, "Draw — stalemate")
-    if board.is_insufficient_material():
+    if position.is_insufficient_material():
         return StaticEvaluation(0, "Draw — insufficient material")
 
-    pieces = board.piece_map()
+    pieces = position.pieces()
     phase = min(24, sum(PHASE.get(piece.piece_type, 0) for piece in pieces.values())) / 24
     pawns = {chess.WHITE: [0] * 8, chess.BLACK: [0] * 8}
     bishops = {chess.WHITE: 0, chess.BLACK: 0}

@@ -1,6 +1,7 @@
 """Board rendering and projection, shared by Qt and the legacy host."""
 
 from otb_chess.chess_backend import values as chess
+from otb_chess.chess_backend.position import ChessPosition
 
 from otb_chess.graphics.board_2d import flat_square
 from otb_chess.graphics.backgrounds import upload_background
@@ -186,7 +187,7 @@ class BoardRendering:
         positions = self.animated_piece_positions()
         self.draw_board()
         board = getattr(self, 'display_board', self.board)
-        checked_king = board.king(board.turn) if board.is_check() else None
+        checked_king = ChessPosition.from_board(board).checked_king()
         if checked_king is not None:
             x, z = positions.get(checked_king, (3.5-chess.square_file(checked_king), chess.square_rank(checked_king)-3.5))
             draw_check_halo(x, z)
