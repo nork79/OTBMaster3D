@@ -1,6 +1,6 @@
 """Captured pieces from recorded moves and material on the displayed board."""
 
-from PySide6.QtGui import QPainter
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QLabel, QSizePolicy
 
 from otb_chess.chess_backend import values as chess
@@ -24,13 +24,20 @@ class CapturedPieces(QLabel):
         if not self.text():
             return
         painter = QPainter(self)
-        painter.setPen(self.palette().windowText().color())
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         metrics = painter.fontMetrics()
         width = max(metrics.horizontalAdvance(piece) for piece in self.text())
         step = min(width * .68, max(0, self.width()-width) / max(1, len(self.text())-1))
         baseline = (self.height() + metrics.ascent() - metrics.descent()) // 2
         for index, piece in enumerate(self.text()):
-            painter.drawText(round(index * step), baseline, piece)
+            white = piece in SYMBOLS[chess.WHITE]
+            # Use a solid silhouette so white pieces have an opaque white body.
+            glyph = SYMBOLS[chess.BLACK][SYMBOLS[chess.WHITE].index(piece)] if white else piece
+            path = QPainterPath()
+            path.addText(round(index * step), baseline, painter.font(), glyph)
+            painter.setPen(QPen(QColor('#202020' if white else '#eeeeee'), .7))
+            painter.setBrush(QColor('#ffffff' if white else '#202020'))
+            painter.drawPath(path)
         painter.end()
 
 

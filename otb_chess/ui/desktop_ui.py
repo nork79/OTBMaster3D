@@ -721,10 +721,9 @@ class MainWindow(DocumentActions, QMainWindow):
                                                     checkable=True,checked=g.cfg.get("engine_difficulty","custom")=="custom")
         difficulty_group.addAction(self.custom_difficulty_action)
         self.action(engine,"Engine and opening book…",self.engine_settings)
-        self.analysis_action = self.action(engine,"Analyse position",self.toggle_analysis,"Ctrl+A",True,
+        self.analysis_action = self.action(engine,"Engine Analysis",self.toggle_analysis,"Ctrl+A",True,
                                            checked=g.analysis_enabled)
         self.action(engine,"Open Evaluation Graph",self.open_evaluation_graph)
-        self.action(engine,"Engine Analysis",self.open_engine_analysis)
         self.static_evaluation_action = self.action(
             engine, "Always show static evaluation", self.toggle_static_evaluation,
             checkable=True, checked=bool(g.cfg.get("always_show_static_evaluation", False)))
