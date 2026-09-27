@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Keep captured white piece symbols on the left and black symbols on the right.
+- Show the detected opening name and ECO code below move navigation, using bundled
+  opening data. Follow move review and leave the label blank when no opening matches.
+- Replace the full-width engine button with a microchip icon beside Switch Sides;
+  the icon is crossed out when engine play is off.
+- Refresh application screenshots with Rounded Oak, Polished Marble, Marble & Brass
+  and Canvas boards, and Forest, Midnight Ocean, Amethyst and Warm Paper themes.
+
 ## 1.4.0-beta.1 - 2026-09-19
 
 - Stabilization snapshot with bookmark folders, ordering, restoration and the Bookmarks menu.

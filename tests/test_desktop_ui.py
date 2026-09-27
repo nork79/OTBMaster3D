@@ -58,6 +58,25 @@ class DesktopTests(unittest.TestCase):
         self.window.close()
         self.qt.processEvents()
 
+    def test_sidebar_material_opening_and_engine_icon(self):
+        w = self.window
+        self.assertIs(w.material_row.itemAt(0).widget(), w.captured_black)
+        actions = w.game_actions_row.layout()
+        self.assertEqual(actions.indexOf(w.engine_enabled_button),
+                         actions.indexOf(w.clock_actions['switch_sides']) + 1)
+        self.assertEqual(w.engine_enabled_button.text(), '')
+        self.assertFalse(w.engine_enabled_button.icon().isNull())
+        before = w.engine_enabled_button.icon().cacheKey()
+        w.engine_enabled_button.click()
+        self.assertNotEqual(before, w.engine_enabled_button.icon().cacheKey())
+        for san in ('e4', 'e5', 'Nf3', 'Nc6', 'Bb5'):
+            w.game.board.push_san(san)
+        w.refresh_opening()
+        self.assertIn('Ruy Lopez', w.opening_name.text())
+        layout = w.moves_panel.layout()
+        self.assertIs(layout.itemAt(0).layout().itemAt(0).widget(), w.move_navigation['<<'])
+        self.assertEqual(layout.indexOf(w.opening_name), 1)
+
     def screen(self,square):
         self.widget.makeCurrent()
         self.game.camera()

@@ -31,7 +31,7 @@ from otb_chess.ui.document_actions import DocumentActions
 from otb_chess.graphics.board_types import BOARD_TYPES
 from otb_chess.graphics.board_colors import BOARD_COLOR_THEMES
 from otb_chess.ui.licenses_dialog import show_licenses
-from otb_chess.ui.chess_symbols import promotion_icon, flag_icon, clock_engine_label
+from otb_chess.ui.chess_symbols import promotion_icon, flag_icon, clock_engine_label, engine_icon
 from otb_chess.ui.variation_preview import VariationPreview
 from otb_chess.ui.engine_analysis import EngineAnalysisWindow
 
@@ -511,11 +511,11 @@ class MainWindow(DocumentActions, QMainWindow):
         self.material_balance = QLabel()
         self.material_row = QHBoxLayout()
         self.material_row.setSpacing(4)
-        self.material_row.addWidget(self.captured_white, 1)
+        self.material_row.addWidget(self.captured_black, 1)
         divider = QLabel("|")
         divider.setObjectName("hint")
         self.material_row.addWidget(divider)
-        self.material_row.addWidget(self.captured_black, 1)
+        self.material_row.addWidget(self.captured_white, 1)
         self.material_row.addWidget(self.material_balance)
         layout.addLayout(self.material_row)
         self.material_balance.setToolTip(
@@ -524,12 +524,14 @@ class MainWindow(DocumentActions, QMainWindow):
         self._material_position = None
         self.refresh_material()
         self.engine_enabled_button = QPushButton()
-        self.engine_enabled_button.setObjectName("engineEnabled")
+        self.engine_enabled_button.setObjectName("humanGameAction")
+        self.engine_enabled_button.setFixedSize(28, 24)
+        self.engine_enabled_button.setIconSize(QSize(22, 22))
         self.engine_enabled_button.setCheckable(True)
         self.engine_enabled_button.setChecked(self.game.engine_enabled)
         self.engine_enabled_button.toggled.connect(self.game.set_engine_enabled)
-        self.engine_enabled_button.setText("Engine on" if self.game.engine_enabled else "Engine off - free play")
-        layout.addWidget(self.engine_enabled_button)
+        self.refresh_engine_toggle()
+        self.engine_enabled_button.toggled.connect(lambda _: self.refresh_engine_toggle())
         self.game_actions_row = QWidget()
         actions = QHBoxLayout(self.game_actions_row)
         actions.setContentsMargins(0, 0, 0, 0)
@@ -543,6 +545,7 @@ class MainWindow(DocumentActions, QMainWindow):
             button.clicked.connect(lambda checked=False, action=key: self.invoke(self.human_game_action, action))
             self.clock_actions[key] = button
             actions.addWidget(button)
+        actions.addWidget(self.engine_enabled_button)
         actions.addStretch()
         layout.addWidget(self.game_actions_row)
         self.refresh_game_actions()
@@ -572,6 +575,12 @@ class MainWindow(DocumentActions, QMainWindow):
             self.move_navigation[symbol] = button
         navigation.addStretch()
         moves_layout.addLayout(navigation)
+        self.opening_name = QLabel("")
+        self.opening_name.setObjectName("hint")
+        self.opening_name.setWordWrap(True)
+        self.opening_name.setToolTip("Opening detected from the displayed move history.")
+        moves_layout.addWidget(self.opening_name)
+        self._opening_position = None
         label = QLabel("MOVE LIST")
         label.setObjectName("section")
         move_heading = QHBoxLayout()
@@ -1581,9 +1590,29 @@ class MainWindow(DocumentActions, QMainWindow):
         captured, balance = material_summary(board)
         self.captured_white.setText(captured[chess.WHITE])
         self.captured_black.setText(captured[chess.BLACK])
-        self.material_row.setStretch(0, max(1, len(captured[chess.WHITE])))
-        self.material_row.setStretch(2, max(1, len(captured[chess.BLACK])))
+        self.material_row.setStretch(0, max(1, len(captured[chess.BLACK])))
+        self.material_row.setStretch(2, max(1, len(captured[chess.WHITE])))
         self.material_balance.setText(f"{balance:+d}" if balance else "0")
+
+    def refresh_opening(self):
+        from otb_chess.chess_backend.openings import detect_opening
+        board = self.game.display_board
+        position = ChessPosition.from_board(board).history()
+        if position != self._opening_position:
+            self._opening_position = position
+            name = detect_opening(board, APP_DIR / "books" / "sources")
+            self.opening_name.setText(name or "")
+
+    def refresh_engine_toggle(self):
+        enabled = self.game.engine_enabled
+        color = self.engine_enabled_button.palette().buttonText().color()
+        state = (enabled, color.name())
+        if getattr(self, "_engine_icon_state", None) != state:
+            self._engine_icon_state = state
+            self.engine_enabled_button.setIcon(engine_icon(enabled, color))
+        description = "Engine on: click to turn off" if enabled else "Engine off: click to turn on"
+        self.engine_enabled_button.setToolTip(description)
+        self.engine_enabled_button.setAccessibleName(description)
 
     def tick(self):
         if self.closing:
@@ -1596,7 +1625,7 @@ class MainWindow(DocumentActions, QMainWindow):
         g.update_clock()
         self.engine_enabled_button.blockSignals(True)
         self.engine_enabled_button.setChecked(g.engine_enabled)
-        self.engine_enabled_button.setText("Engine on" if g.engine_enabled else "Engine off - free play")
+        self.refresh_engine_toggle()
         self.engine_enabled_button.blockSignals(False)
         if (getattr(g, '_engine_resume_pending', False) and not g.engine_manager.thinking
                 and not self.new_game_pending and self.pending_difficulty is None):
@@ -1622,6 +1651,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.black_clock.refresh(g)
         self.white_clock.refresh(g)
         self.refresh_material()
+        self.refresh_opening()
         self.refresh_game_actions()
         self.play_button.setText("Starting game…" if self.new_game_pending else "Start game" if not g.game_started or g.game_over else "Resume clock" if g.clock_paused else "Pause clock")
         self.play_button.setEnabled(not self.new_game_pending and

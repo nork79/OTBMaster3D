@@ -28,6 +28,28 @@ def flag_icon(background=None):
     return QIcon(pixmap)
 
 
+def engine_icon(enabled, color):
+    """A microchip crossed out when the engine is off."""
+    pixmap = QPixmap(48, 48)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(QPen(color, 3))
+    painter.drawRoundedRect(12, 12, 24, 24, 3, 3)
+    painter.drawRect(19, 19, 10, 10)
+    for offset in (17, 24, 31):
+        painter.drawLine(offset, 6, offset, 12)
+        painter.drawLine(offset, 36, offset, 42)
+        painter.drawLine(6, offset, 12, offset)
+        painter.drawLine(36, offset, 42, offset)
+    if not enabled:
+        painter.setPen(QPen(QColor('#e36d65'), 4))
+        painter.drawLine(7, 7, 41, 41)
+        painter.drawLine(41, 7, 7, 41)
+    painter.end()
+    return QIcon(pixmap)
+
+
 def clock_engine_label(game, color):
     manager = game.engine_manager
     if not getattr(game, "engine_enabled", True) or manager.engine is None or game.engine_side_var.get() != ("White" if color else "Black"):

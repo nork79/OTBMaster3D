@@ -5,7 +5,7 @@ engine analysis and organized position study.
 
 **1.4.0-beta.1 ? Windows ? Beta / pre-release**
 
-![OTBMaster3D with a Ruy Lopez middlegame](docs/images/3d-middlegame.png)
+![Ruy Lopez on Rounded Oak with the Forest interface and opening name below navigation](docs/images/3d-middlegame.png)
 
 This repository and its screenshots, source and release downloads are **private**.
 Access is limited to authorized collaborators; no public distribution is implied.
@@ -19,19 +19,28 @@ Access is limited to authorized collaborators; no public distribution is implied
 - Hierarchical bookmarks for positions: nested folders, drag/drop ordering, a
   floating organizer and matching Bookmarks menu.
 - PGN/FEN import and export, move review, static evaluation and session recovery.
+- Offline opening recognition below the move navigation controls, with the opening
+  name and ECO code following the displayed move history.
+- Captured white pieces on the left and black pieces on the right, plus a compact
+  engine icon beside Switch Sides that is crossed out when the engine is off.
 - Board materials, 3D/2D piece sets, interface themes and eight sound profiles.
   Preferences and bookmark panel geometry are remembered.
 
-| Stockfish analysis | Position organization |
+| Stockfish analysis: Midnight Ocean | Bookmarks: Marble & Brass, Amethyst |
 | --- | --- |
 | ![Stockfish evaluation and principal variation](docs/images/engine-analysis.png) | ![Nested bookmark folders](docs/images/bookmark-organization.png) |
 
 <details>
-<summary>2D view and theme customization</summary>
+<summary>More board styles and themes</summary>
 
-![Textbook pieces with the Warm Paper theme](docs/images/2d-study.png)
+![Polished Marble with Ocean board colours and the Midnight Ocean interface](docs/images/3d-marble.png)
+
+![2D Canvas Roll-up with Sage colours, Textbook pieces and Warm Paper; engine switched off](docs/images/2d-study.png)
 
 </details>
+
+Screenshots show the current source version. See [capture details](docs/images/README.md)
+for the board and theme combinations; the published beta installer predates these sidebar changes.
 
 ## Install on Windows
 
@@ -64,6 +73,7 @@ of the documented [third-party licence review gaps](docs/private-release-review.
 | Start or pause clocks | Ctrl+P |
 | Press OTB clock | Space |
 | Take back / switch sides | U / Game > Switch sides or the switch-arrows button |
+| Enable or disable engine play | Microchip icon beside Switch Sides; crossed out means off |
 | Flip board / reset view | Ctrl+F / Ctrl+R |
 | Manage bookmarks | Ctrl+Shift+B |
 | Sidebar / focus mode | Ctrl+B / Ctrl+Shift+F |

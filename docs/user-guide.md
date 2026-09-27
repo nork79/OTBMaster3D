@@ -93,6 +93,23 @@ move timing remain unchanged.
 | Start/pause | Sidebar button or Ctrl + P. |
 | Close the app | Game → Quit or Ctrl + Q. |
 
+## Sidebar and opening recognition
+
+The opening name and ECO code appear directly below the move navigation icons,
+above **MOVE LIST**. Detection uses the bundled Lichess opening lines and works
+offline. It follows the displayed move history, including move review and takeback,
+and retains the most specific matched line as play continues. The label stays blank
+when no line matches. Recognition uses the recorded move order from the normal
+starting position; a standalone FEN does not supply opening history.
+
+Captured white piece symbols always appear on the left and captured black piece
+symbols on the right, regardless of board orientation. These show pieces lost by
+each colour. The number beside them is White's material minus Black's material.
+
+Use the microchip icon beside **Switch Sides** to enable or disable engine play.
+A cross through the icon means the engine is off; the tooltip also reports the state.
+This control is separate from **Start analysis / Stop analysis** in Engine Analysis.
+
 ## Engines and opening books
 
 Open **Engine → Engine and opening book**. Choose a compatible Windows UCI engine
