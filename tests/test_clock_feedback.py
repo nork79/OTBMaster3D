@@ -21,7 +21,7 @@ class ClockFeedbackTests(unittest.TestCase):
         self.game.sound_enabled = False
     tearDown = fixture.DesktopTests.tearDown
 
-    def test_engine_labels_use_loaded_maia_profile_and_selected_side(self):
+    def test_engine_labels_use_loaded_engine_profile_and_selected_side(self):
         g = self.game
         g.engine_manager.engine = Mock()
         g.engine_manager.loaded_configuration = {"engine_id": "stockfish", "name": "Stockfish"}
@@ -31,11 +31,11 @@ class ClockFeedbackTests(unittest.TestCase):
         self.window.black_clock.refresh(g)
         self.assertEqual(self.window.white_clock.engine_label.toolTip(), "Stockfish * 1900")
         self.assertEqual(self.window.black_clock.engine_label.toolTip(), "")
-        g.engine_manager.loaded_configuration = {"engine_id": "maia", "profile": "beginner", "settings": {"model": 1100}}
-        g.cfg["engine_rating"] = 1900  # Unloaded selection must not relabel the loaded Maia.
+        g.engine_manager.loaded_configuration = {"engine_id": "fairy-stockfish", "profile": "beginner_500", "settings": {"model": 1100}}
+        g.cfg["engine_elo"] = 1100
         g.engine_side_var.set("Black")
         self.window.black_clock.refresh(g)
-        self.assertEqual(self.window.black_clock.engine_label.toolTip(), "Maia * 300")
+        self.assertEqual(self.window.black_clock.engine_label.toolTip(), "Fairy-Stockfish * 1100")
 
     def test_shared_actions_are_borderless_and_resign_the_human_side(self):
         g = self.game
@@ -54,30 +54,30 @@ class ClockFeedbackTests(unittest.TestCase):
             QTest.mouseClick(self.window.clock_actions["resign"], Qt.MouseButton.LeftButton)
             self.assertEqual(g.result_text, "White resigned")
             self.assertTrue(g.game_over)
-        self.assertEqual(len(self.window.clock_actions), 5)
+        self.assertEqual(len(self.window.clock_actions), 4)
         for button in self.window.clock_actions.values():
             self.assertIs(button.parentWidget(), self.window.game_actions_row)
             self.assertEqual(button.objectName(), "humanGameAction")
         layout = self.window.sidebar.layout()
         self.assertEqual(layout.indexOf(self.window.game_actions_row) + 1, layout.indexOf(self.window.clock_summary))
 
-    def test_claim_icon_is_next_to_offer_and_claims_without_dialog(self):
+
+    def test_threefold_ends_after_played_move_without_claim_controls(self):
         g, w = self.game, self.window
-        actions = w.game_actions_row.layout()
-        self.assertEqual(actions.indexOf(w.clock_actions['claim_draw']),
-                         actions.indexOf(w.clock_actions['draw']) + 1)
-        self.assertIn('Claim draw', w.clock_actions['claim_draw'].accessibleName())
-        with patch('PySide6.QtWidgets.QInputDialog.getText', side_effect=AssertionError('No text dialog')):
-            QTest.mouseClick(w.clock_actions['claim_draw'], Qt.MouseButton.LeftButton)
-            self.assertFalse(g.game_over)
-            for uci in ('g1f3', 'g8f6', 'f3g1', 'f6g8') * 2:
-                g.board.push_uci(uci)
-            before = g.board.fen(), tuple(g.board.move_stack)
-            QTest.mouseClick(w.clock_actions['claim_draw'], Qt.MouseButton.LeftButton)
-        self.assertTrue(g.game_over)
-        self.assertEqual((g.board.fen(), tuple(g.board.move_stack)), before)
+        g.start_game()
+        self.assertNotIn('claim_draw', w.clock_actions)
+        from PySide6.QtGui import QAction
+        self.assertNotIn('Claim draw', [a.text() for a in w.findChildren(QAction)])
+        moves = ('g1f3', 'g8f6', 'f3g1', 'f6g8') * 2
+        for index, uci in enumerate(moves):
+            move = chess.Move.from_uci(uci)
+            self.assertTrue(g.try_move(move.from_square, move.to_square))
+            self.assertEqual(g.game_over, index == len(moves) - 1)
+        w.refresh_game_actions()
+        self.assertEqual(g.result_text, 'Draw - threefold repetition')
         self.assertEqual(w.game_status.text(), 'Game Drawn')
-        self.assertFalse(w.clock_actions['claim_draw'].isEnabled())
+        self.assertFalse(g.game_started)
+        self.assertFalse(g.try_move(chess.E2, chess.E4))
 
     def test_clock_heading_shows_result_and_clears_for_new_game(self):
         g, w = self.game, self.window

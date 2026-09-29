@@ -1,3 +1,7 @@
+> Historical research only. The current release strategy is GPL-3.0-only source
+> and an AUD $10 itch.io installer. See [release preparation](OPEN_SOURCE_RELEASE_READINESS.md).
+> The proprietary migration and paused-build statements below are superseded.
+
 # Historical proprietary-distribution research
 
 **Superseded for the public beta:** OTBMaster3D 1.0.0 Beta 1 is a free, open-source

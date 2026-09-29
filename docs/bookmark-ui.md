@@ -58,9 +58,9 @@ background worker prepares the saved engine, so the panel remains responsive.
 The selected position is installed only after that worker completes. The
 previous engine remains alive until a candidate engine is successfully verified.
 
-The engine loader uses the saved stable family ID, exact Maia weights/model and
-mistake rate, or UCI options. It verifies identity and, when supplied, the stable
-configuration/profile fingerprint. It never chooses the nearest Maia rating.
+The engine loader uses the saved stable family ID and exact persistent UCI
+options. It verifies identity and, when supplied, the stable
+configuration/profile fingerprint. It never chooses the nearest rating.
 Unsupported configuration systems, missing personality resources, changed
 options, or mismatching fingerprints produce a nonfatal diagnostic. The current
 engine is retained; if none exists, bundled Stockfish is tried explicitly as a
@@ -85,7 +85,7 @@ Older bookmarks with no time-control snapshot retain current clock settings.
 
 `tests/test_bookmark_ui.py` exercises destination rules, transactional edits and
 save failures, rename validation, deletion, FEN/facing/time restoration, missing
-engines, exact Stockfish and Maia configuration round trips, native tree events,
+engines, exact Stockfish and Fairy-Stockfish configuration round trips, native tree events,
 inline edit/cancel, confirmation, selection-only clicks, double click/Enter,
 scrolling, long names, context selection, stale search results, panel geometry,
 and ordinary board interaction after restoring. Run the full suite in Python 3.13:
@@ -99,4 +99,4 @@ Qt visual checks were also exercised in an isolated temporary configuration and
 captured for both White- and Black-facing positions.
 
 Search, metadata, tags, annotations, thumbnails,
-properties, and multiple selection remain intentionally absent. Engine-family adapters beyond the current UCI/Maia setup remain outside this release.
+properties, and multiple selection remain intentionally absent. Engine-family adapters beyond the current two-engine UCI setup remain outside this release.

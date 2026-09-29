@@ -26,10 +26,10 @@ check/checkmate/stalemate/material status, castling/en-passant state, SAN/UCI,
 FEN, PGN-compatible history and annotation-preserving PGN import/export. It also
 supplies independent variation positions and captured-material data.
 
-`termination()` and `draw_claim_reason()` delegate to the existing `rules.py`
-policy: automatic checkmate, stalemate, insufficient material, 75-move and
-fivefold endings; threefold and 50-move draws require claims. Intended-move
-claims inspect a copy. `loss_outcome()` centralizes existing resignation/timeout
+`termination()` delegates to the `rules.py` application policy: automatic
+checkmate, stalemate, insufficient material, threefold repetition and 50-move
+draws. Draws depend on the position reached by actual moves, not a possible next
+move. There is no claim-draw action. `loss_outcome()` centralizes resignation/timeout
 material adjudication; the application still decides when those events occur.
 
 `GameDocuments.position` holds the facade for the currently displayed controller

@@ -68,6 +68,7 @@ class TimeControl:
 
 
 TIME_CONTROLS = {
+    "Infinite (clocks disabled)": TimeControl("Infinite (clocks disabled)", 0, 0),
     "Hyperbullet 15+0": TimeControl("Hyperbullet 15+0", 15, 0),
     "Hyperbullet 20+0": TimeControl("Hyperbullet 20+0", 20, 0),
     "Hyperbullet 30+0": TimeControl("Hyperbullet 30+0", 30, 0),
@@ -95,6 +96,7 @@ TIME_CONTROLS = {
 
 def default_config():
     return {
+        "player_name": "",
         "light_square": list(DEFAULT_LIGHT),
         "dark_square": list(DEFAULT_DARK),
         "frame_color": list(DEFAULT_FRAME),
@@ -166,6 +168,19 @@ def load_config():
         if not config["book_path"]:
             config["book_path"] = defaults["book_path"]
         config["engine_defaults_applied"] = True
+    # Retire unsupported saved presets without silently assigning a new rating.
+    from otb_chess.services.difficulty import DIFFICULTIES
+    if config.get('engine_difficulty', 'custom') not in (*DIFFICULTIES, 'custom'):
+        config['engine_difficulty'] = 'custom'
+        config['engine_elo'] = None
+        config['engine_path'] = default_config()['engine_path']
+    # Resolve the selected preset's actual engine; do not retain a path from
+    # another backend after changing preset mappings. Bookmarks remain separate.
+    preset = DIFFICULTIES.get(config.get('engine_difficulty'))
+    if preset:
+        from otb_chess.services.difficulty import engine_path
+        config['engine_path'] = str(engine_path(config['engine_difficulty']) or '')
+        config['engine_elo'] = preset.rating if preset.engine in ('stockfish', 'fairy-stockfish') else None
     return config
 
 

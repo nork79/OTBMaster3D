@@ -56,11 +56,6 @@ def clock_engine_label(game, color):
         return ""
     config = manager.loaded_configuration or {}
     family = config.get("engine_id", "")
-    name = {"maia": "Maia", "stockfish": "Stockfish", "rodent": "Rodent"}.get(family, config.get("name", "Engine"))
-    if family == "maia":
-        from otb_chess.services.difficulty import DIFFICULTIES
-        preset = DIFFICULTIES.get(config.get("profile"))
-        strength = preset.rating if preset and preset.engine == "maia" else config.get("settings", {}).get("model")
-    else:
-        strength = game.cfg.get("engine_elo")
+    name = {"fairy-stockfish": "Fairy-Stockfish", "stockfish": "Stockfish", "rodent": "Rodent"}.get(family, config.get("name", "Engine"))
+    strength = game.cfg.get("engine_elo")
     return f"{name} * {strength if strength is not None else 'Full'}"

@@ -70,6 +70,8 @@ class EngineAnalysisWindow(QDialog):
                 ('threads', 'CPU threads', 1, 64, 1),
                 ('hash_mb', 'Hash memory (MB)', 16, 4096, 64)):
             control = QDoubleSpinBox() if key == 'seconds' else QSpinBox()
+            # Reserve space for Windows' side-by-side arrows in the themed stylesheet.
+            control.setObjectName('analysisOption')
             control.setRange(low, high)
             control.setValue(saved.get(key, default))
             control.setKeyboardTracking(False)

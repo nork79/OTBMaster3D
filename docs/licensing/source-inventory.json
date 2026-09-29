@@ -1,0 +1,527 @@
+{
+  "version": "1.4.0-beta.2",
+  "status": "BLOCKED",
+  "meaning": "Hash-pinned retained source materials; finite obligation review in LICENSING-CLOSURE.md",
+  "sources": [
+    {
+      "component": "glfw",
+      "version": "2.10.2",
+      "file": "glfw-2.10.2.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/0f/62/096058bcb4b4fb28f7ecd28fb048f07969d90b243c417af5f6d09d45a0c2/glfw-2.10.2.tar.gz",
+      "sha256": "5d2cf97c66bc42a6b583be0e307eae5a3945438322e2ed0c5e4f14dc251d693d",
+      "bytes": 36307,
+      "publisher_sha256": "5d2cf97c66bc42a6b583be0e307eae5a3945438322e2ed0c5e4f14dc251d693d"
+    },
+    {
+      "component": "cozy-chess-py",
+      "version": "0.1.1",
+      "file": "cozy_chess_py-0.1.1.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/c5/3e/a84bfd987c2c30604f05e11bf22b6b4f16bde0179cda703a47a3c3959cdc/cozy_chess_py-0.1.1.tar.gz",
+      "sha256": "5dc1f30023e25448460e232528dc42b03981a9ac307d6a45fb14e4a3624953cf",
+      "bytes": 18349,
+      "publisher_sha256": "5dc1f30023e25448460e232528dc42b03981a9ac307d6a45fb14e4a3624953cf"
+    },
+    {
+      "component": "chess",
+      "version": "1.11.2",
+      "file": "chess-1.11.2.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/93/09/7d04d7581ae3bb8b598017941781bceb7959dd1b13e3ebf7b6a2cd843bc9/chess-1.11.2.tar.gz",
+      "sha256": "a8b43e5678fdb3000695bdaa573117ad683761e5ca38e591c4826eba6d25bb39",
+      "bytes": 6131385,
+      "publisher_sha256": "a8b43e5678fdb3000695bdaa573117ad683761e5ca38e591c4826eba6d25bb39"
+    },
+    {
+      "component": "PyOpenGL",
+      "version": "3.1.10",
+      "file": "pyopengl-3.1.10.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/6f/16/912b7225d56284859cd9a672827f18be43f8012f8b7b932bc4bd959a298e/pyopengl-3.1.10.tar.gz",
+      "sha256": "c4a02d6866b54eb119c8e9b3fb04fa835a95ab802dd96607ab4cdb0012df8335",
+      "bytes": 1915580,
+      "publisher_sha256": "c4a02d6866b54eb119c8e9b3fb04fa835a95ab802dd96607ab4cdb0012df8335"
+    },
+    {
+      "component": "Pillow",
+      "version": "12.3.0",
+      "file": "pillow-12.3.0.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/1c/3d/bb7fca845737cf9d7dbde16ed1843984665ff2e0a518f5db43e77ec540b9/pillow-12.3.0.tar.gz",
+      "sha256": "3b8182a766685eaa002637e28b4ec8d6b18819a0c71f579bf0dbaa5830297cce",
+      "bytes": 47025035,
+      "publisher_sha256": "3b8182a766685eaa002637e28b4ec8d6b18819a0c71f579bf0dbaa5830297cce"
+    },
+    {
+      "component": "pyinstaller",
+      "version": "6.22.3",
+      "file": "pyinstaller-6.22.3.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/63/41/f90302845945abd4ed647933ff5ee7c6ac93983187be67f897b6cb613331/pyinstaller-6.22.3.tar.gz",
+      "sha256": "05eb2f5615503e72939a7224d68b4aff572c6b0438ee4a17d0a4b481f399362d",
+      "bytes": 4437180,
+      "publisher_sha256": "05eb2f5615503e72939a7224d68b4aff572c6b0438ee4a17d0a4b481f399362d"
+    },
+    {
+      "file": "glfw-3.4.zip",
+      "url": "https://codeload.github.com/glfw/glfw/zip/refs/tags/3.4",
+      "sha256": "a133ddc3d3c66143eba9035621db8e0bcf34dba1ee9514a9e23e96afd39fd57a",
+      "bytes": 1048877,
+      "publisher_sha256": null
+    },
+    {
+      "file": "Python-3.13.12.tar.xz",
+      "url": "https://www.python.org/ftp/python/3.13.12/Python-3.13.12.tar.xz",
+      "sha256": "2a84cd31dd8d8ea8aaff75de66fc1b4b0127dd5799aa50a64ae9a313885b4593",
+      "bytes": 22926488,
+      "publisher_sha256": null
+    },
+    {
+      "file": "qtbase-everywhere-src-6.11.2.tar.xz",
+      "url": "https://download.qt.io/official_releases/qt/6.11/6.11.2/submodules/qtbase-everywhere-src-6.11.2.tar.xz",
+      "sha256": "5b2e00eccaf5a4d8c14134ffa0ea8dfd0a35ae1ffc7f8d87fa4305a1ed23cf22",
+      "bytes": 50582668,
+      "publisher_sha256": "5b2e00eccaf5a4d8c14134ffa0ea8dfd0a35ae1ffc7f8d87fa4305a1ed23cf22"
+    },
+    {
+      "file": "pyside-setup-everywhere-src-6.11.2.tar.xz",
+      "url": "https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.11.2-src/pyside-setup-everywhere-src-6.11.2.tar.xz",
+      "sha256": "cba47efbaad1bedd529725cbc14e21f156c7a19366f07b3edfbb076ffd7afdf8",
+      "bytes": 18053248,
+      "publisher_sha256": "cba47efbaad1bedd529725cbc14e21f156c7a19366f07b3edfbb076ffd7afdf8"
+    },
+    {
+      "file": "autocfg-1.5.0.crate",
+      "url": "https://static.crates.io/crates/autocfg/autocfg-1.5.0.crate",
+      "sha256": "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8",
+      "bytes": 18729,
+      "publisher_sha256": "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
+    },
+    {
+      "file": "cc-1.2.57.crate",
+      "url": "https://static.crates.io/crates/cc/cc-1.2.57.crate",
+      "sha256": "7a0dd1ca384932ff3641c8718a02769f1698e7563dc6974ffd03346116310423",
+      "bytes": 96188,
+      "publisher_sha256": "7a0dd1ca384932ff3641c8718a02769f1698e7563dc6974ffd03346116310423"
+    },
+    {
+      "file": "cfg-if-1.0.4.crate",
+      "url": "https://static.crates.io/crates/cfg-if/cfg-if-1.0.4.crate",
+      "sha256": "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801",
+      "bytes": 9360,
+      "publisher_sha256": "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
+    },
+    {
+      "file": "cozy-chess-0.3.4.crate",
+      "url": "https://static.crates.io/crates/cozy-chess/cozy-chess-0.3.4.crate",
+      "sha256": "27029a361056fc4f85ee27c02c8b3d219be061cb5ee95392541d4d5fc8aaff68",
+      "bytes": 538906,
+      "publisher_sha256": "27029a361056fc4f85ee27c02c8b3d219be061cb5ee95392541d4d5fc8aaff68"
+    },
+    {
+      "file": "cozy-chess-types-0.2.2.crate",
+      "url": "https://static.crates.io/crates/cozy-chess-types/cozy-chess-types-0.2.2.crate",
+      "sha256": "276b4804775347af35852c80665ad23d62a9ee742a14656e7da6a7b1cee74ee9",
+      "bytes": 12084,
+      "publisher_sha256": "276b4804775347af35852c80665ad23d62a9ee742a14656e7da6a7b1cee74ee9"
+    },
+    {
+      "file": "find-msvc-tools-0.1.9.crate",
+      "url": "https://static.crates.io/crates/find-msvc-tools/find-msvc-tools-0.1.9.crate",
+      "sha256": "5baebc0774151f905a1a2cc41989300b1e6fbb29aff0ceffa1064fdd3088d582",
+      "bytes": 31493,
+      "publisher_sha256": "5baebc0774151f905a1a2cc41989300b1e6fbb29aff0ceffa1064fdd3088d582"
+    },
+    {
+      "file": "heck-0.5.0.crate",
+      "url": "https://static.crates.io/crates/heck/heck-0.5.0.crate",
+      "sha256": "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea",
+      "bytes": 11517,
+      "publisher_sha256": "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+    },
+    {
+      "file": "indoc-2.0.7.crate",
+      "url": "https://static.crates.io/crates/indoc/indoc-2.0.7.crate",
+      "sha256": "79cf5c93f93228cf8efb3ba362535fb11199ac548a09ce117c9b1adc3030d706",
+      "bytes": 17184,
+      "publisher_sha256": "79cf5c93f93228cf8efb3ba362535fb11199ac548a09ce117c9b1adc3030d706"
+    },
+    {
+      "file": "libc-0.2.183.crate",
+      "url": "https://static.crates.io/crates/libc/libc-0.2.183.crate",
+      "sha256": "b5b646652bf6661599e1da8901b3b9522896f01e736bad5f723fe7a3a27f899d",
+      "bytes": 816918,
+      "publisher_sha256": "b5b646652bf6661599e1da8901b3b9522896f01e736bad5f723fe7a3a27f899d"
+    },
+    {
+      "file": "memoffset-0.9.1.crate",
+      "url": "https://static.crates.io/crates/memoffset/memoffset-0.9.1.crate",
+      "sha256": "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a",
+      "bytes": 9032,
+      "publisher_sha256": "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
+    },
+    {
+      "file": "once_cell-1.21.4.crate",
+      "url": "https://static.crates.io/crates/once_cell/once_cell-1.21.4.crate",
+      "sha256": "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50",
+      "bytes": 35010,
+      "publisher_sha256": "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
+    },
+    {
+      "file": "portable-atomic-1.13.1.crate",
+      "url": "https://static.crates.io/crates/portable-atomic/portable-atomic-1.13.1.crate",
+      "sha256": "c33a9471896f1c69cecef8d20cbe2f7accd12527ce60845ff44c153bb2a21b49",
+      "bytes": 197001,
+      "publisher_sha256": "c33a9471896f1c69cecef8d20cbe2f7accd12527ce60845ff44c153bb2a21b49"
+    },
+    {
+      "file": "proc-macro2-1.0.106.crate",
+      "url": "https://static.crates.io/crates/proc-macro2/proc-macro2-1.0.106.crate",
+      "sha256": "8fd00f0bb2e90d81d1044c2b32617f68fcb9fa3bb7640c23e9c748e53fb30934",
+      "bytes": 59765,
+      "publisher_sha256": "8fd00f0bb2e90d81d1044c2b32617f68fcb9fa3bb7640c23e9c748e53fb30934"
+    },
+    {
+      "file": "pyo3-0.23.5.crate",
+      "url": "https://static.crates.io/crates/pyo3/pyo3-0.23.5.crate",
+      "sha256": "7778bffd85cf38175ac1f545509665d0b9b92a198ca7941f131f85f7a4f9a872",
+      "bytes": 1088533,
+      "publisher_sha256": "7778bffd85cf38175ac1f545509665d0b9b92a198ca7941f131f85f7a4f9a872"
+    },
+    {
+      "file": "pyo3-build-config-0.23.5.crate",
+      "url": "https://static.crates.io/crates/pyo3-build-config/pyo3-build-config-0.23.5.crate",
+      "sha256": "94f6cbe86ef3bf18998d9df6e0f3fc1050a8c5efa409bf712e661a4366e010fb",
+      "bytes": 33885,
+      "publisher_sha256": "94f6cbe86ef3bf18998d9df6e0f3fc1050a8c5efa409bf712e661a4366e010fb"
+    },
+    {
+      "file": "pyo3-ffi-0.23.5.crate",
+      "url": "https://static.crates.io/crates/pyo3-ffi/pyo3-ffi-0.23.5.crate",
+      "sha256": "e9f1b4c431c0bb1c8fb0a338709859eed0d030ff6daa34368d3b152a63dfdd8d",
+      "bytes": 74867,
+      "publisher_sha256": "e9f1b4c431c0bb1c8fb0a338709859eed0d030ff6daa34368d3b152a63dfdd8d"
+    },
+    {
+      "file": "pyo3-macros-0.23.5.crate",
+      "url": "https://static.crates.io/crates/pyo3-macros/pyo3-macros-0.23.5.crate",
+      "sha256": "fbc2201328f63c4710f68abdf653c89d8dbc2858b88c5d88b0ff38a75288a9da",
+      "bytes": 8856,
+      "publisher_sha256": "fbc2201328f63c4710f68abdf653c89d8dbc2858b88c5d88b0ff38a75288a9da"
+    },
+    {
+      "file": "pyo3-macros-backend-0.23.5.crate",
+      "url": "https://static.crates.io/crates/pyo3-macros-backend/pyo3-macros-backend-0.23.5.crate",
+      "sha256": "fca6726ad0f3da9c9de093d6f116a93c1a38e417ed73bf138472cf4064f72028",
+      "bytes": 70938,
+      "publisher_sha256": "fca6726ad0f3da9c9de093d6f116a93c1a38e417ed73bf138472cf4064f72028"
+    },
+    {
+      "file": "python3-dll-a-0.2.14.crate",
+      "url": "https://static.crates.io/crates/python3-dll-a/python3-dll-a-0.2.14.crate",
+      "sha256": "d381ef313ae70b4da5f95f8a4de773c6aa5cd28f73adec4b4a31df70b66780d8",
+      "bytes": 103489,
+      "publisher_sha256": "d381ef313ae70b4da5f95f8a4de773c6aa5cd28f73adec4b4a31df70b66780d8"
+    },
+    {
+      "file": "quote-1.0.45.crate",
+      "url": "https://static.crates.io/crates/quote/quote-1.0.45.crate",
+      "sha256": "41f2619966050689382d2b44f664f4bc593e129785a36d6ee376ddf37259b924",
+      "bytes": 31564,
+      "publisher_sha256": "41f2619966050689382d2b44f664f4bc593e129785a36d6ee376ddf37259b924"
+    },
+    {
+      "file": "rustversion-1.0.22.crate",
+      "url": "https://static.crates.io/crates/rustversion/rustversion-1.0.22.crate",
+      "sha256": "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d",
+      "bytes": 21096,
+      "publisher_sha256": "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
+    },
+    {
+      "file": "shlex-1.3.0.crate",
+      "url": "https://static.crates.io/crates/shlex/shlex-1.3.0.crate",
+      "sha256": "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64",
+      "bytes": 18713,
+      "publisher_sha256": "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
+    },
+    {
+      "file": "syn-2.0.117.crate",
+      "url": "https://static.crates.io/crates/syn/syn-2.0.117.crate",
+      "sha256": "e665b8803e7b1d2a727f4023456bbbbe74da67099c585258af0ad9c5013b9b99",
+      "bytes": 306011,
+      "publisher_sha256": "e665b8803e7b1d2a727f4023456bbbbe74da67099c585258af0ad9c5013b9b99"
+    },
+    {
+      "file": "target-lexicon-0.12.16.crate",
+      "url": "https://static.crates.io/crates/target-lexicon/target-lexicon-0.12.16.crate",
+      "sha256": "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1",
+      "bytes": 26488,
+      "publisher_sha256": "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
+    },
+    {
+      "file": "unicode-ident-1.0.24.crate",
+      "url": "https://static.crates.io/crates/unicode-ident/unicode-ident-1.0.24.crate",
+      "sha256": "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75",
+      "bytes": 49298,
+      "publisher_sha256": "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+    },
+    {
+      "file": "unindent-0.2.4.crate",
+      "url": "https://static.crates.io/crates/unindent/unindent-0.2.4.crate",
+      "sha256": "7264e107f553ccae879d21fbea1d6724ac785e8c3bfc762137959b5802826ef3",
+      "bytes": 7422,
+      "publisher_sha256": "7264e107f553ccae879d21fbea1d6724ac785e8c3bfc762137959b5802826ef3"
+    },
+    {
+      "file": "pillow-12.3.0-upstream.zip",
+      "url": "https://codeload.github.com/python-pillow/Pillow/zip/refs/tags/12.3.0",
+      "sha256": "6b3902524b085efc62589cd3010b1a5ed2005711fb606c136cb17f02396308e4",
+      "bytes": 47933283,
+      "publisher_sha256": null
+    },
+    {
+      "file": "stockfish-sf_19.zip",
+      "url": "https://codeload.github.com/official-stockfish/Stockfish/zip/refs/tags/sf_19",
+      "sha256": "024a509d7af387218bd59c559473a71a1d6b411885010543891495119a671119",
+      "bytes": 373314,
+      "publisher_sha256": null
+    },
+    {
+      "file": "tcl-core-8.6.15.0.zip",
+      "url": "https://codeload.github.com/python/cpython-source-deps/zip/refs/tags/tcl-core-8.6.15.0",
+      "sha256": "ecccfad8ff6816da27d1cce42d1e2b8f4a04d18d5c380381ef2fbfc7e5cbad17",
+      "bytes": 13184370,
+      "publisher_sha256": null
+    },
+    {
+      "file": "tk-8.6.15.0.zip",
+      "url": "https://codeload.github.com/python/cpython-source-deps/zip/refs/tags/tk-8.6.15.0",
+      "sha256": "6bd04509ed8acb639ede6d9550c3f221a68b76bf4a7165e8b25beec94da9c233",
+      "bytes": 5128559,
+      "publisher_sha256": null
+    },
+    {
+      "file": "openssl-3.0.18.zip",
+      "url": "https://codeload.github.com/python/cpython-source-deps/zip/refs/tags/openssl-3.0.18",
+      "sha256": "0bfe9ce9522cc57fdda53dbef31323a124ac2a3e9fa19f960742e2492d7f03bb",
+      "bytes": 18422017,
+      "publisher_sha256": null
+    },
+    {
+      "file": "bzip2-1.0.8.zip",
+      "url": "https://codeload.github.com/python/cpython-source-deps/zip/refs/tags/bzip2-1.0.8",
+      "sha256": "12c17d15f99e27235529574a722fb484a4e8fdf2427cef53b1b68bdf07e404a9",
+      "bytes": 831543,
+      "publisher_sha256": null
+    },
+    {
+      "file": "xz-5.2.5.zip",
+      "url": "https://codeload.github.com/python/cpython-source-deps/zip/refs/tags/xz-5.2.5",
+      "sha256": "6a4389cc05143beb2679b1299cecee71b02baa55e70f68a88b44dc01ad495424",
+      "bytes": 2054244,
+      "publisher_sha256": null
+    },
+    {
+      "file": "libffi-3.4.4.zip",
+      "url": "https://codeload.github.com/python/cpython-source-deps/zip/refs/tags/libffi-3.4.4",
+      "sha256": "952ebc3eefca445c2a8620d93122fee40993698014843d52a978d81c2889a024",
+      "bytes": 1725558,
+      "publisher_sha256": null
+    },
+    {
+      "file": "zlib-1.3.1.zip",
+      "url": "https://codeload.github.com/python/cpython-source-deps/zip/refs/tags/zlib-1.3.1",
+      "sha256": "a8f166f0f819ff084042554f39d763c41de5f19f8e9cdc68bc3e7f373cfba036",
+      "bytes": 1716327,
+      "publisher_sha256": null
+    },
+    {
+      "file": "brotli-1.2.0.zip",
+      "url": "https://codeload.github.com/google/brotli/zip/refs/tags/v1.2.0",
+      "sha256": "391cdd24ba8839ca179ddebe860ae0950f72a2e8a38edfc5e8aadbc60b78f2be",
+      "bytes": 728187,
+      "publisher_sha256": null
+    },
+    {
+      "file": "freetype-2.14.3.tar.xz",
+      "url": "https://download.savannah.gnu.org/releases/freetype/freetype-2.14.3.tar.xz",
+      "sha256": "36bc4f1cc413335368ee656c42afca65c5a3987e8768cc28cf11ba775e785a5f",
+      "bytes": 2670220,
+      "publisher_sha256": null
+    },
+    {
+      "file": "harfbuzz-14.2.1.zip",
+      "url": "https://codeload.github.com/harfbuzz/harfbuzz/zip/refs/tags/14.2.1",
+      "sha256": "8ddcc5b485b4d7ffe40ef58a13faacc207b74752aec9908ddadf99bc47e0dc40",
+      "bytes": 41740552,
+      "publisher_sha256": null
+    },
+    {
+      "file": "lcms2-2.19.1.zip",
+      "url": "https://codeload.github.com/mm2/Little-CMS/zip/refs/tags/lcms2.19.1",
+      "sha256": "8b7fdc5a708d9f5f41baeecafd2c32b993f0614448f2533eea5deaf841ea1c78",
+      "bytes": 5950451,
+      "publisher_sha256": null
+    },
+    {
+      "file": "libavif-1.4.2.zip",
+      "url": "https://codeload.github.com/AOMediaCodec/libavif/zip/refs/tags/v1.4.2",
+      "sha256": "79b6ed913a5f573e6c5c85721bb3046231df48c9743a7f4c3f5146ed0c1c06d0",
+      "bytes": 14910189,
+      "publisher_sha256": null
+    },
+    {
+      "file": "libjpeg-turbo-3.1.4.1.zip",
+      "url": "https://codeload.github.com/libjpeg-turbo/libjpeg-turbo/zip/refs/tags/3.1.4.1",
+      "sha256": "fa97d1e967038387e4b0b974e425e5fe11c7e8729e12247555da0aec846c9764",
+      "bytes": 3013587,
+      "publisher_sha256": null
+    },
+    {
+      "file": "libpng-1.6.58.zip",
+      "url": "https://codeload.github.com/pnggroup/libpng/zip/refs/tags/v1.6.58",
+      "sha256": "ad8fc23d75a76f352989bbec9e905bdfe8f2d2e77b32e4f2070a4bb1849802ee",
+      "bytes": 1887615,
+      "publisher_sha256": null
+    },
+    {
+      "file": "libwebp-1.6.0.tar.gz",
+      "url": "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.6.0.tar.gz",
+      "sha256": "e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564",
+      "bytes": 4296070,
+      "publisher_sha256": null
+    },
+    {
+      "file": "openjpeg-2.5.4.zip",
+      "url": "https://codeload.github.com/uclouvain/openjpeg/zip/refs/tags/v2.5.4",
+      "sha256": "1048d084b89ac1587e3b0dca00b863a757fed2bc1804c6355eb4bce9090356b7",
+      "bytes": 2492624,
+      "publisher_sha256": null
+    },
+    {
+      "file": "tiff-4.7.1.tar.gz",
+      "url": "https://download.osgeo.org/libtiff/tiff-4.7.1.tar.gz",
+      "sha256": "f698d94f3103da8ca7438d84e0344e453fe0ba3b7486e04c5bf7a9a3fabe9b69",
+      "bytes": 4000609,
+      "publisher_sha256": null
+    },
+    {
+      "file": "xz-5.8.3.zip",
+      "url": "https://codeload.github.com/tukaani-project/xz/zip/refs/tags/v5.8.3",
+      "sha256": "82d1048994fae45639ed27a9b445eba57ab873023afd87d97ceadcb68b6d2970",
+      "bytes": 1894041,
+      "publisher_sha256": null
+    },
+    {
+      "file": "zlib-ng-2.3.3.zip",
+      "url": "https://codeload.github.com/zlib-ng/zlib-ng/zip/refs/tags/2.3.3",
+      "sha256": "5b01369b98c951d79b8aec0dcd74ad539db13d9d333366cd3ba0d20743ee90b0",
+      "bytes": 2596783,
+      "publisher_sha256": null
+    },
+    {
+      "file": "mpdecimal-4.0.0.zip",
+      "url": "https://codeload.github.com/python/cpython-source-deps/zip/refs/tags/mpdecimal-4.0.0",
+      "sha256": "270f5fbee4cc02f6ebe28d5be9c4e1268696bff9ead14d1e7f674e2eef759a07",
+      "bytes": 406042,
+      "publisher_sha256": null
+    },
+    {
+      "file": "nn-1a298aa575a0.nnue",
+      "url": "https://media.githubusercontent.com/media/official-stockfish/networks/master/nn-1a298aa575a0.nnue",
+      "sha256": "1a298aa575a085434d29027978dc36867fe9c5bcea9376654b7a8eba1e52dfc2",
+      "publisher_sha256": "1a298aa575a085434d29027978dc36867fe9c5bcea9376654b7a8eba1e52dfc2",
+      "bytes": 98511183,
+      "evidence": "Official networks Git LFS SHA-256; README explicitly CC0"
+    },
+    {
+      "file": "scifi_chess.blend",
+      "url": "https://opengameart.org/sites/default/files/scifi_chess.blend",
+      "sha256": "96c7188559b9e9af9cd28b6a6139a715117491fd176ca34d180cd3b5b0bfbfc4",
+      "bytes": 3652628,
+      "evidence": "Retained original import source; upstream licence confirmed"
+    },
+    {
+      "file": "chess-art-original.zip",
+      "url": "https://codeload.github.com/maurimo/chess-art/zip/refs/heads/main",
+      "sha256": "2c3e1b4d16e2572d9f34df246f60c0adf857d780e5bc8f2101134d36182cf698",
+      "bytes": 1307765,
+      "evidence": "Retained original import source; upstream licence confirmed",
+      "archive_comment": "d8705d8bc9879fef44208de19e2a20c937409e1f"
+    },
+    {
+      "file": "chessnut-original.zip",
+      "url": "https://codeload.github.com/LexLuengas/chessnut-pieces/zip/refs/heads/master",
+      "sha256": "1aea0c19bb8277eb8cb713acf5555fcfc111b741e8c162c8a84f25bf1c801497",
+      "bytes": 55409,
+      "evidence": "Retained original import source; upstream licence confirmed",
+      "archive_comment": "2b8eaf14a31edad7e9deb53b1473e1d4857868a9"
+    },
+    {
+      "file": "firi-original.zip",
+      "url": "https://codeload.github.com/jfaure/Firi-pieceset/zip/refs/heads/main",
+      "sha256": "97248d9dd1a74d0241a1fdce427f1779afc12fd7f1957ad0097c46085100c48c",
+      "bytes": 23173310,
+      "evidence": "Retained original import source; upstream licence confirmed",
+      "archive_comment": "96601832ed6b8cde006ef15d60d3933bc5e0dc75"
+    },
+    {
+      "file": "staunton-original-stl.zip",
+      "url": null,
+      "source_page": "https://github.com/clarkerubber/Staunton-Pieces",
+      "sha256": "e7514436e58fecab04a0016895e8479da56649e4409a4df74fe864411601ce96",
+      "bytes": 2745782,
+      "evidence": "Locally packaged original imported STL files with unchanged MIT notice; supplied inside dependency source bundle"
+    },
+    {
+      "file": "libaom-3.14.1.tar.gz",
+      "url": "https://aomedia.googlesource.com/aom/+archive/refs/tags/v3.14.1.tar.gz",
+      "sha256": "3118c54af3423bc09464398ae3397625a7102a0ac5ddd42603da53a295b4855c",
+      "bytes": 6436740,
+      "publisher_sha256": null
+    },
+    {
+      "file": "dav1d-1.5.3.tar.gz",
+      "url": "https://code.videolan.org/videolan/dav1d/-/archive/1.5.3/dav1d-1.5.3.tar.gz",
+      "sha256": "cbe212b02faf8c6eed5b6d55ef8a6e363aaab83f15112e960701a9c3df813686",
+      "bytes": 1713950,
+      "publisher_sha256": null
+    },
+    {
+      "component": "libyuv",
+      "version": "644251f252a84bf8ce91ff0aca86a9b16b069ab8",
+      "file": "libyuv-644251f25.tar.gz",
+      "url": null,
+      "upstream_git": "https://chromium.googlesource.com/libyuv/libyuv",
+      "sha256": "b2d5ad4d8ecc0a713f0f7cc7ea0bd99c04efdfdc01da7f2280b62505856fed90",
+      "bytes": 594029,
+      "verification": "git archive of exact official Git commit; archive endpoint unavailable",
+      "reproduction": "git archive --format=tar.gz --prefix=libyuv-644251f25/ 644251f252a84bf8ce91ff0aca86a9b16b069ab8"
+    },
+    {
+      "file": "mesa-11.2.2.tar.xz",
+      "url": "https://archive.mesa3d.org/older-versions/11.x/11.2.2/mesa-11.2.2.tar.xz",
+      "sha256": "40e148812388ec7c6d7b6657d5a16e2e8dabba8b97ddfceea5197947647bdfb4",
+      "bytes": 7860932,
+      "publisher_sha256": "40e148812388ec7c6d7b6657d5a16e2e8dabba8b97ddfceea5197947647bdfb4",
+      "verification": "Upstream version source; exact Qt patches remain unverified"
+    },
+    {
+      "file": "llvm-3.6.2.src.tar.xz",
+      "url": "https://releases.llvm.org/3.6.2/llvm-3.6.2.src.tar.xz",
+      "sha256": "f60dc158bfda6822de167e87275848969f0558b3134892ff54fced87e4667b94",
+      "bytes": 12802380,
+      "publisher_sha256": null,
+      "verification": "Upstream version source; exact Qt patches remain unverified"
+    },
+    {
+      "component": "Fairy-Stockfish",
+      "version": "14",
+      "file": "fairy-stockfish-14.zip",
+      "url": "https://codeload.github.com/fairy-stockfish/Fairy-Stockfish/zip/refs/tags/fairy_sf_14",
+      "sha256": "ba21ae5681cfa365293abe34301e7e645f3ce6a49db00d42cf2830585879e2d8",
+      "bytes": 391723,
+      "publisher_sha256": null
+    }
+  ],
+  "remaining_issues": [
+    "Microsoft VS Community section 4 downstream agreement requirement and itch.io section 4 publisher grant need scoped qualified review; individual licence basis confirmed.",
+    "Clean Windows validation pending: maintainer confirms no machine yet available. Include fresh/prior runtime branches and listening confirmation.",
+    "PUBLICATION PREREQUISITE: publish exact free release archives and verify signed-out downloads and hashes; no publication authorized."
+  ]
+}

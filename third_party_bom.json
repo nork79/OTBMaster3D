@@ -158,7 +158,7 @@
       "version": "1.11.2",
       "apparent_license": "GPL-3.0+",
       "category": "runtime",
-      "redistribution": "NO: replace before proprietary release",
+      "redistribution": "yes; GPL-3.0-or-later dependency, preserve notices and matching source",
       "source": "https://python-chess.readthedocs.io/en/stable/",
       "evidence": "installed distribution metadata; selected licence route requires review",
       "license_files": [
@@ -431,24 +431,19 @@
       ]
     },
     {
-      "name": "Lc0 CPU runtime",
-      "version": "0.32.1",
+      "name": "Fairy-Stockfish",
+      "version": "14",
       "apparent_license": "GPL-3.0-or-later",
       "category": "engine",
       "redistribution": "intended",
-      "source": "https://github.com/LeelaChessZero/lc0/tree/v0.32.1",
-      "evidence": "Official Windows OpenBLAS release, verified against GitHub SHA-256; bundled COPYING and runtime notices in engines/maia.",
-      "license_files": []
-    },
-    {
-      "name": "Maia human-move models",
-      "version": "v1.0 (1100, 1300, 1400, 1500, 1600, 1800)",
-      "apparent_license": "GPL repository; model-specific terms require release review",
-      "category": "engine",
-      "redistribution": "intended",
-      "source": "https://github.com/CSSLab/maia-chess",
-      "evidence": "Official release model files. Repository GPL licence included as engines/maia/Maia-LICENSE.txt. Training rating is not calibrated engine Elo.",
-      "license_files": []
+      "source": "https://github.com/fairy-stockfish/Fairy-Stockfish/tree/fairy_sf_14",
+      "evidence": "docs/licensing/evidence/fairy-stockfish-verification.json",
+      "license_files": [
+        {
+          "path": "licenses/Fairy-Stockfish/Copying.txt",
+          "sha256": "0b383d5a63da644f628d99c33976ea6487ed89aaa59f0b3257992deac1171e6b"
+        }
+      ]
     }
   ],
   "imports": [

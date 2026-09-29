@@ -1,25 +1,29 @@
-# Stockfish setup
+# Supported engines
 
-Run `python tools/install_stockfish.py` from the project folder to download and
-verify the pinned release. The downloaded engine directory is ignored by Git.
-The script preserves the original source, build scripts and GPL licence.
+OTBMaster3D uses Stockfish 19 and Fairy-Stockfish 14 for standard chess.
+Run these commands from the project folder with Python 3.13:
 
-Stockfish 19, official Windows x86-64 universal release:
-https://github.com/official-stockfish/Stockfish/releases/tag/sf_19
+```powershell
+python tools/install_stockfish.py
+python tools/install_fairy_stockfish.py
+```
 
-Downloaded 2026-09-18 from:
-https://github.com/official-stockfish/Stockfish/releases/download/sf_19/stockfish-windows-x86-64-universal.zip
+Both helpers download pinned official releases and retain corresponding source,
+build scripts, authors and GPL notices. Generated engine directories are ignored
+by Git. Fairy-Stockfish runs with NNUE disabled and needs no model files.
 
-The original release contents are preserved under `stockfish-19/stockfish/`,
-including `Copying.txt` (GPLv3), AUTHORS, source, build scripts, and documentation.
-Upstream source: https://github.com/official-stockfish/Stockfish/tree/sf_19
-The universal executable selects instructions appropriate for the CPU.
+## Difficulties
 
-The app discovers this executable recursively and uses it as the initial engine.
-Users can select another UCI executable, whose path is then remembered.
+Fairy-Stockfish provides targets 500, 600, 700, 800, 900, 1100, 1300, 1400 and
+1500. Stockfish provides 1600, 1700, 1800, 1900, 2000, 2200, 2500 and full
+strength. These are engine settings, not certified human Elo ratings.
+Both selectors hide levels whose executable is unavailable. Menu labels describe
+difficulty without including engine brand names.
 
-## Difficulty presets
+Saved selections with unsupported IDs reset to the default engine. Unsupported
+bookmark engine configurations remain stored, but are not launched. A working
+engine is retained if restoring a bookmark engine fails.
 
-Use **Engine > Difficulty** or the Difficulty selector in engine settings. Maia runs locally on CPU through Lc0 with a one-node limit. Presets use Maia 1100/1300/1400/1500/1600/1800; the 300/600/900 practice levels add random legal mistakes (80%/55%/30%) to Maia 1100 and are uncalibrated labels. Stockfish handles 2000, 2200, 2500 and full strength. All ratings are approximate and model training ratings are not measured playing strength. Presets disable opening books and use Balanced style.
-
-Install/reproduce Maia assets with `.venv/Scripts/python.exe tools/install_maia.py`. Lc0 archive version and checksum are pinned in the installer; downloaded model hashes are recorded in `maia/installation.json`. Saved difficulty and engine paths are restored at launch. Choose Custom settings for a different UCI engine or opening book.
+Sources: [Stockfish 19](https://github.com/official-stockfish/Stockfish/tree/sf_19)
+and [Fairy-Stockfish 14](https://github.com/fairy-stockfish/Fairy-Stockfish/tree/fairy_sf_14).
+See [component evidence](../docs/licensing/FAIRY_STOCKFISH.md).

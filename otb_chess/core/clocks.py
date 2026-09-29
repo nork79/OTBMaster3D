@@ -15,13 +15,17 @@ class ClockControls:
     is created here: the UI calls update_clock from its event loop.
     """
 
+    clocks_disabled = False
+
     def clocks_editable(self):
-        return not self.game_over and (self.clock_paused or self.clocks_waiting_for_first_move())
+        return not self.clocks_disabled and not self.game_over and (self.clock_paused or self.clocks_waiting_for_first_move())
 
     def clocks_waiting_for_first_move(self):
         return not self.game_over and not self.board.move_stack and self._review_live is None
 
     def hit_clock(self):
+        if self.clocks_disabled:
+            return
         if (
             self.clock_mode != "OTB"
             or not self.game_started
@@ -82,6 +86,7 @@ class ClockControls:
             return
 
         self.white_time = time_control.initial_seconds
+        self.clocks_disabled = time_control.name == 'Infinite (clocks disabled)'
         self.black_time = time_control.initial_seconds
         self.increment = time_control.increment_seconds
         self.active_clock_color = chess.WHITE
@@ -95,7 +100,7 @@ class ClockControls:
 
     def update_clock(self):
         now = time.perf_counter()
-        if not self.game_started or self.game_over or self.clock_paused or not self.board.move_stack:
+        if self.clocks_disabled or not self.game_started or self.game_over or self.clock_paused or not self.board.move_stack:
             self.last_clock_tick = now
             return
         e = now - self.last_clock_tick

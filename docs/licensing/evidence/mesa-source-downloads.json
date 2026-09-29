@@ -1,0 +1,18 @@
+[
+  {
+    "file": "mesa-11.2.2.tar.xz",
+    "url": "https://archive.mesa3d.org/older-versions/11.x/11.2.2/mesa-11.2.2.tar.xz",
+    "sha256": "40e148812388ec7c6d7b6657d5a16e2e8dabba8b97ddfceea5197947647bdfb4",
+    "bytes": 7860932,
+    "publisher_sha256": "40e148812388ec7c6d7b6657d5a16e2e8dabba8b97ddfceea5197947647bdfb4",
+    "verification": "Upstream version source; exact Qt patches remain unverified"
+  },
+  {
+    "file": "llvm-3.6.2.src.tar.xz",
+    "url": "https://releases.llvm.org/3.6.2/llvm-3.6.2.src.tar.xz",
+    "sha256": "f60dc158bfda6822de167e87275848969f0558b3134892ff54fced87e4667b94",
+    "bytes": 12802380,
+    "publisher_sha256": null,
+    "verification": "Upstream version source; exact Qt patches remain unverified"
+  }
+]

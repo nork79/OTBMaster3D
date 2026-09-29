@@ -15,7 +15,7 @@ import math
 import random
 import time
 from otb_chess.services.settings import DEFAULT_BACKGROUND, HEIGHT, PIECE_DIR, TIME_CONTROLS, WIDTH, ensure_dirs, load_config
-from otb_chess.services.audio import ensure_sounds, play_sound, SOUND_PROFILES, DEFAULT_SOUND_PROFILE
+from otb_chess.services.audio import ensure_sounds, play_sound, prepare_sounds, SOUND_PROFILES, DEFAULT_SOUND_PROFILE
 from otb_chess.graphics.gl_primitives import setup_gl
 from otb_chess.services.engine import EngineManager
 from otb_chess.graphics.rendering import BoardRendering
@@ -107,6 +107,8 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.sound_profile = self.cfg.get("sound_profile", DEFAULT_SOUND_PROFILE)
         if self.sound_profile not in SOUND_PROFILES:
             self.sound_profile = DEFAULT_SOUND_PROFILE
+        if self.sound_enabled:
+            prepare_sounds(self.sound_profile)
         self.yaw = float(self.cfg.get("camera_yaw", 0.0))
         self._three_d_facing = self.cfg.get("three_d_facing")
         if self._three_d_facing not in ("white", "black"):
@@ -130,6 +132,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             setattr(self, "sound_" + event, path)
         tc = TIME_CONTROLS.get(self.cfg["time_control"], TIME_CONTROLS["Bullet 1+0"])
         self.white_time = tc.initial_seconds
+        self.clocks_disabled = tc.name == 'Infinite (clocks disabled)'
         self.black_time = tc.initial_seconds
         self.increment = tc.increment_seconds
         self.active_clock_color = chess.WHITE
@@ -230,7 +233,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         if self.game_started:
             if len(self.board.move_stack) == 1:
                 self.last_clock_tick = time.perf_counter()
-            if self.clock_mode == "OTB" and not is_engine and self.engine_enabled:
+            if self.clock_mode == "OTB" and not self.clocks_disabled and not is_engine and self.engine_enabled:
                 self.awaiting_clock_press = True
                 self.awaiting_clock_color = mover
                 self.active_clock_color = mover
@@ -288,6 +291,16 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.move_animation = None
         self.cancel_selection()
         self.engine_side = not self.engine_side
+        if not self.board.move_stack and self._pgn_document is not None:
+            from dataclasses import replace
+            headers = dict(self._pgn_document.headers)
+            for white, black in (('White', 'Black'), ('WhiteElo', 'BlackElo')):
+                old_white, old_black = headers.pop(white, None), headers.pop(black, None)
+                if old_black is not None:
+                    headers[white] = old_black
+                if old_white is not None:
+                    headers[black] = old_white
+            self._pgn_document = replace(self._pgn_document, headers=headers)
         self.engine_side_var.set("White" if self.engine_side else "Black")
         self.last_clock_tick = time.perf_counter()
         self.result_text = "Sides switched - clocks paused"
@@ -334,6 +347,8 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.refresh_move_list()
 
     def start_game(self, starting_fen=None):
+        setup_details = (self.game_details() if self._pgn_document is not None
+                         and not self.game_started and not self.game_over and not self.board.move_stack else None)
         starting_position = ChessPosition(starting_fen) if starting_fen is not None else ChessPosition()
         if not starting_position.is_valid():
             raise ValueError("The starting position is not valid")
@@ -358,6 +373,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self._declared_result = None
         self.clock_history.clear()
         self.white_time = time_control.initial_seconds
+        self.clocks_disabled = time_control.name == 'Infinite (clocks disabled)'
         self.black_time = time_control.initial_seconds
         self.increment = time_control.increment_seconds
         self.active_clock_color = self.board.turn
@@ -377,6 +393,9 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.clock_mode = self.clock_mode_var.get()
         self.clock_binding = self.clock_binding_var.get()
         self.engine_side = requested_engine_side
+        self.initialize_game_details()
+        if setup_details is not None:
+            self.set_game_details(setup_details)
         self.book_path = self.book_var.get()
         self.play_game_sound(self.sound_game_start)
         self.refresh_move_list()
@@ -397,34 +416,6 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         if self.game_started and not self.game_over:
             self.result_text = "Draw offered"
 
-    def claim_draw(self, intended_move=None):
-        if self.game_over or self._review_live is not None:
-            return False
-        if (self.engine_enabled and self.game_started and self.engine_side == self.board.turn
-                and self.engine_manager.engine is not None):
-            self.result_text = "Only the player to move can claim a draw"
-            return False
-        if isinstance(intended_move, str):
-            try:
-                intended_move = self.position.parse_uci(intended_move.strip())
-            except ValueError:
-                self.result_text = "Enter a move such as e2e4 or a7a8q"
-                return False
-        reason = self.position.draw_claim_reason(intended_move)
-        if reason is None:
-            self.result_text = "No valid draw claim for this position or intended move"
-            return False
-        # Application lifecycle is separate from position.termination(): imported
-        # results, claims, resignation and timeout may finish a nonterminal board.
-        # TODO extraction: consolidate these flags in a game-session record.
-        self.game_started = False
-        self.game_over = True
-        self.awaiting_clock_press = False
-        self.awaiting_clock_color = None
-        self.result_text = reason
-        self._declared_result = '1/2-1/2'
-        self.play_game_sound(self.sound_game_end)
-        return True
 
     def pick_book_move(self):
         if self.cfg.get("engine_difficulty", "custom") != "custom":

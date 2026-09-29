@@ -34,38 +34,20 @@ def snapshot_history(board):
 
 
 def termination_reason(board):
-    """Automatic endings only; threefold and fifty moves require a claim."""
+    """Application endings, including automatic threefold and fifty-move draws."""
     if board.is_checkmate():
         return 'Checkmate'
     if board.is_stalemate():
         return 'Stalemate'
     if board.is_insufficient_material():
         return 'Draw - insufficient material'
-    if board.is_seventyfive_moves():
-        return 'Draw - seventy-five-move rule'
-    if board.is_fivefold_repetition():
-        return 'Draw - fivefold repetition'
-    return None
-
-
-def draw_claim_reason(board, intended_move=None):
-    """Validate a current-position claim or a specified, unplayed legal move.
-
-    The provider compares placement, turn, rights and legally available EP;
-    counters are not part of repetition identity. Never synthesize history.
-    """
-    if termination_reason(board) is not None:
-        return None
-    if intended_move is not None:
-        if intended_move not in board.legal_moves:
-            return None
-        board = board.copy()
-        board.push(intended_move)
     if board.is_fifty_moves():
         return 'Draw - fifty-move rule'
     if board.is_repetition(3):
         return 'Draw - threefold repetition'
     return None
+
+
 
 
 def restore_history(history):

@@ -116,7 +116,7 @@ class ChessPositionTests(unittest.TestCase):
             ('7k/6Q1/6K1/8/8/8/8/8 b - - 150 1', 'Checkmate', '1-0'),
             ('7k/5Q2/6K1/8/8/8/8/8 b - - 150 1', 'Stalemate', '1/2-1/2'),
             ('7k/8/8/8/8/8/8/K7 w - - 150 1', 'Draw - insufficient material', '1/2-1/2'),
-            ('7k/8/8/8/8/8/8/KR6 w - - 150 1', 'Draw - seventy-five-move rule', '1/2-1/2'),
+            ('7k/8/8/8/8/8/8/KR6 w - - 150 1', 'Draw - fifty-move rule', '1/2-1/2'),
         )
         for fen, reason, result in cases:
             with self.subTest(reason=reason):
@@ -125,36 +125,24 @@ class ChessPositionTests(unittest.TestCase):
                 self.assertEqual((ending.reason, ending.result), (reason, result))
                 self.assertEqual(position.is_checkmate(), reason == 'Checkmate')
                 self.assertEqual(position.is_stalemate(), reason == 'Stalemate')
-                self.assertIsNone(position.draw_claim_reason())
 
-    def test_threefold_claim_and_fivefold_automatic_after_history_roundtrip(self):
+    def test_threefold_automatic_after_history_roundtrip(self):
         position = play(ChessPosition(), CYCLE * 2)
         restored = ChessPosition.from_history(position.history())
         self.assertTrue(restored.is_repetition())
-        self.assertIsNone(restored.termination())
-        self.assertEqual(restored.draw_claim_reason(), 'Draw - threefold repetition')
+        self.assertEqual(restored.termination().reason, 'Draw - threefold repetition')
         play(restored, CYCLE * 2)
-        self.assertEqual(restored.termination().reason, 'Draw - fivefold repetition')
+        self.assertEqual(restored.termination().reason, 'Draw - threefold repetition')
         self.assertEqual(restored.termination().result, '1/2-1/2')
 
-    def test_intended_claim_is_non_mutating_and_not_early(self):
-        position = play(ChessPosition(), CYCLE + CYCLE[:3])
-        before = position.history()
-        self.assertIsNone(position.draw_claim_reason())
-        self.assertIsNone(position.draw_claim_reason(position.parse_uci('b8c6')))
-        self.assertIsNone(position.draw_claim_reason(position.parse_uci('e7e4')))
-        self.assertEqual(position.draw_claim_reason(position.parse_uci('f6g8')), 'Draw - threefold repetition')
-        self.assertEqual(position.history(), before)
 
-    def test_fifty_moves_requires_claim_and_preserves_counter(self):
+    def test_fifty_moves_is_automatic_after_actual_move(self):
         position = ChessPosition('7k/8/8/8/8/8/8/KR6 w - - 99 1')
         before = position.history()
-        self.assertIsNone(position.draw_claim_reason())
-        self.assertEqual(position.draw_claim_reason(position.parse_uci('b1b2')), 'Draw - fifty-move rule')
+        self.assertIsNone(position.termination())
         self.assertEqual(position.history(), before)
         position.apply(position.parse_uci('b1b2'))
-        self.assertIsNone(position.termination())
-        self.assertEqual(position.draw_claim_reason(), 'Draw - fifty-move rule')
+        self.assertEqual(position.termination().reason, 'Draw - fifty-move rule')
 
     def test_repetition_distinguishes_only_legal_ep_and_castling_rights(self):
         for placement, repeated in (

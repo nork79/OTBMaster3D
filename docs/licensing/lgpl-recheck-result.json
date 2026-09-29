@@ -1,0 +1,113 @@
+{
+  "scope": "Byte-distinct PE overlays; no native source rebuild",
+  "replacements": [
+    {
+      "path": "PySide6/opengl32sw.dll",
+      "original_sha256": "34b444c016289b560662ff896deceb7f4b2c0723aed3d319ae167c9186ce42b3",
+      "replacement_sha256": "266b29a413893c0a0f00554d8b2b684b0e18cb73b62b259991f92012ee0c8da9"
+    },
+    {
+      "path": "PySide6/plugins/imageformats/qico.dll",
+      "original_sha256": "1684fd56f1758167f7b3ac011264ae5859b3cf6113e381626ec3dc1d3122fe52",
+      "replacement_sha256": "c4fd3056dae535f10ac79f3dadbfd43849f4f0b7e077520f039634bb93409a6c"
+    },
+    {
+      "path": "PySide6/plugins/platforms/qwindows.dll",
+      "original_sha256": "bf6dbc3009f386fa22f0ced560bea6bbf3e0e0b4442d2fb855db67cffce49dbf",
+      "replacement_sha256": "82e1baad8277a2de69604258ba9275185469c583ba1afb22410122b7486f7a92"
+    },
+    {
+      "path": "PySide6/pyside6.abi3.dll",
+      "original_sha256": "d0b5c701fb3a8ea839e72b602058f3960935156ebeca084893c54c99e54dd707",
+      "replacement_sha256": "ea03576a6b5991728950b15507d9c7b943bee4c1f6c4793202065fc264353fd2"
+    },
+    {
+      "path": "PySide6/Qt6Core.dll",
+      "original_sha256": "d6a3c37c5263c5d418fc0e80b722bc9fca7c0859e6f635f9624a2fde00bdc653",
+      "replacement_sha256": "50f8843856f335524ad6aa0255282243f4ef096e22e26b64498cd6bedb6f9187"
+    },
+    {
+      "path": "PySide6/Qt6Gui.dll",
+      "original_sha256": "ae29b005f51b6850bf57fa06fced0dc8c7039fd6fafc3bfbcfe76e38adc7abf1",
+      "replacement_sha256": "a8bed90d74737d1a60815b100f2d68ef58b4743e3bb209644b5100fe9e857021"
+    },
+    {
+      "path": "PySide6/Qt6OpenGL.dll",
+      "original_sha256": "d51088f16db8c96dba7ef3c1474e611adb3ebdb211fea35b8e755d2a7407f7ad",
+      "replacement_sha256": "1b829726f52cc98d15694eb3708b0876e7c63a4825e7aef96c46fc6ca7409f9b"
+    },
+    {
+      "path": "PySide6/Qt6OpenGLWidgets.dll",
+      "original_sha256": "860cd7e95bb1c6acea2b7a15f863e322a26bcc7e100acf5aa737c891adb31f75",
+      "replacement_sha256": "579a594bab7ac9d64d374cd669786f70cdb480cabe474df8fbfa4b64da213c0a"
+    },
+    {
+      "path": "PySide6/Qt6Widgets.dll",
+      "original_sha256": "ff0df9e2e6827e035f0731a4cedfc6333f4602bca00775e56346f27032406b74",
+      "replacement_sha256": "347dc926426f064095360d24725fe3a87f447397cf2b6b4611485b461ab4613a"
+    },
+    {
+      "path": "PySide6/QtCore.pyd",
+      "original_sha256": "74f96322c5e9cea73aefd2ed5870e5275336b31f552fcd32f12fc81d23f1bc6f",
+      "replacement_sha256": "8d43c5232e224f186bb49fe76f98351d6c6d52911a2c443bc026f88e33b75c9b"
+    },
+    {
+      "path": "PySide6/QtGui.pyd",
+      "original_sha256": "7bef20046045199c037b7cbfedaa1c5464730fa948b2c9ec8afbf718e63774d4",
+      "replacement_sha256": "3aedb98a4aa7771a68b1c395ce2ba157772934b8811645dd8af55d5182c0d5f8"
+    },
+    {
+      "path": "PySide6/QtOpenGL.pyd",
+      "original_sha256": "645f5ffcdf31ada7a71bf40e9290ec0ca8afb125dfa0602ca7f10b624b3f1fd3",
+      "replacement_sha256": "67170a3c9d2cc0070aec9e5c06706ca85efd53a76ce1d6c9dfaee59f2b8a8fb7"
+    },
+    {
+      "path": "PySide6/QtOpenGLWidgets.pyd",
+      "original_sha256": "0b665e477a541900f9979d5f397a776bb9847fa68df3f7d65231365acf4e94bd",
+      "replacement_sha256": "cfc7475789c2c06e99b0b04c1cacca789fec1de12375cc0bb60f8c20f8226933"
+    },
+    {
+      "path": "PySide6/QtWidgets.pyd",
+      "original_sha256": "f12f4ca641998e5706d5f7b0023147d573f0f2d2361e26dadf31bdbf05fbfd1d",
+      "replacement_sha256": "690bc8f749266e6e74604c30550fff844f498a18a4e45fd9a54e29a0b6b1da77"
+    },
+    {
+      "path": "shiboken6/Shiboken.pyd",
+      "original_sha256": "2f6f3a694f675b1dafdae26903191613c02866ab48e02591ae34ca1a3b1284f1",
+      "replacement_sha256": "f9255e05c7f4adda79e4489b1fa4be32fc6a80c9926d3b124db3c808fcf0eb2c"
+    },
+    {
+      "path": "shiboken6/shiboken6.abi3.dll",
+      "original_sha256": "de3c6b2ed5f75c9ac0de4a6844b653b3b9d09263ce68c2b5fc25a96c5c3e8469",
+      "replacement_sha256": "ece3478671e54acb82c7285a6ac60bce4c7ad0d59e4e238178e700bab24d20c6"
+    }
+  ],
+  "exit_code": 0,
+  "smoke": {
+    "version": "1.4.0-beta.2",
+    "python": "3.13.12 (tags/v3.13.12:1cbe481, Feb  3 2026, 18:22:25) [MSC v.1944 64 bit (AMD64)]",
+    "qt": "6.11.2",
+    "ok": true,
+    "menus": [
+      "Game",
+      "File",
+      "View",
+      "Engine",
+      "Settings",
+      "Bookmarks",
+      "Help"
+    ],
+    "engine": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.tmp\\remediation\\lgpl-replacement-be5voat8\\app\\engines\\stockfish-19\\stockfish\\stockfish-windows-x86-64-universal.exe",
+    "evaluation": "Engine evaluation: +0.31   \u00b7   Depth 18",
+    "books": {
+      "lichess-all.bin": 20,
+      "lichess-d4.bin": 1,
+      "lichess-e4.bin": 1
+    },
+    "framebuffer": [
+      1226,
+      969
+    ]
+  },
+  "passed": true
+}

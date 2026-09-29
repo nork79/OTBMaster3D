@@ -1,1 +1,1 @@
-Place UCI engine .exe files here.
+Use Stockfish or Fairy-Stockfish. See README.md for verified installation commands.

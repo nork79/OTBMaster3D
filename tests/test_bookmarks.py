@@ -233,7 +233,7 @@ class BookmarkTests(unittest.TestCase):
         self.assertEqual(len(loaded.to_dict()["nodes"]), 1)
 
     def test_unavailable_engine_references_are_retained(self):
-        for identity, profile in (("maia", "1900"), ("stockfish", "Aggressive"), ("rodent", "Tal")):
+        for identity, profile in (("fairy-stockfish", "900"), ("stockfish", "Aggressive"), ("rodent", "Tal")):
             engine = {"engine_id": identity, "name": identity, "profile": profile,
                       "settings": {"personality": {"file": "missing.txt", "option": 42}}}
             item = self.bookmark(engine=engine)
@@ -241,25 +241,6 @@ class BookmarkTests(unittest.TestCase):
                 loaded = BookmarkCollection.from_dict(self.collection.to_dict(), engine_available=lambda _: False)
             self.assertEqual(loaded.get(item)["engine"], engine)
 
-    def test_maia_actual_loaded_model_and_engine_options(self):
-        transport = SimpleNamespace(id={"name": "Lc0"}, protocol=SimpleNamespace(target_config={"Threads": 1}))
-        engine = uci.MaiaEngine(transport)
-        app = SimpleNamespace(cfg={"engine_difficulty": "club_1500", "engine_rating": 1500,
-                                   "engine_elo": None, "engine_style": "Balanced"})
-        manager = EngineManager(app)
-        from otb_chess.services.difficulty import engine_path
-        with patch.object(uci.MaiaEngine, "open_model", return_value=engine):
-            self.assertTrue(manager.load(str(engine_path("club")))[0])
-        # Changing the selected preset cannot change an already loaded model.
-        app.cfg["engine_difficulty"] = "improver"
-        captured = capture_engine(manager)
-        self.assertEqual(captured["profile"], "club_1500")
-        self.assertEqual(captured["settings"]["model"], 1500)
-        self.assertIn("maia-1500.pb.gz", captured["settings"]["weights_path"])
-        self.assertEqual(captured["settings"]["uci_options"], {"Threads": 1})
-        self.assertEqual(captured["name"], "Lc0")
-        self.assertTrue(captured["profile_id"].startswith("maia:profile:v1:"))
-        self.bookmark(engine=captured)
 
     def test_stable_engine_and_profile_identifiers(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -271,13 +252,12 @@ class BookmarkTests(unittest.TestCase):
             self.assertEqual(identify_engine("Stockfish 19", first), "stockfish")
             self.assertEqual(identify_engine("Stockfish 20", moved), "stockfish")
             self.assertEqual(identify_engine("Rodent IV", moved), "rodent")
-            config = {"engine_id": "maia", "name": "Maia", "profile": "Club",
-                      "settings": {"model": 1500, "weights_path": "old/path"}}
+            config = {"engine_id": "fairy-stockfish", "name": "Fairy-Stockfish", "profile": "Club",
+                      "settings": {"uci_options": {"UCI_Elo": 900}}}
             original = profile_identifier(config)
             config.update(name="Translated", executable="new/path", profile="Renamed label")
-            config["settings"]["weights_path"] = "moved/model"
             self.assertEqual(profile_identifier(config), original)
-            config["settings"]["model"] = 1900
+            config["settings"]["uci_options"]["UCI_Elo"] = 1100
             self.assertNotEqual(profile_identifier(config), original)
             stockfish = {"engine_id": "stockfish", "settings": {}}
             ids = {profile_identifier({**stockfish, "style": style}) for style in ("Balanced", "Active", "Quiet")}

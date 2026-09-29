@@ -1,0 +1,6 @@
+{
+  "frozen_application_source_sha256": "8df0c57e4585e8ded7bbc56363c43439f6e08430bdf2661dd04c581536ea568b",
+  "matching_runtime_source_files": 61,
+  "changed_runtime_source_files": [],
+  "scope": "Current review source contains later reports/tools; runtime Python sources match the embedded frozen-build snapshot."
+}

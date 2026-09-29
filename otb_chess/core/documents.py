@@ -17,6 +17,27 @@ class GameDocuments:
     _pgn_document = None
     _declared_result = None
 
+    def game_details(self):
+        from otb_chess.services.pgn_details import defaults, FIELDS
+        if self._pgn_document is None:
+            return defaults(self)
+        return {key: self._pgn_document.headers.get(key, '?') for key in FIELDS}
+
+    def set_game_details(self, fields):
+        from dataclasses import replace
+        from otb_chess.services.pgn_details import validate
+        fields = validate(fields)
+        document = self._pgn_document or read_pgn(self.export_pgn())[0]
+        self._pgn_document = replace(document, headers={**document.headers, **fields})
+
+    def initialize_game_details(self):
+        from dataclasses import replace
+        from otb_chess.services.pgn_details import defaults
+        fields = defaults(self, include_ratings=True)
+        self.set_game_details(fields)
+        ratings = {key: value for key, value in fields.items() if key in ('WhiteElo', 'BlackElo')}
+        self._pgn_document = replace(self._pgn_document, headers={**self._pgn_document.headers, **ratings})
+
     @property
     def position(self):
         """Authoritative chess state for the currently displayed controller board."""

@@ -1,0 +1,70 @@
+{
+  "release_status": "BLOCKED",
+  "date": "2026-09-29",
+  "commands": [
+    {
+      "command": ".venv-test/Scripts/python.exe tools/build_native_runtime.py",
+      "result": "PASS; evidence/glfw-build.json"
+    },
+    {
+      "command": ".venv-test/Scripts/python.exe tools/probe_glfw.py <original or rebuilt DLL> <report>",
+      "result": "PASS for both; identical version strings and pixel readback"
+    },
+    {
+      "command": ".venv-test/Scripts/python.exe -m PyInstaller --noconfirm packaging/windows-folder.spec",
+      "result": "PASS with desktop access; Tcl/Tk retained. Initial sandbox build omitted Tcl/Tk; not used as final payload."
+    },
+    {
+      "command": ".venv-test/Scripts/python.exe tools/audit_native_runtime.py --output docs/licensing/native-runtime-after.json",
+      "result": "64 PE files; 0 unresolved static imports; 0 MSVCR100/MSVCR120 dependencies"
+    },
+    {
+      "command": "dist/OTBMaster3D/OTBMaster3D.exe --smoke-test <report>",
+      "result": "PASS; evidence/native-frozen-smoke.json; process exit 0"
+    },
+    {
+      "command": ".venv-test/Scripts/python.exe tools/check_lgpl_replacement.py --output docs/licensing/evidence/native-lgpl-replacement.json",
+      "result": "PASS; 15 overlays; no source-built Qt claim"
+    },
+    {
+      "command": ".venv-test/Scripts/python.exe -m unittest discover -s tests -v",
+      "result": "FAIL; 241 tests, 2 failures, 4 errors; evidence/native-regression-tests.txt"
+    },
+    {
+      "command": "PYTHONPATH=tests .venv-test/Scripts/python.exe -m unittest test_pgn_details test_piece_sets -v",
+      "result": "PASS; 15 unchanged tests in a fresh process; evidence/native-graphics-isolated.txt. Does not erase full-suite failure."
+    },
+    {
+      "command": ".build-tools/inno/ISCC.exe packaging/windows-installer.iss",
+      "result": "PASS; evidence/native-installer-build.txt"
+    },
+    {
+      "command": "installer-output/OTBMaster3D-1.4.0-beta.2-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /NOICONS /DIR=<workspace>/.tmp/native-installed /LOG=<workspace>/.tmp/native-install.log",
+      "result": "PASS; evidence/native-install.txt"
+    },
+    {
+      "command": ".tmp/native-installed/OTBMaster3D.exe --smoke-test <report>",
+      "result": "PASS; evidence/native-installed-smoke.json"
+    },
+    {
+      "command": ".venv-test/Scripts/python.exe tools/verify_native_installer.py",
+      "result": "PASS; 64 matching native files; Inno uninstaller separately inventoried"
+    }
+  ],
+  "clean_windows": {
+    "status": "ON HOLD at maintainer request",
+    "available_host": "Windows Home build 26200, development tools installed; no WindowsSandbox.exe or vmms service",
+    "not_performed": true
+  },
+  "sound": "Synchronous PlaySound API succeeded; listening confirmation unavailable",
+  "installer": {
+    "compilation": "PASS; Inno Setup 6.4.3",
+    "installation_exit_code": 0,
+    "installed_smoke_exit_code": 0,
+    "native_hashes_matched": 64,
+    "extra_native_file": "unins000.exe",
+    "evidence": "installer-verification.json",
+    "temporary_installation_uninstall_exit_code": 0
+  },
+  "publication": "Not authorized; exact public archive URL verification remains separate"
+}

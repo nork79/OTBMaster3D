@@ -203,11 +203,11 @@ class ChessPosition:
     def termination(self):
         """Automatic endings only; preserve the established rules.py priority."""
         reason = rules.termination_reason(self._board)
-        return Termination(reason, self._board.result()) if reason is not None else None
+        if reason is None:
+            return None
+        result = self._board.result() if self._board.is_checkmate() else '1/2-1/2'
+        return Termination(reason, result)
 
-    def draw_claim_reason(self, intended_move=None):
-        native = rules.provider_move(intended_move) if intended_move is not None else None
-        return rules.draw_claim_reason(self._board, native)
 
     def loss_outcome(self, loser, *, on_time=False):
         """Existing timeout/resignation material policy; the controller triggers it."""

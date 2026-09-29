@@ -1,0 +1,18 @@
+{
+  "installer": "OTBMaster3D-1.4.0-beta.2-Setup.exe",
+  "sha256": "a785b63b0857743d9dbdf664846032752cc22a298909e4b22d7da410b29ac8fc",
+  "bytes": 132678189,
+  "native_payload_files_matched": 64,
+  "installed_extra": [
+    "unins000.exe"
+  ],
+  "uninstaller_sha256": "5c57fa5ad2b614c01e2a1ae3e35d0a4fae3323d9eb75e2e75e6628f4f427e99a",
+  "frozen_and_installed_smoke": "PASS",
+  "clean_windows_test": false,
+  "release_status": "BLOCKED; see NATIVE_RUNTIME_REMEDIATION.md",
+  "installed_application_source_sha256": "8df0c57e4585e8ded7bbc56363c43439f6e08430bdf2661dd04c581536ea568b",
+  "temporary_installation_cleanup": {
+    "uninstall_exit_code": 0,
+    "evidence": "evidence/native-uninstall.txt"
+  }
+}

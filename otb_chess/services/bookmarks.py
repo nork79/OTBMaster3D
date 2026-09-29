@@ -17,8 +17,9 @@ def engine_reference_available(configuration):
     Future engine registries can supply a resolver for profile/personality IDs.
     Unknown settings remain opaque and are never discarded.
     """
-    resources = [configuration.get("executable"),
-                 configuration.get("settings", {}).get("weights_path")]
+    if configuration.get("engine_id") not in ("stockfish", "fairy-stockfish"):
+        return False
+    resources = [configuration.get("executable")]
     return all(Path(resource).is_file() for resource in resources if resource)
 
 

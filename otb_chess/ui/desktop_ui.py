@@ -30,7 +30,7 @@ from otb_chess.ui.interface_themes import THEMES, themed_stylesheet
 from otb_chess.ui.document_actions import DocumentActions
 from otb_chess.graphics.board_types import BOARD_TYPES
 from otb_chess.graphics.board_colors import BOARD_COLOR_THEMES
-from otb_chess.ui.licenses_dialog import show_licenses
+from otb_chess.ui.licenses_dialog import show_licenses, show_about
 from otb_chess.ui.chess_symbols import promotion_icon, flag_icon, clock_engine_label, engine_icon
 from otb_chess.ui.variation_preview import VariationPreview
 from otb_chess.ui.engine_analysis import EngineAnalysisWindow
@@ -73,6 +73,7 @@ QSplitter::handle { background: #303a49; width: 4px; }
 QStatusBar { background: #1e242e; color: #a3afc1; }
 QComboBox, QLineEdit, QDoubleSpinBox, QSpinBox, QPlainTextEdit {
     background: #111720; border: 1px solid #414b5b; border-radius: 4px; padding: 7px; }
+QSpinBox#analysisOption, QDoubleSpinBox#analysisOption { padding-right: 60px; }
 QComboBox QAbstractItemView { background: #242c38; selection-background-color: #414b5b; }
 QScrollBar:vertical { background: #1b212b; width: 10px; }
 QScrollBar::handle:vertical { background: #4a5668; min-height: 24px; border-radius: 4px; }
@@ -394,7 +395,7 @@ class ClockCard(QPushButton):
 
     def refresh(self, game):
         remaining = game.white_time if self.color else game.black_time
-        self.digits.setText(game.fmt_clock(remaining))
+        self.digits.setText('∞' if game.clocks_disabled else game.fmt_clock(remaining))
         label = clock_engine_label(game, self.color)
         self.engine_label.setToolTip(label)
         self.engine_label.setText(self.engine_label.fontMetrics().elidedText(label, Qt.TextElideMode.ElideRight, self.engine_label.width()))
@@ -402,12 +403,14 @@ class ClockCard(QPushButton):
         if getattr(self, "_flag_background", None) != background.name():
             self._flag_background = background.name()
             self.fallen_flag.setPixmap(flag_icon(background).pixmap(28, 28))
-        self.fallen_flag.setVisible(game.game_over and remaining <= 0)
-        active = game.game_started and not game.game_over and game.active_clock_color == self.color
+        self.fallen_flag.setVisible(not game.clocks_disabled and game.game_over and remaining <= 0)
+        active = not game.clocks_disabled and game.game_started and not game.game_over and game.active_clock_color == self.color
         waiting = active and game.awaiting_clock_press
         editable = game.clocks_editable()
         first_move = game.game_started and not game.game_over and not game.board.move_stack
         self.state.setText("CLICK TO EDIT" if editable else "WAITING FOR MOVE" if first_move else "PRESS CLOCK" if waiting else "RUNNING" if active else "")
+        if game.clocks_disabled:
+            self.state.setText('CLOCKS DISABLED')
         self.setToolTip("Click to adjust this clock before the first move or while paused." if editable else "In OTB mode, click the running clock after making your move.")
         self.setCursor(Qt.CursorShape.PointingHandCursor if editable else Qt.CursorShape.ArrowCursor)
         if self.property("active") != active or self.property("waiting") != waiting:
@@ -474,6 +477,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.closing = False
         self.new_game_pending = False
         self.pending_difficulty = None
+        self.refresh_difficulty_actions()
         self.bookmark_panel = None
         self.bookmark_pending = None
         remembered = self.game.engine_var.get()
@@ -537,7 +541,7 @@ class MainWindow(DocumentActions, QMainWindow):
         actions.setContentsMargins(0, 0, 0, 0)
         actions.setSpacing(3)
         self.clock_actions = {}
-        for key, symbol in (("resign", "⚑"), ("draw", "="), ("claim_draw", "½"), ("takeback", "−"), ("switch_sides", "⇄")):
+        for key, symbol in (("resign", "⚑"), ("draw", "="), ("takeback", "−"), ("switch_sides", "⇄")):
             button = QPushButton(symbol)
             button.setObjectName("humanGameAction")
             button.setFixedSize(28, 24)
@@ -555,7 +559,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.play_button = QPushButton("Start game")
         self.play_button.setObjectName("primary")
         self.play_button.clicked.connect(self.play_pause)
-        layout.addWidget(self.play_button)
+        layout.insertWidget(layout.indexOf(self.black_clock) + 1, self.play_button)
         self.moves_panel = QWidget()
         moves_layout = QVBoxLayout(self.moves_panel)
         moves_layout.setContentsMargins(0,10,0,0)
@@ -674,7 +678,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.action(game,"Return to latest move",g.return_to_live)
         self.action(game,"Resign…",self.resign)
         self.action(game,"Offer draw",g.offer_draw)
-        self.action(game,"Claim draw",self.prompt_draw_claim)
+        self.action(game,"Edit Game Details",self.edit_game_details)
         self.action(game,"Reset board…",self.reset_board)
         self.action(game,"Reset clock…",self.reset_clock)
         game.addSeparator()
@@ -729,6 +733,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.custom_difficulty_action = self.action(difficulty,"Custom settings…",lambda _:self.engine_settings("custom"),
                                                     checkable=True,checked=g.cfg.get("engine_difficulty","custom")=="custom")
         difficulty_group.addAction(self.custom_difficulty_action)
+        difficulty.aboutToShow.connect(self.refresh_difficulty_actions)
         self.action(engine,"Engine and opening book…",self.engine_settings)
         self.analysis_action = self.action(engine,"Engine Analysis",self.toggle_analysis,"Ctrl+A",True,
                                            checked=g.analysis_enabled)
@@ -789,7 +794,7 @@ class MainWindow(DocumentActions, QMainWindow):
         help_menu = self.menuBar().addMenu("Help")
         self.action(help_menu,"Open Source Licences",lambda:show_licenses(self))
         self.action(help_menu,"Controls",self.show_controls)
-        self.action(help_menu,"About",lambda:QMessageBox.about(self,"OTBMaster3D",f"OTBMaster3D v{__version__}\n\nDesktop chess with 2D and 3D views.\nStaunton models: clarkerubber (MIT).\nSee assets/pieces/README.md for credits."))
+        self.action(help_menu,"About",lambda:show_about(self))
 
     def movement_settings(self):
         dialog = QDialog(self)
@@ -1013,13 +1018,11 @@ class MainWindow(DocumentActions, QMainWindow):
         g = self.game
         side = "White" if self.human_player_color() else "Black"
         for key, label in (("resign", f"Resign {side}"), ("draw", f"Offer draw as {side}"),
-                           ("claim_draw", "Claim draw in the current position"),
                            ("takeback", "Take back one move"), ("switch_sides", "Switch sides and pause")):
             button = self.clock_actions[key]
             button.setToolTip(label)
             button.setAccessibleName(label)
             button.setEnabled(self.can_switch_sides() if key == "switch_sides"
-                              else not g.game_over and g._review_live is None if key == "claim_draw"
                               else bool(g.history_board().move_stack) if key == "takeback"
                               else g.game_started and not g.game_over)
 
@@ -1064,12 +1067,8 @@ class MainWindow(DocumentActions, QMainWindow):
             g.resign(self.human_player_color())
         elif action == "draw":
             g.offer_draw()
-        elif action == "claim_draw":
-            g.claim_draw()
         self.refresh_game_actions()
 
-    def prompt_draw_claim(self):
-        self.human_game_action("claim_draw")
 
     def resign(self):
         if self.game.game_started and self.confirm("Resign","Resign the current game?"):
@@ -1250,6 +1249,8 @@ class MainWindow(DocumentActions, QMainWindow):
         def custom_visibility():
             form.setRowVisible(initial,preset.currentText()=="Custom")
             form.setRowVisible(increment,preset.currentText()=="Custom")
+            form.setRowVisible(mode, preset.currentText() != 'Infinite (clocks disabled)')
+            form.setRowVisible(binding, preset.currentText() != 'Infinite (clocks disabled)')
         preset.currentTextChanged.connect(custom_visibility)
         custom_visibility()
         note = QLabel("Saved settings update idle clocks immediately.\nDuring a game, settings apply to the next game.\nOnline = automatic clock switching; OTB = press after moving.")
@@ -1268,6 +1269,7 @@ class MainWindow(DocumentActions, QMainWindow):
             if not g.game_started or g.clocks_waiting_for_first_move():
                 tc = g.selected_time_control()
                 g.white_time = g.black_time = tc.initial_seconds
+                g.clocks_disabled = tc.name == 'Infinite (clocks disabled)'
                 g.increment = tc.increment_seconds
                 g.clock_mode = g.clock_mode_var.get()
                 g.clock_binding = g.clock_binding_var.get()
@@ -1276,17 +1278,26 @@ class MainWindow(DocumentActions, QMainWindow):
             g.persist()
 
     def refresh_difficulty_actions(self):
+        from otb_chess.services.difficulty import DIFFICULTIES, missing_files
         key = self.pending_difficulty or self.game.cfg.get("engine_difficulty","custom")
         for name,action in self.difficulty_actions.items():
             action.setChecked(name == key)
+            preset = DIFFICULTIES[name]
+            unavailable = bool(missing_files(name))
+            action.setVisible(not unavailable)
+            action.setEnabled(not unavailable)
+            action.setToolTip(preset.description)
         self.custom_difficulty_action.setChecked(key not in self.difficulty_actions)
 
     def select_difficulty(self, key):
         from otb_chess.services.difficulty import DIFFICULTIES, missing_files, engine_path
         g = self.game
+        if key not in DIFFICULTIES:
+            QMessageBox.warning(self, 'Difficulty unavailable', 'This difficulty was removed. Choose an available practice level.')
+            return
         missing = missing_files(key)
         if missing:
-            QMessageBox.warning(self,"Difficulty unavailable",", ".join(missing)+" is missing. Reinstall the bundled engines.")
+            QMessageBox.warning(self,"Difficulty unavailable",", ".join(missing)+" is missing. Restore the bundled Stockfish engine or choose an installed engine in Custom settings.")
             self.refresh_difficulty_actions()
             return
         if g.engine_loading or g.engine_manager.thinking or g.analysis_busy or g.engine_load_result is not None:
@@ -1299,7 +1310,7 @@ class MainWindow(DocumentActions, QMainWindow):
         g.pending_engine_move = g.pending_engine_position = None
         g.pending_engine_error = g.engine_output = g.last_engine_search = None
         self.last_output = self.last_search = None
-        g.cfg.update(engine_difficulty=key,engine_elo=preset.rating if preset.engine == "stockfish" else None,
+        g.cfg.update(engine_difficulty=key,engine_elo=preset.rating if preset.engine in ("stockfish", "fairy-stockfish") else None,
                      engine_rating=preset.rating or 1500,engine_style="Balanced")
         g.book_var.set("")
         g.book_path = ""
@@ -1318,11 +1329,13 @@ class MainWindow(DocumentActions, QMainWindow):
         dialog.setWindowTitle("Engine and opening book")
         dialog.setMinimumWidth(520)
         form = QFormLayout(dialog)
-        from otb_chess.services.difficulty import DIFFICULTIES
+        from otb_chess.services.difficulty import DIFFICULTIES, missing_files
         presets = QComboBox()
         presets.setObjectName("engineDifficulty")
         presets.addItem("Custom settings", "custom")
         for key,preset in DIFFICULTIES.items():
+            if missing_files(key):
+                continue
             presets.addItem(preset.label,key)
         presets.setCurrentIndex(max(0,presets.findData(initial_difficulty if initial_difficulty is not None
                                                       else g.cfg.get("engine_difficulty","custom"))))
@@ -1332,7 +1345,7 @@ class MainWindow(DocumentActions, QMainWindow):
         form.addRow(preset_note)
         engine = QComboBox()
         engine.setEditable(True)
-        engine.addItems([""]+[str(p) for p in sorted(ENGINE_DIR.rglob("*.exe"))])
+        engine.addItems([""]+[str(p) for p in sorted(p for p in ENGINE_DIR.rglob("*.exe") if p.name.lower().startswith(("stockfish", "fairy-stockfish")))])
         engine.setCurrentText(g.engine_var.get())
         book = QComboBox()
         book.setEditable(True)
@@ -1360,6 +1373,7 @@ class MainWindow(DocumentActions, QMainWindow):
         strength.setCurrentIndex(0 if g.cfg.get("engine_elo") is None else 1)
         rating = QSpinBox()
         rating.setObjectName("engineRating")
+        rating.setSpecialValueText("Not rated")
         rating.setRange(0, 10000)
         rating.setValue(g.cfg.get("engine_elo") if g.cfg.get("engine_elo") is not None
                         else g.cfg.get("engine_rating", 1500))
@@ -1394,12 +1408,13 @@ class MainWindow(DocumentActions, QMainWindow):
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save|QDialogButtonBox.StandardButton.Cancel)
         def preset_changed():
             preset = DIFFICULTIES.get(presets.currentData())
+            strength.setItemText(0, f'Practice skill {preset.skill}/20' if preset and preset.skill is not None else 'Full strength')
             if preset:
                 from otb_chess.services.difficulty import engine_path
                 engine.setCurrentText(str(engine_path(presets.currentData()) or ""))
                 book.setCurrentText("")
                 rating.setRange(0,10000)
-                rating.setValue(preset.rating or 1500)
+                rating.setValue(0 if preset.skill is not None else preset.rating or 1500)
                 strength.setCurrentIndex(1 if preset.rating is not None else 0)
                 style.setCurrentText("Balanced")
             for widget in (engine,book,strength,rating,style):
@@ -1418,7 +1433,7 @@ class MainWindow(DocumentActions, QMainWindow):
             from otb_chess.services.difficulty import missing_files
             if presets.currentData() != "custom":
                 if missing_files(presets.currentData()):
-                    QMessageBox.warning(dialog,"Engine missing","Reinstall the bundled engines to use this preset.")
+                    QMessageBox.warning(dialog,"Engine missing","This preset needs optional engine/model files. See engines/README.md, or choose an available Stockfish preset.")
                     return
                 dialog.accept()
                 return
@@ -1509,15 +1524,17 @@ class MainWindow(DocumentActions, QMainWindow):
         self.game.persist()
 
     def set_sound_profile(self, profile):
-        from otb_chess.services.audio import ensure_sounds, SOUND_PROFILES
+        from otb_chess.services.audio import ensure_sounds, prepare_sounds, stop_sounds, SOUND_PROFILES
         g = self.game
         if profile is not None and profile not in SOUND_PROFILES:
             return
         g.sound_enabled = profile is not None
+        stop_sounds()
         if profile is not None:
             g.sound_profile = profile
             for event,path in ensure_sounds(profile).items():
                 setattr(g,"sound_"+event,path)
+            prepare_sounds(profile)
         for key,action in self.sound_profile_actions.items():
             action.setChecked(key == profile)
         g.persist()
@@ -1654,11 +1671,15 @@ class MainWindow(DocumentActions, QMainWindow):
         self.refresh_opening()
         self.refresh_game_actions()
         self.play_button.setText("Starting game…" if self.new_game_pending else "Start game" if not g.game_started or g.game_over else "Resume clock" if g.clock_paused else "Pause clock")
+        if g.clocks_disabled and g.game_started and not g.game_over and not self.new_game_pending:
+            self.play_button.setText('Resume game' if g.clock_paused else 'Pause game')
         self.play_button.setEnabled(not self.new_game_pending and
                                     (not g.game_started or g.game_over or
                                      not (g.engine_loading or g.engine_manager.thinking)))
         self.refresh_navigation()
         self.clock_summary.setText(f"{g.time_control_var.get()}  ·  {'Manual clock' if g.clock_mode == 'OTB' else 'Automatic clock'}")
+        if g.clocks_disabled:
+            self.clock_summary.setText('Infinite time · Clocks disabled')
         self.statusBar().showMessage(g.preview_description or self.session.error or g.result_text)
         self.board_status.setText(g.preview_description or f"{g.board_mode}  ·  {g.piece_sets[g.piece_set].name}")
         self.engine_name.setText("Stockfish - Full strength")

@@ -1,0 +1,89 @@
+{
+  "qt_build": "Qt 6.11.2 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2022) [Python limited API run time: 3.13.12 built: 3.10.0]",
+  "pillow_runtime_features": {
+    "pil": {
+      "supported": true,
+      "version": "12.3.0"
+    },
+    "tkinter": {
+      "supported": true,
+      "version": "8.6"
+    },
+    "freetype2": {
+      "supported": true,
+      "version": "2.14.3"
+    },
+    "littlecms2": {
+      "supported": true,
+      "version": "2.19"
+    },
+    "webp": {
+      "supported": true,
+      "version": "1.6.0"
+    },
+    "avif": {
+      "supported": true,
+      "version": "1.4.2"
+    },
+    "libjpeg_turbo": {
+      "supported": true,
+      "version": "3.1.4.1"
+    },
+    "zlib_ng": {
+      "supported": true,
+      "version": "2.3.3"
+    },
+    "jpg": {
+      "supported": true,
+      "version": "8.0"
+    },
+    "jpg_2000": {
+      "supported": true,
+      "version": "2.5.4"
+    },
+    "zlib": {
+      "supported": true,
+      "version": "1.3.1.zlib-ng"
+    },
+    "libtiff": {
+      "supported": true,
+      "version": "4.7.1"
+    }
+  },
+  "pillow_build_material": {
+    "Pillow-12.3.0/.github/workflows/Brewfile": "b551a058d0fccd34b67a6f50c10a82fc0beda647fc5ac406b5df3d42a182fe05",
+    "Pillow-12.3.0/.github/workflows/benchmark.yml": "8390178f6e9597789be7854b26aa63386593273c9944359a7dc4a4c86b1e35a3",
+    "Pillow-12.3.0/.github/workflows/cifuzz.yml": "be725c0d24ea552cbadfd0943d563caea2875205c5fb031fa70d70a0952259f1",
+    "Pillow-12.3.0/.github/workflows/docs.yml": "84bb00f5bcb58e1155672d5ea8e727a8da2d339851f4f0b19212d65ec15ff6e5",
+    "Pillow-12.3.0/.github/workflows/lint.yml": "6315dcb3aa6c9d745f6299a4d92cd9220df74f5028d970be3902ae536c85115c",
+    "Pillow-12.3.0/.github/workflows/macos-install.sh": "6012491a67969eab2d7904a95bfb4a5cd9eba2585bec7329d397e3fbd65c9233",
+    "Pillow-12.3.0/.github/workflows/release-drafter.yml": "2197aa369a761a61a2f0b12a419fb537f01343112925ac388b6ea3c816a981ac",
+    "Pillow-12.3.0/.github/workflows/stale.yml": "c125acca758ebc1a50645b3c8270f40c20cbef10a9cf49b9ffebb09efdef0973",
+    "Pillow-12.3.0/.github/workflows/system-info.py": "19998ae443b24d91786462b97abf8dfe8340354fe31fd52c60b826a6266ab5a0",
+    "Pillow-12.3.0/.github/workflows/test-docker.yml": "22a12efe772d98840229a16f1a840d29a08d2e63e73d30d027144adb05861ad6",
+    "Pillow-12.3.0/.github/workflows/test-mingw.yml": "e7c87a4a989af625c81d1bd2c143fe326faae1d778ff85895c8aa5c860ba8cd1",
+    "Pillow-12.3.0/.github/workflows/test-valgrind-memory.yml": "9c990ebcfcd4c495ddc1dd9800565aa5bcb2f4cf875be87a4f348cc53ccbecd0",
+    "Pillow-12.3.0/.github/workflows/test-valgrind.yml": "7e2e083d841b1714cc944910f1937c7fa33e1633aa8b75ec5a8aac8abf0226c5",
+    "Pillow-12.3.0/.github/workflows/test-windows.yml": "356b6a2f5150fb2460c19b4586a430e393b02687d295302a7e97b91d311d7eb5",
+    "Pillow-12.3.0/.github/workflows/test.yml": "925658ab92728124e87bc7220445bb8fee937bf4f987f77bcb0d6e42dac5cef5",
+    "Pillow-12.3.0/.github/workflows/wheels-dependencies.sh": "62c923ff840790cb4f6e27c96437a7541124a5aee3445f29136358bffd988f8a",
+    "Pillow-12.3.0/.github/workflows/wheels-test.ps1": "d3fa73d9b43bda470f63c85ac3700886d285e576abacf5c2d78e93adeff24943",
+    "Pillow-12.3.0/.github/workflows/wheels-test.sh": "46d822dbc83661ab65087f72f382ea388cea2c07c25e7852f143eac4836b36f3",
+    "Pillow-12.3.0/.github/workflows/wheels.yml": "d4c6e27c23a6df75fdbbd4a9548093f57afec21d0c30cf2ea86812d803798e91",
+    "Pillow-12.3.0/winbuild/README.md": "c6efae16166fde4956a32ba3dfbcf091b688209e1e83389d6186aa664344dbe4",
+    "Pillow-12.3.0/winbuild/build.rst": "6db82a17bc3474d8b35c57ffc10e9b0dad22a1a4506ce6d192f9966897ac724f",
+    "Pillow-12.3.0/winbuild/build_prepare.py": "599261894f109cb15418b6a2cdf2fc3a9b78e0479747b965897724968422ec2d",
+    "Pillow-12.3.0/winbuild/fribidi.cmake": "c12b23bae66dddd061835e756a34c450860cad8b5a95179b559daa23b09940ad"
+  },
+  "pillow_recipe": "winbuild/build_prepare.py: static libavif, LOCAL AOM encoder, dav1d decoder, libyuv and libsharpyuv, MinSizeRel and IPO; explicit patches; shared MSVC /MD",
+  "unsupported_not_bundled": [
+    "Pillow RAQM",
+    "Pillow libimagequant",
+    "Pillow XCB"
+  ],
+  "limits": [
+    "Features corroborate versions, not every compiler flag.",
+    "QtBase third-party attribution/source covers embedded libraries; exact enabled-feature configuration needs confirmation.",
+    "No FFmpeg DLL present; Pillow MPEG plugin does not prove an incorporated video decoder."
+  ]
+}

@@ -42,36 +42,24 @@ def host(board=None):
 
 
 class RepetitionTests(unittest.TestCase):
-    def test_threefold_requires_claim_and_fivefold_is_automatic(self):
+    def test_threefold_ends_game_automatically(self):
         board = play(rules.Board(), CYCLE * 2)
         game = host(board)
         game.update_game_end()
-        self.assertFalse(game.game_over)
-        self.assertTrue(game.claim_draw())
+        self.assertTrue(game.game_over)
         self.assertEqual(game.result_text, 'Draw - threefold repetition')
         self.assertFalse(game.game_started)
         game.play_game_sound.assert_called_once_with('end')
-        self.assertFalse(game.claim_draw())
         self.assertFalse(game.try_move(12, 28, is_engine=True))
         play(board, CYCLE * 2)
         game = host(board)
         game.awaiting_clock_press = True
         game.update_game_end()
-        self.assertEqual(game.result_text, 'Draw - fivefold repetition')
+        self.assertEqual(game.result_text, 'Draw - threefold repetition')
         self.assertFalse(game.awaiting_clock_press)
         game.update_game_end()
         game.play_game_sound.assert_called_once_with('end')
 
-    def test_intended_move_claim_does_not_play_move_or_claim_early(self):
-        board = play(rules.Board(), CYCLE + CYCLE[:3])
-        before = rules.snapshot_history(board)
-        game = host(board)
-        self.assertFalse(game.claim_draw())
-        self.assertFalse(game.claim_draw('b8c6'))
-        self.assertFalse(game.claim_draw('e7e4'))
-        self.assertFalse(game.claim_draw('bad'))
-        self.assertTrue(game.claim_draw('f6g8'))
-        self.assertEqual(rules.snapshot_history(board), before)
 
     def test_placement_and_side_to_move_must_match(self):
         board = play(rules.Board(), CYCLE * 2)
@@ -114,7 +102,7 @@ class RepetitionTests(unittest.TestCase):
         game = host(board)
         game.takeback()
         self.assertFalse(game.game_over)
-        self.assertIsNone(rules.draw_claim_reason(game.board))
+        self.assertIsNone(rules.termination_reason(game.board))
 
 
 class TerminationTests(unittest.TestCase):
@@ -145,19 +133,14 @@ class TerminationTests(unittest.TestCase):
             game.update_game_end()
             self.assertTrue(game.game_over)
             self.assertEqual(game.result_text, reason)
-            self.assertIsNone(rules.draw_claim_reason(game.board))
 
-    def test_fifty_move_claim_and_seventyfive_move_automatic_thresholds(self):
+    def test_fifty_move_automatic_threshold(self):
         for half in (98, 99, 100, 149, 150):
             with self.subTest(half=half):
                 board = rules.Board(f'7k/8/8/8/8/8/8/KR6 w - - {half} 30')
                 game = host(board)
                 game.update_game_end()
-                self.assertEqual(game.game_over, half >= 150)
-                if half < 150:
-                    self.assertEqual(game.claim_draw(), half >= 100)
-                    game = host(board)
-                    self.assertEqual(game.claim_draw('b1b2'), half >= 99)
+                self.assertEqual(game.game_over, half >= 100)
 
     def test_pawn_moves_and_captures_reset_halfmove_clock(self):
         for fen, move in (
@@ -166,7 +149,6 @@ class TerminationTests(unittest.TestCase):
             ('4k3/8/8/3pP3/8/8/8/4K3 w - d6 99 1', 'e5d6'),
         ):
             board = rules.Board(fen)
-            self.assertIsNone(rules.draw_claim_reason(board, rules.Move.from_uci(move)))
             board.push_uci(move)
             self.assertEqual(board.halfmove_clock, 0)
 
@@ -195,16 +177,6 @@ class TerminationTests(unittest.TestCase):
                 self.assertTrue(game.game_over)
                 self.assertEqual(game.result_text.startswith('Draw'), draw)
 
-    def test_resignation_and_claim_guards(self):
-        game = host(play(rules.Board(), CYCLE * 2))
-        game._review_live = game.board.copy()
-        self.assertFalse(game.claim_draw())
-        game._review_live = None
-        game.engine_side = game.board.turn
-        game.engine_manager.engine = object()
-        self.assertFalse(game.claim_draw())
-        game.resign(True)
-        self.assertEqual(game.result_text, 'White resigned')
 
     def test_resignation_against_bare_king_is_a_draw(self):
         for color in (True, False):
@@ -248,9 +220,10 @@ class EnPassantTests(unittest.TestCase):
 
 
 class RestorationTests(unittest.TestCase):
-    def test_claim_and_resignation_are_exported_as_pgn_results(self):
+    def test_automatic_draw_and_resignation_are_exported_as_pgn_results(self):
         game = host(play(rules.Board(), CYCLE * 2))
-        self.assertTrue(game.claim_draw())
+        game.update_game_end()
+        self.assertTrue(game.game_over)
         document = notation.read_pgn(game.export_pgn())[0]
         self.assertEqual(document.headers['Result'], '1/2-1/2')
         self.assertEqual(document.history, rules.snapshot_history(game.board))
@@ -273,7 +246,7 @@ class RestorationTests(unittest.TestCase):
         board = play(rules.Board(), CYCLE * 2)
         isolated = read_fen(board.fen())
         self.assertFalse(isolated.is_repetition(2))
-        self.assertIsNone(rules.draw_claim_reason(isolated))
+        self.assertIsNone(rules.termination_reason(isolated))
         pgn = notation.export_pgn(rules.snapshot_history(board))
         restored = rules.restore_history(notation.read_pgn(pgn)[0].history)
         self.assertTrue(restored.is_repetition(3))
@@ -294,9 +267,9 @@ class RestorationTests(unittest.TestCase):
             restored.pop()
             self.assertEqual(restored.fen(), fen)
 
-    def test_loading_terminal_position_stops_play_but_claimable_does_not(self):
+    def test_loading_terminal_position_stops_play(self):
         for board, over in ((rules.Board('7k/6Q1/6K1/8/8/8/8/8 b - - 0 1'), True),
-                            (play(rules.Board(), CYCLE * 2), False),
+                            (play(rules.Board(), CYCLE * 2), True),
                             (play(rules.Board(), CYCLE * 4), True)):
             game = host()
             game.load_document(rules.snapshot_history(board))
@@ -336,9 +309,5 @@ class RestorationTests(unittest.TestCase):
             self.assertTrue(store.restore(game))
         self.assertTrue(game.game_over)
         self.assertFalse(game.game_started)
-        self.assertIn('fivefold repetition', game.result_text)
+        self.assertIn('threefold repetition', game.result_text)
 
-    def test_desktop_claim_action_is_direct(self):
-        window = Mock()
-        MainWindow.prompt_draw_claim(window)
-        window.human_game_action.assert_called_once_with('claim_draw')

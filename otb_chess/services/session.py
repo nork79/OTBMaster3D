@@ -29,6 +29,7 @@ class SessionStore:
         self.last_save = now
         try:
             data = {'version':1,'pgn':game.export_pgn(),
+                    'clocks_disabled': game.clocks_disabled,
                     'review_ply':len(game.board.move_stack),
                     'state':{key:getattr(game,key) for key in FIELDS}}
             payload = json.dumps(data,allow_nan=False)
@@ -58,6 +59,8 @@ class SessionStore:
         data = json.loads(path.read_text(encoding='utf-8'))
         if data['version'] != 1:
             raise ValueError('Unsupported session version')
+        if type(data.get('clocks_disabled', False)) is not bool:
+            raise ValueError('Invalid clocks disabled flag')
         document = read_pgn(data['pgn'])[0]
         board = document.history
         state = data['state']
@@ -95,6 +98,7 @@ class SessionStore:
                 damaged = True
                 continue
             game.load_document(board,document)
+            game.clocks_disabled = data.get('clocks_disabled', False)
             for key in FIELDS:
                 setattr(game,key,data['state'][key])
             ending = ChessPosition.from_board(game.board).termination()

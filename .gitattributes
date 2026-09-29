@@ -1,0 +1,4 @@
+# Preserve the official licence documents byte-for-byte on Windows checkouts.
+/LICENSE -text
+/licenses/Qt/LGPL-3.0.txt -text
+/licenses/** -text

@@ -52,7 +52,7 @@ def audit():
             shutil.copyfile(source,destination)
             copies.append(dict(path=destination.relative_to(ROOT).as_posix(),source=str(file),sha256=hashlib.sha256(source.read_bytes()).hexdigest()))
         records.append(dict(name=package,version=dist.version,apparent_license=license_name,
-                            category='runtime',redistribution='NO: replace before proprietary release' if package=='chess' else 'Selected runtime files only; not whole Addons wheel' if package=='PySide6_Addons' else 'intended',
+                            category='runtime',redistribution='yes; GPL-3.0-or-later dependency, preserve notices and matching source' if package=='chess' else 'Selected runtime files only; not whole Addons wheel' if package=='PySide6_Addons' else 'intended',
                             source=SOURCES[package],evidence='installed distribution metadata; selected licence route requires review',license_files=copies,
                             requires=list(dist.requires or [])))
     extras = [

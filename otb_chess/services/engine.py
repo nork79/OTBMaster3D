@@ -23,27 +23,27 @@ class EngineManager:
     def load(self, path):
         self.unload()
         try:
-            from otb_chess.services.difficulty import DIFFICULTIES, engine_path, weights_path
+            from otb_chess.services.difficulty import DIFFICULTIES, engine_path
             key = self.app.cfg.get("engine_difficulty", "custom")
             preset = DIFFICULTIES.get(key)
-            if Path(path).resolve() == engine_path("club").resolve():
-                if not preset or preset.engine != "maia":
-                    rating = self.app.cfg.get("engine_rating",1100)
-                    key = min((k for k,p in DIFFICULTIES.items() if p.engine == "maia" and not p.mistakes),
-                              key=lambda k:abs(DIFFICULTIES[k].model-rating))
-                    preset = DIFFICULTIES[key]
-                self.engine = uci.MaiaEngine.open_model(path,weights_path(key),preset.mistakes)
-                configuration = {"engine_id": "maia", "name": "Maia",
-                                 "profile": key, "settings": {
-                                     "model": preset.model, "weights_path": str(weights_path(key)),
-                                     "mistakes": preset.mistakes,
-                                     "backend": "blas", "threads": 1, "minibatch_size": 1}}
-            else:
-                self.engine = uci.Engine.open(path)
-                reported_name = self.engine.configuration_snapshot()["name"]
-                name = reported_name or Path(path).stem
-                configuration = {"engine_id": identify_engine(reported_name, path), "name": name,
-                                 "profile": "custom", "settings": {}}
+            if preset and preset.engine == 'fairy-stockfish' and Path(path).resolve() != engine_path(key).resolve():
+                raise ValueError('Select the bundled practice engine for this preset.')
+            self.engine = uci.Engine.open(path)
+            self.engine.practice_skill = preset.skill if preset and preset.engine == 'stockfish' else None
+            reported_name = self.engine.configuration_snapshot()["name"]
+            name = reported_name or Path(path).stem
+            if preset and preset.engine == 'fairy-stockfish':
+                if identify_engine(reported_name, path) != 'fairy-stockfish':
+                    raise ValueError('The practice executable does not identify as Fairy-Stockfish.')
+                self.engine.restore_options({'Use NNUE': False})
+                # UCI transport selects ordinary chess for rules.Board.
+                limits = self.engine.strength_range()
+                if not limits or not limits[0] <= preset.rating <= limits[1]:
+                    raise ValueError('The practice engine does not support this target rating.')
+            configuration = {"engine_id": identify_engine(reported_name, path), "name": name,
+                             "profile": key if preset else "custom", "settings": {}}
+            if configuration["engine_id"] not in ("stockfish", "fairy-stockfish"):
+                raise ValueError("Only Stockfish and Fairy-Stockfish are supported.")
             self.engine.configure_strength(self.app.cfg.get("engine_elo"))
             self.path = path
             self.loaded_configuration = configuration
@@ -86,39 +86,26 @@ class EngineManager:
             from otb_chess.services.settings import ENGINE_DIR
             config = deepcopy(configuration)
             engine_id = config["engine_id"]
+            if engine_id not in ("stockfish", "fairy-stockfish"):
+                raise ValueError("Only Stockfish and Fairy-Stockfish are supported.")
             path = Path(config.get("executable", ""))
             if not path.is_file():
-                if engine_id == "maia":
-                    path = ENGINE_DIR / "maia" / "lc0.exe"
-                elif engine_id == "stockfish":
+                if engine_id == "stockfish":
                     path = next(iter(sorted(ENGINE_DIR.rglob("stockfish*.exe"))), path)
             if not path.is_file():
                 raise ValueError("Engine executable is unavailable.")
             settings = config.get("settings", {})
             allowed = {"uci_options"}
-            if engine_id == "maia":
-                allowed |= {"model", "weights_path", "mistakes", "backend", "threads", "minibatch_size"}
             if set(settings) - allowed:
                 raise ValueError("This engine's saved configuration system is not supported yet.")
             options = settings.get("uci_options", {})
-            if engine_id == "maia":
-                weights = Path(settings.get("weights_path", ""))
-                if not weights.is_file():
-                    weights = ENGINE_DIR / "maia" / f"maia-{settings.get('model')}.pb.gz"
-                if not weights.is_file():
-                    raise ValueError("The saved Maia model is unavailable.")
-                if (settings.get("backend", "blas"), settings.get("threads", 1), settings.get("minibatch_size", 1)) != ("blas", 1, 1):
-                    raise ValueError("Unsupported Maia launch configuration.")
-                candidate = uci.MaiaEngine.open_model(path, weights, settings.get("mistakes", 0))
-                config["settings"]["weights_path"] = str(weights)
-            else:
-                candidate = uci.Engine.open(str(path))
-                identity = identify_engine(candidate.configuration_snapshot()["name"], path)
-                if identity != engine_id:
-                    raise ValueError("Executable does not match the saved engine identity.")
+            candidate = uci.Engine.open(str(path))
+            identity = identify_engine(candidate.configuration_snapshot()["name"], path)
+            if identity != engine_id:
+                raise ValueError("Executable does not match the saved engine identity.")
             candidate.restore_options(options)
             # Compare persistent options after configuration, rather than guessing
-            # another profile from a difficulty label or nearest Maia rating.
+            # another profile from a difficulty label or nearby rating.
             actual = deepcopy(config)
             actual["settings"]["uci_options"] = candidate.configuration_snapshot()["uci_options"]
             expected_id = config.get("profile_id")

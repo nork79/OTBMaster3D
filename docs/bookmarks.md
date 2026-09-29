@@ -57,12 +57,11 @@ folder ordering. Example (UUIDs and FEN abbreviated for readability):
       "position": {"representation": "fen-history", "fen": "<six-field FEN>", "root_fen": "<root FEN>", "moves": ["e2e4"]},
       "facing": "white",
       "engine": {
-        "engine_id": "maia", "name": "Lc0", "profile": "club_1500",
-        "profile_id": "maia:profile:v1:<configuration SHA-256>",
-        "executable": "<lc0 executable>", "elo": null, "rating": 1500,
+        "engine_id": "fairy-stockfish", "name": "Fairy-Stockfish 14", "profile": "level_900",
+        "profile_id": "fairy-stockfish:profile:v1:<configuration SHA-256>",
+        "executable": "<engine executable>", "elo": 900, "rating": 900,
         "style": "Balanced", "side": "Black",
-        "settings": {"model": 1500, "weights_path": "<maia-1500.pb.gz>", "mistakes": 0.0,
-                     "backend": "blas", "threads": 1, "minibatch_size": 1, "uci_options": {"Threads": 1}}
+        "settings": {"uci_options": {"Threads": 1, "Use NNUE": false, "UCI_LimitStrength": true, "UCI_Elo": 900}}
       },
       "time_control": {"preset_name": "Custom", "base_seconds": 300,
                        "increment_seconds": 2, "delay_seconds": 0,
@@ -95,36 +94,26 @@ is serialized; 3D starts facing White, matching existing startup behavior.
 Engine settings are an opaque JSON object, so personalities, profiles, model
 files, UCI options, and future non-UCI configuration can differ between engines.
 `engine_id` and `name` are required for a non-null engine; other engine fields
-are optional. Capture records Maia's actual loaded model, even if the selected
-difficulty has since changed, and persistent UCI options (not temporary analysis
+are optional. Capture records the loaded engine and persistent UCI options (not temporary analysis
 overrides). Style, requested strength, rating, and engine side come from the
 controller settings used for searches. Capture holds the manager lock and may
 wait for an active search to finish.
 
-`engine_identity.py` establishes fixed family IDs `stockfish`, `maia`, and
-`rodent`. Stockfish/Rodent are recognized from the engine's UCI-reported family
-name, not its executable filename. Maia is identified by its model loader.
-Unrecognized engines use `uci:sha256:<binary digest>`; moving or renaming an
-executable leaves its identity intact. An unknown engine binary upgrade creates
-a new identity; callers with a registry can supply a persistent engine ID.
+The engine loader accepts `stockfish` and `fairy-stockfish`, identified by their
+UCI-reported names. Unsupported engine configurations remain stored for recovery
+but cannot be launched. A failed restore retains the working engine.
 
 New captures include a `profile_id` of
-`<engine_id>:profile:v1:<canonical-settings SHA-256>`. Model, mistakes, persistent
-UCI options, requested Elo, and style determine this ID; display names, preset
-labels, executable locations, and engine side do not. Standard Maia model IDs
-exclude the weights location. Other existing resource files (such as Rodent
-personalities) are hashed by content, so relocation preserves profile identity.
+`<engine_id>:profile:v1:<canonical-settings SHA-256>`. Persistent UCI options, requested Elo, and style determine this ID; display names, preset
+labels, executable locations, and engine side do not. Existing resource files are hashed by content, so relocation preserves identity.
 Changed settings produce a different profile ID. The full configuration is
 still stored and is needed for recreation; the digest is only an identifier.
 Saved IDs are preserved verbatim when resources are unavailable. Older bookmarks
 without profile IDs still load without guessing an unavailable configuration.
 
-The UI engine adapter restores persisted UCI options (including a Rodent
-personality file when the engine exposes one); unsupported configuration systems
-produce a nonfatal fallback. No engine-specific settings are applied by the model
-itself. Stockfish styles
-currently use the names Balanced, Active, and Quiet. Maia presets do not
-currently include 1900, but the format permits any model/strength configuration.
+The engine adapter restores saved UCI options for the two supported engines.
+Unsupported configurations produce a nonfatal fallback. Playing styles are
+Balanced, Active and Quiet.
 
 Time controls preserve resolved base/increment values and preset/custom name,
 plus clock mode and optional custom settings. Delay is supported by the model,
@@ -146,7 +135,7 @@ root, malformed JSON, or unsupported schema returns an empty collection with
 `store.error` and a warning. Loading never overwrites the source file. Callers
 should surface that error before explicitly saving a replacement collection.
 
-The default engine resolver checks executable and Maia weights paths. Missing
+The default engine resolver checks supported engine identities and executable paths. Missing
 resources generate warnings but the complete engine configuration remains
 saved. `load(engine_available=resolver)` allows a future registry to additionally
 check profiles/personality resources. `None` disables checks. No fallback engine

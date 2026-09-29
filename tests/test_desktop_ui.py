@@ -9,7 +9,8 @@ from unittest.mock import patch, Mock
 
 import chess
 import chess.engine
-from PySide6.QtCore import Qt, QPoint, QPointF, QTimer
+from PySide6.QtCore import Qt, QPoint, QPointF, QTimer, QCoreApplication, QEvent
+import shiboken6
 from PySide6.QtGui import QWheelEvent, QColor
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QComboBox, QDoubleSpinBox, QColorDialog, QSpinBox, QPushButton, QDialogButtonBox
@@ -25,6 +26,18 @@ from tkinter import messagebox
 from OpenGL.GL import glFinish, glGetError, GL_NO_ERROR
 from OpenGL.GLU import gluProject
 from otb_chess.ui.desktop_ui import MainWindow, configure_graphics
+
+
+def dispose_test_windows(qt, existing):
+    # close() releases our GL resources but does not destroy the native Qt
+    # window/context. Drain deferred deletion between integration tests.
+    for window in qt.topLevelWidgets():
+        if isinstance(window, MainWindow) and window not in existing:
+            if shiboken6.isValid(window):
+                window.close()
+                window.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    qt.processEvents()
 
 
 class DesktopTests(unittest.TestCase):
@@ -43,6 +56,8 @@ class DesktopTests(unittest.TestCase):
             folder_patch = patch.object(settings, name, Path(self.folder.name))
             folder_patch.start()
             self.addCleanup(folder_patch.stop)
+        existing = set(self.qt.topLevelWidgets())
+        self.addCleanup(dispose_test_windows, self.qt, existing)
         self.window = MainWindow()
         self.window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen,True)
         self.window.show()
@@ -214,15 +229,22 @@ class DesktopTests(unittest.TestCase):
 
     def test_open_source_licences_dialog_and_notice_files(self):
         from otb_chess.services.settings import APP_DIR
-        from PySide6.QtWidgets import QPlainTextEdit
+        from PySide6.QtWidgets import QPlainTextEdit, QComboBox
         import json
         help_menu = next(a.menu() for a in self.window.menuBar().actions() if a.text() == 'Help')
         action = next(a for a in help_menu.actions() if a.text() == 'Open Source Licences')
         seen = []
+        documents = {}
         def inspect_dialog():
             dialog = QApplication.activeModalWidget()
             try:
                 seen.append((dialog.objectName(),dialog.findChild(QPlainTextEdit).toPlainText()))
+                selector = dialog.findChild(QComboBox)
+                for name in ('LICENSE', 'COPYRIGHT.md', 'SOURCE_ACCESS.md', 'licenses/chess/LICENSE.txt'):
+                    index = selector.findText(name)
+                    if index >= 0:
+                        selector.setCurrentIndex(index)
+                        documents[name] = dialog.findChild(QPlainTextEdit).toPlainText()
             finally:
                 dialog.reject()
         QTimer.singleShot(0,inspect_dialog)
@@ -230,6 +252,8 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual(seen[0][0],'openSourceLicencesDialog')
         self.assertIn('PySide6',seen[0][1])
         self.assertIn('chess',seen[0][1])
+        for name in ('LICENSE', 'COPYRIGHT.md', 'SOURCE_ACCESS.md', 'licenses/chess/LICENSE.txt'):
+            self.assertEqual(documents.get(name), (APP_DIR/name).read_text(encoding='utf-8-sig'))
         for name in ('THIRD_PARTY_NOTICES.md','licenses/README.md','third_party_bom.json'):
             self.assertTrue((APP_DIR/name).is_file())
         inventory = json.loads((APP_DIR/'third_party_bom.json').read_text(encoding='utf-8'))
@@ -429,11 +453,52 @@ class DesktopTests(unittest.TestCase):
         self.assertTrue(self.window.moves.isVisible())
         self.assertGreater(self.widget.width(),300)
 
+    def test_missing_preset_engine_preserves_current_engine_and_position(self):
+        before = self.game.board.fen()
+        current = self.game.cfg.get('engine_difficulty')
+        with patch('otb_chess.ui.desktop_ui.QMessageBox.warning') as warning, \
+                patch.object(self.game, 'load_engine_path') as load:
+            self.window.select_difficulty('level_1600')
+        warning.assert_called_once()
+        self.assertIn('bundled Stockfish', warning.call_args.args[2])
+        load.assert_not_called()
+        self.assertEqual(self.game.board.fen(), before)
+        self.assertEqual(self.game.cfg.get('engine_difficulty'), current)
+
+    def test_unavailable_difficulties_hidden_in_menu_and_selector(self):
+        from otb_chess.services.difficulty import DIFFICULTIES
+        root = Path(self.folder.name)
+        (root / 'stockfish-test.exe').touch()
+        for model_installed in (False, True):
+            if model_installed:
+                (root / 'fairy-stockfish-14').mkdir()
+                (root / 'fairy-stockfish-14/fairy-stockfish_x86-64.exe').touch()
+            self.window.refresh_difficulty_actions()
+            expected = {'custom'}
+            for key, preset in DIFFICULTIES.items():
+                visible = model_installed or preset.engine == 'stockfish'
+                action = self.window.difficulty_actions[key]
+                self.assertEqual(action.isVisible(), visible)
+                self.assertEqual(action.isEnabled(), visible)
+                self.assertEqual(action.text(), preset.label)
+                if visible:
+                    expected.add(key)
+            observed = []
+            def inspect():
+                dialog = QApplication.activeModalWidget()
+                combo = dialog.findChild(QComboBox, 'engineDifficulty')
+                observed.extend(combo.itemData(i) for i in range(combo.count()))
+                dialog.reject()
+            QTimer.singleShot(0, inspect)
+            self.window.engine_settings('custom')
+            self.assertEqual(set(observed), expected)
+
     def test_sound_profiles_switch_all_events_and_restore_muted_choice(self):
         from otb_chess.services.audio import SOUND_PROFILES, ensure_sounds
         import wave
         w,g = self.window,self.game
-        self.assertEqual(len(w.sound_profile_actions),9)
+        self.assertEqual(len(w.sound_profile_actions),8)
+        self.assertNotIn('02_Crisp_Chesscom_Like', w.sound_profile_actions)
         for profile in SOUND_PROFILES:
             w.sound_profile_actions[profile].trigger()
             self.assertTrue(g.sound_enabled)
@@ -464,6 +529,18 @@ class DesktopTests(unittest.TestCase):
         w.sound_profile_actions['03_Tournament_Wood'].trigger()
         self.assertTrue(g.sound_enabled)
         self.assertFalse(w.sound_profile_actions[None].isChecked())
+
+    def test_every_sound_profile_dispatches_white_and_black_moves(self):
+        from otb_chess.services.audio import SOUND_PROFILES
+        g = self.game
+        for profile in SOUND_PROFILES:
+            self.window.set_sound_profile(profile)
+            for engine_side in (chess.WHITE, chess.BLACK):
+                g.load_document(chess.Board())
+                with patch.object(g, 'engine_enabled', True), patch('otb_chess.core.game.play_sound') as playback:
+                    self.assertTrue(g.try_move(chess.E2, chess.E4, is_engine=engine_side == chess.WHITE))
+                    self.assertTrue(g.try_move(chess.E7, chess.E5, is_engine=engine_side == chess.BLACK))
+                    self.assertEqual(playback.call_args_list, [unittest.mock.call(g.sound_move)] * 2)
 
     def test_sound_pack_event_mapping_and_mute(self):
         g = self.game
@@ -1160,21 +1237,22 @@ class DesktopTests(unittest.TestCase):
         from otb_chess.services.difficulty import DIFFICULTIES
         w,g = self.window,self.game
         with patch('otb_chess.services.difficulty.missing_files',return_value=[]), \
-                patch('otb_chess.services.difficulty.engine_path',side_effect=lambda key:Path(self.folder.name)/('lc0.exe' if DIFFICULTIES[key].engine=='maia' else 'stockfish.exe')), \
+                patch('otb_chess.services.difficulty.engine_path',side_effect=lambda key:Path(self.folder.name)/('fairy-stockfish.exe' if DIFFICULTIES[key].engine=='fairy-stockfish' else 'stockfish.exe')), \
                 patch.object(g,'load_engine_path') as load:
             for key,preset in DIFFICULTIES.items():
+                w.refresh_difficulty_actions()
                 w.difficulty_actions[key].trigger()
                 self.assertEqual(g.cfg['engine_difficulty'],key)
-                self.assertEqual(g.cfg['engine_elo'],preset.rating if preset.engine=='stockfish' else None)
+                self.assertEqual(g.cfg['engine_elo'],preset.rating)
                 self.assertEqual(g.cfg['engine_style'],'Balanced')
                 self.assertEqual(g.book_var.get(),'')
                 self.assertTrue(w.difficulty_actions[key].isChecked())
                 self.assertEqual(settings.load_config()['engine_difficulty'],key)
-                self.assertEqual(Path(load.call_args.args[0]).name,'lc0.exe' if preset.engine=='maia' else 'stockfish.exe')
+                self.assertEqual(Path(load.call_args.args[0]).name,'fairy-stockfish.exe' if preset.engine=='fairy-stockfish' else 'stockfish.exe')
             g.engine_manager.thinking = True
             load.reset_mock()
-            w.select_difficulty('club')
-            self.assertEqual(w.pending_difficulty,'club')
+            w.select_difficulty('level_1600')
+            self.assertEqual(w.pending_difficulty,'level_1600')
             load.assert_not_called()
             g.pending_engine_move = OwnedMove(chess.E2,chess.E4)
             g.engine_manager.thinking = False
@@ -1182,41 +1260,13 @@ class DesktopTests(unittest.TestCase):
             self.assertIsNone(w.pending_difficulty)
             self.assertIsNone(g.pending_engine_move)
             self.assertFalse(g.board.move_stack)
-            self.assertEqual(g.cfg['engine_difficulty'],'club')
+            self.assertEqual(g.cfg['engine_difficulty'],'level_1600')
             load.assert_called_once()
 
-    def test_engine_maia_preset_loads_plays_and_switches_to_stockfish(self):
-        from otb_chess.services.difficulty import DIFFICULTIES
-        w,g = self.window,self.game
-        with patch.object(settings,'ENGINE_DIR',settings.APP_DIR/'engines'):
-            w.select_difficulty('club')
-            deadline = time.monotonic()+8
-            while g.engine_loading and time.monotonic()<deadline:
-                QTest.qWait(10)
-            w.tick()
-            self.assertIsInstance(g.engine_manager.engine,uci.MaiaEngine)
-            self.assertEqual(g.cfg['engine_difficulty'],'club')
-            self.assertIn('Stockfish',w.engine_name.text())
-            g.start_game()
-            with patch.object(g,'play_game_sound'):
-                self.assertTrue(g.try_move(chess.E2,chess.E4))
-                while g.engine_manager.thinking and time.monotonic()<deadline:
-                    QTest.qWait(10)
-                w.tick()
-            self.assertEqual(len(g.board.move_stack),2)
-            self.assertEqual(g.last_engine_search[1].nodes,1)
-            w.select_difficulty('cm_practice')
-            while g.engine_loading and time.monotonic()<deadline:
-                QTest.qWait(10)
-            w.tick()
-            self.assertIsNotNone(g.engine_manager.engine)
-            self.assertNotIsInstance(g.engine_manager.engine,uci.MaiaEngine)
-            self.assertEqual(g.cfg['engine_elo'],2000)
-            self.assertEqual(settings.load_config()['engine_difficulty'],'cm_practice')
 
     def test_engine_custom_menu_opens_custom_without_changing_saved_preset(self):
         w,g = self.window,self.game
-        g.cfg['engine_difficulty'] = 'club'
+        g.cfg['engine_difficulty'] = 'level_1600'
         g.persist()
         w.refresh_difficulty_actions()
         observed = []
@@ -1228,9 +1278,9 @@ class DesktopTests(unittest.TestCase):
         QTimer.singleShot(0,inspect)
         w.custom_difficulty_action.trigger()
         self.assertEqual(observed,['custom',True])
-        self.assertEqual(g.cfg['engine_difficulty'],'club')
-        self.assertEqual(settings.load_config()['engine_difficulty'],'club')
-        self.assertTrue(w.difficulty_actions['club'].isChecked())
+        self.assertEqual(g.cfg['engine_difficulty'],'level_1600')
+        self.assertEqual(settings.load_config()['engine_difficulty'],'level_1600')
+        self.assertTrue(w.difficulty_actions['level_1600'].isChecked())
         self.assertFalse(w.custom_difficulty_action.isChecked())
 
     def test_engine_difficulty_dialog_save_and_cancel(self):
@@ -1240,23 +1290,23 @@ class DesktopTests(unittest.TestCase):
             def choose():
                 dialog = QApplication.activeModalWidget()
                 combo = dialog.findChild(QComboBox,'engineDifficulty')
-                combo.setCurrentIndex(combo.findData('beginner'))
-                self.assertEqual(dialog.findChild(QSpinBox,'engineRating').value(),300)
+                combo.setCurrentIndex(combo.findData('beginner_500'))
+                self.assertEqual(dialog.findChild(QSpinBox,'engineRating').value(),500)
                 self.assertFalse(dialog.findChild(QSpinBox,'engineRating').isEnabled())
                 dialog.accept() if accept else dialog.reject()
             with patch('otb_chess.services.difficulty.missing_files',return_value=[]), \
-                    patch('otb_chess.services.difficulty.engine_path',return_value=Path(self.folder.name)/'lc0.exe'), \
+                    patch('otb_chess.services.difficulty.engine_path',return_value=Path(self.folder.name)/'fairy-stockfish.exe'), \
                     patch.object(g,'load_engine_path') as load:
                 QTimer.singleShot(0,choose)
                 w.engine_settings()
-                self.assertEqual(g.cfg['engine_difficulty'],'beginner' if accept else original)
+                self.assertEqual(g.cfg['engine_difficulty'],'beginner_500' if accept else original)
                 self.assertEqual(load.called,accept)
         restored = MainWindow()
         restored.timer.stop()
         try:
-            self.assertEqual(restored.game.cfg['engine_difficulty'],'beginner')
-            self.assertTrue(restored.difficulty_actions['beginner'].isChecked())
-            self.assertEqual(restored.game.cfg['engine_rating'],300)
+            self.assertEqual(restored.game.cfg['engine_difficulty'],'beginner_500')
+            self.assertTrue(restored.difficulty_actions['beginner_500'].isChecked())
+            self.assertEqual(restored.game.cfg['engine_rating'],500)
         finally:
             restored.close()
 

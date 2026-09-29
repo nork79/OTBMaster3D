@@ -1,6 +1,6 @@
 # Contributing
 
-OTBMaster3D is a free, open-source application under GPL-3.0-or-later.
+OTBMaster3D is a free, open-source application under GPL-3.0-only.
 Contributions to application code are submitted under the same licence. Keep
 third-party attribution and licence files with imported code or artwork.
 
@@ -21,3 +21,9 @@ personal settings, game recovery files, virtual environments or downloaded engin
 
 For bugs, include reproduction steps, the version, board mode and relevant PGN/FEN.
 See docs/windows-installer.md for the installer build and verification process.
+
+You must have the right to submit your work. Original application contributions
+are submitted under GPL-3.0-only; imported material must have compatible terms
+and retain its provenance, notices and full required licence texts. Contributors
+generally retain copyright in their original contributions. No copyright assignment
+is required. Review and acceptance are discretionary; see docs/MAINTENANCE.md.

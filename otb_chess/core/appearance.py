@@ -136,6 +136,7 @@ class AppearanceSettings:
     def persist(self):
         save_config(
             {
+                "player_name": self.cfg.get("player_name", ""),
                 **{key: self.cfg.get(key, default_config()[key]) for key in
                    ("window_size", "bookmark_panel_geometry", "sidebar_width", "sidebar_visible", "focus_mode", "engine_panel_open", "analysis_enabled", "analysis_options", "always_show_static_evaluation", "interface_theme", "engine_elo", "engine_rating", "engine_style", "engine_defaults_applied", "engine_difficulty")},
                 "light_square": list(self.light_square),

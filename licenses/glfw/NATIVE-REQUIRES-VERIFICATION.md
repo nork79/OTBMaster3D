@@ -1,3 +1,9 @@
+# Remediation update — 2026-09-28
+
+Native GLFW 3.4 source and NATIVE-LICENSE.txt are collected. Exact binary build options and MSVCR120 redistribution entitlement remain under review.
+
+## Historical finding
+
 # Native GLFW and its runtime
 
 The Python glfw 2.10.2 wrapper licence is copied in LICENSE.txt. It is distinct

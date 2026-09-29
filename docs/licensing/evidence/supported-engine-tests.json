@@ -1,0 +1,17 @@
+{
+  "command": [
+    "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Scripts\\python.exe",
+    "-m",
+    "unittest",
+    "-v",
+    "tests.test_difficulty",
+    "tests.test_bookmarks",
+    "tests.test_bookmark_ui",
+    "tests.test_engine_features",
+    "tests.test_clock_feedback",
+    "tests.test_pgn_details",
+    "tests.test_desktop_ui"
+  ],
+  "exit_code": 0,
+  "scope": "Source checkout; no frozen application or installer built"
+}

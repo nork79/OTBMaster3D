@@ -1,3 +1,9 @@
+# Remediation update — 2026-09-28
+
+Matching QtBase and PySide setup 6.11.2 source archives and full notices are collected. See docs/licensing/BUILD_AND_REPLACE.md for the limited replacement test and remaining build verification.
+
+## Historical finding
+
 # Qt / PySide6 / Shiboken6: requires verification before release
 
 Observed bindings and Qt runtime: 6.11.2. Intended route: LGPLv3, where available

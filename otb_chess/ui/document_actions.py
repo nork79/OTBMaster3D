@@ -6,6 +6,47 @@ from otb_chess.core.documents import read_pgn, read_fen
 
 
 class DocumentActions:
+    def edit_game_details(self):
+        from PySide6.QtWidgets import QDialog, QFormLayout, QLineEdit, QDialogButtonBox
+        from otb_chess.services.pgn_details import FIELDS
+        dialog = QDialog(self)
+        dialog.setWindowTitle('Edit Game Details')
+        dialog.setObjectName('gameDetailsDialog')
+        layout = QFormLayout(dialog)
+        fields = {}
+        original = self.game.game_details()
+        for key, value in original.items():
+            field = QLineEdit(value)
+            field.setObjectName('pgn' + key)
+            field.setAccessibleName(key)
+            layout.addRow(key, field)
+            fields[key] = field
+        fields['Date'].setToolTip('YYYY.MM.DD; use ???? or ?? for unknown parts')
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        layout.addRow(buttons)
+
+        def save():
+            try:
+                self.game.set_game_details({key: fields[key].text() for key in FIELDS})
+            except ValueError as exc:
+                QMessageBox.warning(dialog, 'Invalid game details', str(exc))
+                return
+            g = self.game
+            if g.engine_enabled and g.engine_side is not None and g.engine_manager.engine is not None:
+                key = 'Black' if g.engine_side else 'White'
+            else:
+                key = 'Black' if g.cfg.get('player_name') == original['Black'] else 'White'
+            name = g.game_details()[key]
+            if name != original[key] or not g.cfg.get('player_name'):
+                self.game.cfg['player_name'] = '' if name == '?' else name
+                self.game.persist()
+            self.session.save(self.game, force=True)
+            dialog.accept()
+
+        buttons.accepted.connect(save)
+        buttons.rejected.connect(dialog.reject)
+        dialog.exec()
+
     def build_file_menu(self):
         menu = self.menuBar().addMenu("File")
         self.action(menu,"Open PGN / FEN…",self.open_notation,"Ctrl+O")

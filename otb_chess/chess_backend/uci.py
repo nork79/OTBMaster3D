@@ -3,7 +3,6 @@ import chess as _chess
 import chess.engine as _engine
 import subprocess
 import sys
-import random
 from otb_chess_core import Move
 from otb_chess.engine_state import EngineScore, EngineEvaluation, EngineResult
 
@@ -75,12 +74,19 @@ class Engine:
                     raise ValueError(f"Saved engine option has changed: {name}")
                 configured[name] = value
         self._transport.configure(configured)
+        if 'Skill Level' in configured:
+            self.practice_skill = (configured['Skill Level']
+                                   if not configured.get('UCI_LimitStrength', False)
+                                   and configured['Skill Level'] < 20 else None)
 
     def configure_strength(self, elo=None):
         limits = self.strength_range()
         if limits:
-            options = {"UCI_LimitStrength": elo is not None}
-            if elo is not None:
+            skill = getattr(self, 'practice_skill', None)
+            options = {"UCI_LimitStrength": elo is not None and skill is None}
+            if 'Skill Level' in self._transport.options:
+                options['Skill Level'] = 20 if skill is None else skill
+            if elo is not None and skill is None:
                 options["UCI_Elo"] = max(limits[0], min(limits[1], elo))
             self._transport.configure(options)
 
@@ -123,33 +129,3 @@ class Engine:
             _board(history), _engine.Limit(time=seconds, depth=depth or None),
             multipv=multipv, options=options)
         return tuple(_evaluation(history.final_fen, item) for item in info)
-
-
-class MaiaEngine(Engine):
-    """Maia networks require policy-only (one-node) play rather than search."""
-
-    @classmethod
-    def open_model(cls, executable, weights, mistakes=0.0):
-        engine = cls.open([str(executable), '--weights='+str(weights),
-                           '--backend=blas', '--threads=1', '--minibatch-size=1'])
-        engine.mistakes = mistakes
-        return engine
-
-    def strength_range(self):
-        return None
-
-    def configure_strength(self, elo=None):
-        pass  # Strength is chosen by the network, not UCI_Elo.
-
-    def play(self, history, seconds=0.12, style="Balanced"):
-        board = _board(history)
-        if self.mistakes and random.random() < self.mistakes:
-            moves = list(board.legal_moves)
-            chosen = _move(random.choice(moves)) if moves else None
-            return EngineResult(chosen, None, EngineEvaluation(history.final_fen, pv=(chosen,) if chosen else ()))
-        result = self._transport.play(board, _engine.Limit(nodes=1), info=_engine.INFO_ALL)
-        return EngineResult(_move(result.move), None, _evaluation(history.final_fen,result.info))
-
-    def analyse(self, history, seconds=0.25):
-        info = self._transport.analyse(_board(history), _engine.Limit(nodes=1))
-        return _evaluation(history.final_fen,info)

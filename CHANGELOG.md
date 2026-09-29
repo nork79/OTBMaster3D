@@ -1,7 +1,15 @@
 # Changelog
 
-## Unreleased
+## 1.6.0 - 2026-09-30
 
+- Include the pending chess, PGN details, audio, engine and desktop UI updates.
+- Package Stockfish 19 and Fairy-Stockfish 14 with updated source and licence notices.
+- Require the separately installed Microsoft Visual C++ runtime and exclude standalone Microsoft runtime binaries from the installer.
+- Retain the documented outstanding distribution review items.
+
+## 1.4.0-beta.2 - 2026-09-27
+
+- Fix Engine Analysis up arrows receiving clicks in all five numeric settings.
 - Keep captured white piece symbols on the left and black symbols on the right.
 - Show the detected opening name and ECO code below move navigation, using bundled
   opening data. Follow move review and leave the label blank when no opening matches.
@@ -20,7 +28,7 @@
 
 ## 1.2.0-beta.1 - 2026-09-18
 
-- Add Maia difficulty presets, custom engine settings and persistent analysis state.
+- Add difficulty presets, custom engine settings and persistent analysis state.
 - Add position setup with live FEN and click-to-move editing, plus an interactive evaluation graph.
 - Add eight sound profiles, improved pre-game clock editing, viewport-fitting Reset View and revised defaults.
 - Update installer build support. See [release notes](docs/releases/1.2.0-beta.1.md).

@@ -1,0 +1,40 @@
+{
+  "reference_url": "https://download.qt.io/development_releases/prebuilt/llvmpipe/windows/opengl32sw-64-mesa_11_2_2-signed_sha256.7z",
+  "reference_archive_sha256": "c61f801c1760aa24b02c7a8354323cddf368b86f8f5c34b50b3b224f7d728afd",
+  "section_match": true,
+  "files": [
+    {
+      "path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.tmp\\native-runtime-downloads\\opengl32sw.dll",
+      "sha256": "b04de4541863bc7d8879040a78889c4849c1b1da2784c4630f734c146c2998ce",
+      "sections": {
+        ".text": "39880e8a7f5ca7e58e7aa0a635508842dace554d77f62267cb2927e48d951307",
+        ".rdata": "bfb5d97db84e01d1a4582b95a2fa089ea1d4334197fb6255c5ad2ddc68728190",
+        ".data": "92d30b6c15da74da87b4c3b895c3e8a60011a8148aba544411ba880adead4994",
+        ".pdata": "d76fecd0034546cb4ee93b89731499d7fbe090bd902b85ea8e37dbf5f8f6ab38",
+        ".gfids": "a5b43c1bda6b3849d8f0ce54e9a963c0bd9db7126628299015c46683a9cc6678",
+        ".tls": "4c6474903705cb450bb6434c29e8854f17d8324efca1fdb9ee9008599060883a",
+        "_RDATA": "1c959b16af1c1954ed8e22d0f900399174496c17c34dcbbde3393b8a0930ac9e",
+        ".reloc": "bbb9a7cd9f484b2e2e45681562013b59925909a6d4361b1a71b56bc8207bf0ee"
+      }
+    },
+    {
+      "path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\PySide6\\opengl32sw.dll",
+      "sha256": "34b444c016289b560662ff896deceb7f4b2c0723aed3d319ae167c9186ce42b3",
+      "sections": {
+        ".text": "39880e8a7f5ca7e58e7aa0a635508842dace554d77f62267cb2927e48d951307",
+        ".rdata": "bfb5d97db84e01d1a4582b95a2fa089ea1d4334197fb6255c5ad2ddc68728190",
+        ".data": "92d30b6c15da74da87b4c3b895c3e8a60011a8148aba544411ba880adead4994",
+        ".pdata": "d76fecd0034546cb4ee93b89731499d7fbe090bd902b85ea8e37dbf5f8f6ab38",
+        ".gfids": "a5b43c1bda6b3849d8f0ce54e9a963c0bd9db7126628299015c46683a9cc6678",
+        ".tls": "4c6474903705cb450bb6434c29e8854f17d8324efca1fdb9ee9008599060883a",
+        "_RDATA": "1c959b16af1c1954ed8e22d0f900399174496c17c34dcbbde3393b8a0930ac9e",
+        ".reloc": "bbb9a7cd9f484b2e2e45681562013b59925909a6d4361b1a71b56bc8207bf0ee"
+      }
+    }
+  ],
+  "embedded_versions": [
+    "Mesa 11.2.2",
+    "LLVM 3.6.2"
+  ],
+  "limit": "Section equality establishes same section bytes; whole-file hashes differ. Qt patch set/build invocation for this binary not established."
+}

@@ -1,0 +1,777 @@
+{
+  "directory": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Redist\\MSVC\\14.44.35112\\x64\\Microsoft.VC143.CRT",
+  "files": {
+    "msvcp140.dll": {
+      "sha256": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9",
+      "architecture": "0x8664",
+      "file_version": [
+        14,
+        44,
+        35211,
+        0
+      ],
+      "version_resources": {
+        "CompanyName": "Microsoft Corporation",
+        "FileDescription": "Microsoft\u00ae C Runtime Library",
+        "FileVersion": "14.44.35211.0",
+        "InternalName": "msvcp140.dll",
+        "LegalCopyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+        "OriginalFilename": "msvcp140.dll",
+        "ProductName": "Microsoft\u00ae Visual Studio\u00ae",
+        "ProductVersion": "14.44.35211.0"
+      },
+      "imports": [
+        {
+          "dll": "VCRUNTIME140.dll",
+          "kind": "normal",
+          "symbols": [
+            "__current_exception_context",
+            "__C_specific_handler",
+            "memcmp",
+            "__uncaught_exceptions",
+            "__uncaught_exception",
+            "memchr",
+            "memmove",
+            "__std_terminate",
+            "_purecall",
+            "memset",
+            "memcpy",
+            "_CxxThrowException",
+            "__AdjustPointer",
+            "__current_exception",
+            "__std_exception_destroy",
+            "__std_type_info_destroy_list",
+            "__std_exception_copy"
+          ]
+        },
+        {
+          "dll": "VCRUNTIME140_1.dll",
+          "kind": "normal",
+          "symbols": [
+            "__CxxFrameHandler4"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "free",
+            "malloc",
+            "realloc",
+            "calloc",
+            "_callnewh"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "_register_onexit_function",
+            "_initterm_e",
+            "_initterm",
+            "_execute_onexit_table",
+            "_initialize_onexit_table",
+            "_configure_narrow_argv",
+            "_crt_atexit",
+            "_seh_filter_dll",
+            "_endthreadex",
+            "_beginthreadex",
+            "_set_new_handler",
+            "_errno",
+            "_cexit",
+            "abort",
+            "_invoke_watson",
+            "terminate",
+            "_initialize_narrow_environment"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "iswxdigit",
+            "iswdigit",
+            "tolower",
+            "isalnum",
+            "wcsnlen",
+            "__strncnt",
+            "strlen",
+            "wcscpy_s",
+            "isxdigit",
+            "isspace",
+            "isdigit",
+            "wcslen",
+            "strcmp",
+            "isupper",
+            "iswspace",
+            "islower",
+            "_wcsdup",
+            "strcspn",
+            "iswalnum"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-locale-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "setlocale",
+            "localeconv",
+            "___mb_cur_max_func",
+            "_lock_locales",
+            "_unlock_locales",
+            "___lc_codepage_func",
+            "__pctype_func",
+            "___lc_collate_cp_func",
+            "___lc_locale_name_func"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "_get_stream_buffer_pointers",
+            "fputs",
+            "fgetwc",
+            "fseek",
+            "_fsopen",
+            "_wfsopen",
+            "fclose",
+            "fputwc",
+            "ungetwc",
+            "__stdio_common_vsprintf_s",
+            "fgetc",
+            "fgetpos",
+            "fputc",
+            "fread",
+            "fsetpos",
+            "_fseeki64",
+            "fwrite",
+            "__acrt_iob_func",
+            "setvbuf",
+            "ungetc",
+            "fflush"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-filesystem-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "_wchdir",
+            "_wrmdir",
+            "_wrename",
+            "_unlock_file",
+            "_wremove",
+            "_lock_file"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-time-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "_W_Getdays",
+            "_Getmonths",
+            "_W_Gettnames",
+            "_Wcsftime",
+            "_Strftime",
+            "_W_Getmonths",
+            "_Gettnames",
+            "_Getdays"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-environment-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "_wgetcwd"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "_dclass",
+            "_ldclass",
+            "frexp",
+            "logf",
+            "copysign",
+            "ldexp",
+            "log"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "strtof",
+            "btowc",
+            "strtod"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-utility-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "rand_s"
+          ]
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "kind": "normal",
+          "symbols": [
+            "EnterCriticalSection",
+            "RaiseException",
+            "CompareStringEx",
+            "MultiByteToWideChar",
+            "GetCPInfo",
+            "InitializeSListHead",
+            "WideCharToMultiByte",
+            "LCMapStringEx",
+            "GetLocaleInfoEx",
+            "ReleaseSRWLockExclusive",
+            "AcquireSRWLockExclusive",
+            "CreateDirectoryW",
+            "CreateFileW",
+            "FindClose",
+            "FindFirstFileExW",
+            "FindNextFileW",
+            "GetDiskFreeSpaceExW",
+            "GetFileAttributesExW",
+            "GetCurrentProcessId",
+            "TerminateProcess",
+            "GetCurrentProcess",
+            "SetUnhandledExceptionFilter",
+            "UnhandledExceptionFilter",
+            "IsDebuggerPresent",
+            "RtlVirtualUnwind",
+            "RtlLookupFunctionEntry",
+            "RtlCaptureContext",
+            "GetFileInformationByHandleEx",
+            "GetProcAddress",
+            "GetModuleHandleW",
+            "CloseThreadpoolWait",
+            "SetThreadpoolWait",
+            "CreateThreadpoolWait",
+            "CloseThreadpoolTimer",
+            "WaitForThreadpoolTimerCallbacks",
+            "SetThreadpoolTimer",
+            "CreateThreadpoolTimer",
+            "GetTickCount64",
+            "GetSystemTimeAsFileTime",
+            "GetCurrentProcessorNumber",
+            "FlushProcessWriteBuffers",
+            "CreateSemaphoreExW",
+            "CreateEventExW",
+            "GetTempPathW",
+            "InitOnceExecuteOnce",
+            "GetStringTypeW",
+            "DeleteCriticalSection",
+            "InitializeCriticalSectionEx",
+            "LeaveCriticalSection",
+            "RtlPcToFileHeader",
+            "QueryPerformanceFrequency",
+            "QueryPerformanceCounter",
+            "GetModuleHandleExW",
+            "CloseThreadpoolWork",
+            "SubmitThreadpoolWork",
+            "CreateThreadpoolWork",
+            "FreeLibraryWhenCallbackReturns",
+            "IsProcessorFeaturePresent",
+            "RtlCaptureStackBackTrace",
+            "TryAcquireSRWLockExclusive",
+            "GetNativeSystemInfo",
+            "GetExitCodeThread",
+            "SwitchToThread",
+            "Sleep",
+            "WaitForSingleObjectEx",
+            "GetCurrentThreadId",
+            "SleepConditionVariableSRW",
+            "WakeAllConditionVariable",
+            "WakeConditionVariable",
+            "FormatMessageA",
+            "LocalFree",
+            "DecodePointer",
+            "EncodePointer",
+            "CreateSymbolicLinkW",
+            "CreateHardLinkW",
+            "CopyFileW",
+            "GetLastError",
+            "CloseHandle",
+            "AreFileApisANSI",
+            "SetFileTime",
+            "SetFileInformationByHandle",
+            "SetFileAttributesW",
+            "GetFileInformationByHandle"
+          ]
+        }
+      ]
+    },
+    "msvcp140_1.dll": {
+      "sha256": "bfad5aef4c63a669e3c140655cdfdf395b6c979b400a447bd5dcb65ed8826c3d",
+      "architecture": "0x8664",
+      "file_version": [
+        14,
+        44,
+        35211,
+        0
+      ],
+      "version_resources": {
+        "CompanyName": "Microsoft Corporation",
+        "FileDescription": "Microsoft\u00ae C Runtime Library _1",
+        "FileVersion": "14.44.35211.0",
+        "InternalName": "msvcp140_1.dll",
+        "LegalCopyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+        "OriginalFilename": "msvcp140_1.dll",
+        "ProductName": "Microsoft\u00ae Visual Studio\u00ae",
+        "ProductVersion": "14.44.35211.0"
+      },
+      "imports": [
+        {
+          "dll": "MSVCP140.dll",
+          "kind": "normal",
+          "symbols": [
+            "?_Xbad_alloc@std@@YAXXZ"
+          ]
+        },
+        {
+          "dll": "VCRUNTIME140.dll",
+          "kind": "normal",
+          "symbols": [
+            "__std_type_info_destroy_list",
+            "_CxxThrowException",
+            "memset",
+            "__std_exception_copy",
+            "memcpy",
+            "__C_specific_handler",
+            "__std_exception_destroy"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "_aligned_malloc",
+            "_callnewh",
+            "free",
+            "_aligned_free",
+            "malloc"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "_initialize_onexit_table",
+            "_configure_narrow_argv",
+            "_seh_filter_dll",
+            "_cexit",
+            "_initterm_e",
+            "_initterm",
+            "_initialize_narrow_environment",
+            "_execute_onexit_table"
+          ]
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "kind": "normal",
+          "symbols": [
+            "QueryPerformanceCounter",
+            "GetCurrentProcessId",
+            "GetCurrentThreadId",
+            "GetSystemTimeAsFileTime",
+            "InitializeSListHead",
+            "RtlCaptureContext",
+            "RtlLookupFunctionEntry",
+            "RtlVirtualUnwind",
+            "IsDebuggerPresent",
+            "UnhandledExceptionFilter",
+            "IsProcessorFeaturePresent",
+            "DisableThreadLibraryCalls",
+            "SetUnhandledExceptionFilter"
+          ]
+        }
+      ]
+    },
+    "msvcp140_2.dll": {
+      "sha256": "3ea06f0ee098b4823cb79599df3780e7f23cce52c19aac31d2a0d47efe33a5e9",
+      "architecture": "0x8664",
+      "file_version": [
+        14,
+        44,
+        35211,
+        0
+      ],
+      "version_resources": {
+        "CompanyName": "Microsoft Corporation",
+        "FileDescription": "Microsoft\u00ae C Runtime Library _2",
+        "FileVersion": "14.44.35211.0",
+        "InternalName": "msvcp140_2.dll",
+        "LegalCopyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+        "OriginalFilename": "msvcp140_2.dll",
+        "ProductName": "Microsoft\u00ae Visual Studio\u00ae",
+        "ProductVersion": "14.44.35211.0"
+      },
+      "imports": [
+        {
+          "dll": "MSVCP140.dll",
+          "kind": "normal",
+          "symbols": [
+            "?_Getcat@?$ctype@D@std@@SA_KPEAPEBVfacet@locale@2@PEBV42@@Z",
+            "?clear@ios_base@std@@QEAAXH_N@Z",
+            "?rdstate@ios_base@std@@QEBAHXZ",
+            "?good@ios_base@std@@QEBA_NXZ",
+            "?flags@ios_base@std@@QEBAHXZ",
+            "?precision@ios_base@std@@QEBA_JXZ",
+            "?width@ios_base@std@@QEBA_JXZ",
+            "?width@ios_base@std@@QEAA_J_J@Z",
+            "?getloc@ios_base@std@@QEBA?AVlocale@2@XZ",
+            "?widen@?$ctype@D@std@@QEBAPEBDPEBD0PEAD@Z",
+            "?_Addstd@ios_base@std@@SAXPEAV12@@Z",
+            "??0ios_base@std@@IEAA@XZ",
+            "?_Init@ios_base@std@@IEAAXXZ",
+            "?setprecision@std@@YA?AU?$_Smanip@_J@1@_J@Z",
+            "?_Incref@facet@locale@std@@UEAAXXZ",
+            "?_Decref@facet@locale@std@@UEAAPEAV_Facet_base@3@XZ",
+            "?_Id_cnt@id@locale@std@@0HA",
+            "?id@?$ctype@D@std@@2V0locale@2@A",
+            "?id@?$numpunct@D@std@@2V0locale@2@A",
+            "?widen@?$ctype@D@std@@QEBADD@Z",
+            "?_Getgloballocale@locale@std@@CAPEAV_Locimp@12@XZ",
+            "?_Init@locale@std@@CAPEAV_Locimp@12@_N@Z",
+            "??1facet@locale@std@@MEAA@XZ",
+            "??0facet@locale@std@@IEAA@_K@Z",
+            "?c_str@?$_Yarn@D@std@@QEBAPEBDXZ",
+            "?_Gettrue@_Locinfo@std@@QEBAPEBDXZ",
+            "?_Getfalse@_Locinfo@std@@QEBAPEBDXZ",
+            "?_Getcvt@_Locinfo@std@@QEBA?AU_Cvtvec@@XZ",
+            "??1_Locinfo@std@@QEAA@XZ",
+            "??0_Locinfo@std@@QEAA@PEBD@Z",
+            "?_Xout_of_range@std@@YAXPEBD@Z",
+            "?_Xlength_error@std@@YAXPEBD@Z",
+            "?_Xbad_alloc@std@@YAXXZ",
+            "?uncaught_exceptions@std@@YAHXZ",
+            "??1_Lockit@std@@QEAA@XZ",
+            "??1ios_base@std@@UEAA@XZ",
+            "??0_Lockit@std@@QEAA@H@Z"
+          ]
+        },
+        {
+          "dll": "VCRUNTIME140.dll",
+          "kind": "normal",
+          "symbols": [
+            "memcpy",
+            "__std_exception_destroy",
+            "memmove",
+            "memcmp",
+            "__std_terminate",
+            "memset",
+            "__C_specific_handler",
+            "__std_type_info_destroy_list",
+            "_CxxThrowException",
+            "__std_exception_copy"
+          ]
+        },
+        {
+          "dll": "VCRUNTIME140_1.dll",
+          "kind": "normal",
+          "symbols": [
+            "__CxxFrameHandler4"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "_crt_atexit",
+            "_execute_onexit_table",
+            "_register_onexit_function",
+            "_initialize_onexit_table",
+            "_initialize_narrow_environment",
+            "_configure_narrow_argv",
+            "_seh_filter_dll",
+            "_invoke_watson",
+            "_initterm_e",
+            "_cexit",
+            "_initterm",
+            "_errno"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "sin",
+            "tan",
+            "pow",
+            "log",
+            "fmod",
+            "sqrtf",
+            "sqrt",
+            "_dclass",
+            "_fdclass",
+            "_ldclass",
+            "atan",
+            "ceil",
+            "cos",
+            "ldexp",
+            "frexp",
+            "cosh",
+            "floor",
+            "exp",
+            "sinh"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "_callnewh",
+            "malloc",
+            "free",
+            "calloc"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "strcspn",
+            "strlen"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "__stdio_common_vsprintf_s"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-locale-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "localeconv"
+          ]
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "kind": "normal",
+          "symbols": [
+            "DisableThreadLibraryCalls",
+            "RtlCaptureContext",
+            "RtlLookupFunctionEntry",
+            "RtlVirtualUnwind",
+            "UnhandledExceptionFilter",
+            "SetUnhandledExceptionFilter",
+            "GetCurrentProcess",
+            "TerminateProcess",
+            "IsProcessorFeaturePresent",
+            "QueryPerformanceCounter",
+            "GetCurrentProcessId",
+            "GetCurrentThreadId",
+            "GetSystemTimeAsFileTime",
+            "InitializeSListHead",
+            "IsDebuggerPresent"
+          ]
+        }
+      ]
+    },
+    "vcruntime140.dll": {
+      "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+      "architecture": "0x8664",
+      "file_version": [
+        14,
+        44,
+        35211,
+        0
+      ],
+      "version_resources": {
+        "CompanyName": "Microsoft Corporation",
+        "FileDescription": "Microsoft\u00ae C Runtime Library",
+        "FileVersion": "14.44.35211.0",
+        "InternalName": "vcruntime140.dll",
+        "LegalCopyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+        "OriginalFilename": "vcruntime140.dll",
+        "ProductName": "Microsoft\u00ae Visual Studio\u00ae",
+        "ProductVersion": "14.44.35211.0"
+      },
+      "imports": [
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "terminate",
+            "abort"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "strncmp",
+            "wcsncmp",
+            "strcmp",
+            "strcpy_s",
+            "strlen"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "free",
+            "malloc",
+            "calloc"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "__stdio_common_vsprintf_s",
+            "__stdio_common_vsprintf"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "atol"
+          ]
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "kind": "normal",
+          "symbols": [
+            "GetLastError",
+            "IsProcessorFeaturePresent",
+            "TerminateProcess",
+            "GetCurrentProcess",
+            "SetUnhandledExceptionFilter",
+            "UnhandledExceptionFilter",
+            "RtlVirtualUnwind",
+            "RtlCaptureContext",
+            "GetSystemTimeAsFileTime",
+            "GetCurrentThreadId",
+            "GetCurrentProcessId",
+            "QueryPerformanceCounter",
+            "RtlLookupFunctionEntry",
+            "RtlUnwindEx",
+            "RtlUnwind",
+            "GetModuleHandleW",
+            "GetModuleFileNameW",
+            "LoadLibraryExW",
+            "EncodePointer",
+            "RaiseException",
+            "RtlPcToFileHeader",
+            "InterlockedPushEntrySList",
+            "InterlockedFlushSList",
+            "EnterCriticalSection",
+            "LeaveCriticalSection",
+            "DeleteCriticalSection",
+            "FreeLibrary",
+            "SetLastError",
+            "InitializeCriticalSectionAndSpinCount",
+            "TlsAlloc",
+            "TlsGetValue",
+            "TlsSetValue",
+            "TlsFree",
+            "GetProcAddress"
+          ]
+        }
+      ]
+    },
+    "vcruntime140_1.dll": {
+      "sha256": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f",
+      "architecture": "0x8664",
+      "file_version": [
+        14,
+        44,
+        35211,
+        0
+      ],
+      "version_resources": {
+        "CompanyName": "Microsoft Corporation",
+        "FileDescription": "Microsoft\u00ae C Runtime Library",
+        "FileVersion": "14.44.35211.0",
+        "InternalName": "vcruntime140_1.dll",
+        "LegalCopyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+        "OriginalFilename": "vcruntime140_1.dll",
+        "ProductName": "Microsoft\u00ae Visual Studio\u00ae",
+        "ProductVersion": "14.44.35211.0"
+      },
+      "imports": [
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "terminate",
+            "abort"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "wcsncmp",
+            "strcmp",
+            "strcpy_s",
+            "strlen"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "kind": "normal",
+          "symbols": [
+            "free",
+            "malloc",
+            "calloc"
+          ]
+        },
+        {
+          "dll": "VCRUNTIME140.dll",
+          "kind": "normal",
+          "symbols": [
+            "memcpy",
+            "__processing_throw",
+            "__C_specific_handler",
+            "memmove",
+            "__current_exception"
+          ]
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "kind": "normal",
+          "symbols": [
+            "IsProcessorFeaturePresent",
+            "TerminateProcess",
+            "GetCurrentProcess",
+            "SetUnhandledExceptionFilter",
+            "UnhandledExceptionFilter",
+            "RtlVirtualUnwind",
+            "RtlCaptureContext",
+            "GetSystemTimeAsFileTime",
+            "GetCurrentThreadId",
+            "GetCurrentProcessId",
+            "QueryPerformanceCounter",
+            "RtlUnwindEx",
+            "RtlLookupFunctionEntry",
+            "LoadLibraryExW",
+            "GetProcAddress",
+            "FreeLibrary",
+            "TlsFree",
+            "TlsSetValue",
+            "TlsGetValue",
+            "TlsAlloc",
+            "InitializeCriticalSectionAndSpinCount",
+            "SetLastError",
+            "GetLastError",
+            "EncodePointer",
+            "RaiseException",
+            "RtlPcToFileHeader",
+            "DeleteCriticalSection"
+          ]
+        }
+      ]
+    }
+  }
+}

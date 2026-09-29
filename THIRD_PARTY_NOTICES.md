@@ -1,10 +1,19 @@
 # Third-party notices and bill of materials
 
-OTBMaster3D 1.4.0-beta.1 application source is GPL-3.0-or-later; see LICENSE.
+## Remediation update — 2026-09-28
+
+Current evidence: [docs/licensing/REMEDIATION.md](docs/licensing/REMEDIATION.md).
+Full PyOpenGL 3.1.10 text is now retained in licenses/PyOpenGL/LICENSE.txt;
+Qt/PySide and native source notices are inventoried in notice-inventory.json.
+Packaging includes only Stockfish and Fairy-Stockfish engine resources. The maintainer confirmed original code/icon/sound/screenshot rights.
+Earlier unresolved statements below are historical where superseded by this update.
+Existing third-party attribution and licence texts remain applicable.
+
+OTBMaster3D application source is GPL-3.0-only; see LICENSE.
 Third-party files retain their original licences. The private Windows beta bundles
 Python/Qt, engines and assets. The historical inventory below is not a complete
 binary licence clearance; current findings and unresolved items are recorded in
-[the private release review](docs/private-release-review.md).
+[the open-source audit](docs/OPEN_SOURCE_AUDIT.md).
 
 Machine-readable evidence: [third_party_bom.json](third_party_bom.json). It records versions,
 installed metadata, import locations, licence-file hashes and redistribution intent.
@@ -102,12 +111,28 @@ restrictions, replacement instructions, matching-source obligations and release 
 
 - **Firi** by James Faure (jfaure), CC-BY-4.0. Source: https://github.com/jfaure/Firi-pieceset. Standard chess SVGs from out/ rasterised to PNG; no design changes. Licence: [assets/pieces_2d/firi/LICENSE](assets/pieces_2d/firi/LICENSE).
 
-## Maia and Leela Chess Zero
-
-Difficulty presets use the official [Lc0 0.32.1 CPU/OpenBLAS runtime](https://github.com/LeelaChessZero/lc0/releases/tag/v0.32.1) and [Maia v1 models](https://github.com/CSSLab/maia-chess/releases/tag/v1.0) for ratings 1100, 1300, 1400, 1500, 1600 and 1800. The runtime and repository GPL notices are retained in `engines/maia`, together with bundled allocator notices and an installation hash manifest. Upstream corresponding source: [Lc0](https://github.com/LeelaChessZero/lc0/tree/v0.32.1), [OpenBLAS](https://github.com/OpenMathLib/OpenBLAS), [Maia](https://github.com/CSSLab/maia-chess). The development inventory records model-specific redistribution terms as requiring release review.
 
 ## cozy-chess-py
 
 Version 0.1.1 is a runtime dependency. Its installed distribution declares MIT;
 the exact supplied licence is retained in [licenses/cozy-chess-py/LICENSE](licenses/cozy-chess-py/LICENSE).
 Bundled runtime package versions are recorded in build-info.json.
+# Native runtime update — 2026-09-29
+
+The Windows build uses GLFW 3.4 rebuilt from the retained upstream source with
+MSVC2022. The Python glfw wrapper remains 2.10.2. Microsoft CRT files are governed
+by Microsoft's terms, separately from this application's GPL licence.
+
+`PySide6/opengl32sw.dll` is Qt's software-rendering Mesa 11.2.2 build incorporating
+LLVM 3.6.2. Retained upstream notices are under `licenses/software-opengl/` (or
+their indexed installed paths). Native source/build and Microsoft distribution
+review remains open; see `docs/licensing/NATIVE_RUNTIME_REMEDIATION.md` in the
+source archive. This preparation build is not cleared for publication.
+
+## Fairy-Stockfish 14
+
+Fairy-Stockfish is distributed under GPL-3.0-or-later. Original authors and licence
+texts are retained in `licenses/Fairy-Stockfish/`; the installed engine directory
+contains `fairy-stockfish-14.zip` with corresponding upstream source and build
+scripts. The selected standard-chess configuration disables NNUE and uses no
+external model files. See [component evidence](docs/licensing/FAIRY_STOCKFISH.md).

@@ -1,3 +1,9 @@
+# Remediation update — 2026-09-28
+
+Full pinned 3.1.10 sdist licence has been acquired as LICENSE.txt. The earlier URL failure is resolved.
+
+## Historical finding
+
 # PyOpenGL 3.1.10 — requires verification before release
 
 Installed package metadata did not provide a License or License-Expression field

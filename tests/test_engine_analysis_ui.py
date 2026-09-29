@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 import chess
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QStyle, QStyleOptionSpinBox
 
 from tests import test_desktop_ui as fixture
 from otb_chess.chess_backend import rules
@@ -36,6 +37,30 @@ class EngineAnalysisTests(unittest.TestCase):
         return (capture_position(g.board), g.export_pgn(), g.white_time, g.black_time,
                 g.active_clock_color, g.game_started, g.game_over, g.result_text,
                 tuple(g.clock_history), g.awaiting_clock_press, g.awaiting_clock_color)
+
+    def test_option_arrows_receive_clicks_and_save_values(self):
+        panel = self.present()
+        self.qt.processEvents()
+        for theme in ('Dark', 'Warm Paper'):
+            self.window.set_interface_theme(theme)
+            self.qt.processEvents()
+            for key, control in panel.options.items():
+                with self.subTest(theme=theme, option=key):
+                    original = control.value()
+                    for subcontrol, expected in (
+                            (QStyle.SubControl.SC_SpinBoxUp, original + control.singleStep()),
+                            (QStyle.SubControl.SC_SpinBoxDown, original)):
+                        option = QStyleOptionSpinBox()
+                        control.initStyleOption(option)
+                        rect = control.style().subControlRect(
+                            QStyle.ComplexControl.CC_SpinBox, option, subcontrol, control)
+                        self.assertFalse(control.lineEdit().geometry().intersects(rect))
+                        # Route clicks to the actual child under the pointer, as the OS does.
+                        target = control.childAt(rect.center()) or control
+                        QTest.mouseClick(target, Qt.MouseButton.LeftButton,
+                                         pos=target.mapFrom(control, rect.center()))
+                        self.assertAlmostEqual(control.value(), expected)
+                        self.assertAlmostEqual(settings.load_config()['analysis_options'][key], expected)
 
     def test_nonmodal_single_window_and_sidebar_cleanup(self):
         panel = self.present()

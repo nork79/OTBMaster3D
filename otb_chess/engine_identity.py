@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 import re
 
-ENGINE_IDS = {"stockfish": "stockfish", "rodent": "rodent", "maia": "maia"}
+ENGINE_IDS = {"stockfish": "stockfish", "fairy-stockfish": "fairy-stockfish", "rodent": "rodent"}
 
 
 def _digest_file(path):
@@ -20,7 +20,7 @@ def _digest_file(path):
 
 def identify_engine(name, executable):
     """Use UCI-reported family, with a binary fingerprint for unknown engines."""
-    for family in ("stockfish", "rodent"):
+    for family in ("fairy-stockfish", "stockfish", "rodent"):
         if re.match(r"^" + family + r"(?:\b|\d)", name or "", re.IGNORECASE):
             return ENGINE_IDS[family]
     return "uci:sha256:" + _digest_file(executable)
@@ -43,13 +43,11 @@ def _resources(value):
 def profile_identifier(configuration):
     """Versioned fingerprint of effective settings, independent of display names.
 
-    Maia model number identifies its standard weights; custom resource options
+    Custom resource options
     are fingerprinted by content when available. Saved IDs remain valid when a
     referenced resource is subsequently unavailable (never recompute on load).
     """
     settings = dict(configuration.get("settings", {}))
-    if configuration["engine_id"] == "maia" and "model" in settings:
-        settings.pop("weights_path", None)
     payload = {"engine_id": configuration["engine_id"], "settings": _resources(settings),
                "elo": configuration.get("elo"), "style": configuration.get("style", "Balanced")}
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")

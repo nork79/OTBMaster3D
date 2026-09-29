@@ -139,27 +139,6 @@ class BookmarkIntegrationTests(unittest.TestCase):
         self.assertEqual(actual["settings"], saved["settings"])
         self.assertEqual(self.game.cfg["engine_style"], "Active")
 
-    def test_exact_maia_model_roundtrip_without_nearest_rating_substitution(self):
-        from otb_chess.services.difficulty import engine_path, missing_files
-        if missing_files("club_1500"):
-            self.skipTest("Bundled Maia not installed")
-        manager = self.game.engine_manager
-        self.addCleanup(manager.unload)
-        self.game.cfg.update(engine_difficulty="club_1500")
-        self.assertTrue(manager.load(str(engine_path("club_1500")))[0])
-        saved = capture_engine(manager)
-        self.game.cfg["engine_difficulty"] = "improver"
-        self.assertEqual(manager.restore_configuration(saved), (True, ""))
-        self.assertEqual(manager.loaded_configuration["settings"]["model"], 1500)
-        self.assertEqual(capture_engine(manager)["profile_id"], saved["profile_id"])
-        damaged = deepcopy(saved)
-        damaged["settings"]["weights_path"] = str(Path(self.temp.name) / "missing.pb.gz")
-        damaged["settings"]["model"] = 1999
-        previous = manager.engine
-        with self.assertLogs("otb_chess.services.engine", level="WARNING"):
-            success, message = manager.restore_configuration(damaged)
-        self.assertFalse(success)
-        self.assertIs(manager.engine, previous)
 
     def test_unsupported_profile_keeps_current_engine(self):
         executable = Path(self.temp.name) / "rodent.exe"

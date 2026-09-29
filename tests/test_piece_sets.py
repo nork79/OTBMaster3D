@@ -115,8 +115,10 @@ class LiveSwitchTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.app.engine_manager.unload()
         cls.app.ui.destroy()
+        glfw.make_context_current(cls.app.window)
         cls.app.piece_renderer.close()
         cls.app.flat_piece_renderer.close()
+        cls.app.board_surface_renderer.close()
         glfw.destroy_window(cls.app.window)
         glfw.terminate()
 

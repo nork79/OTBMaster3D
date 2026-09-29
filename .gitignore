@@ -22,10 +22,24 @@ bookmarks.json.*.tmp
 # User-provided engines and opening books
 engines/*.exe
 engines/stockfish-19/
-engines/maia/
+engines/*/
 sound_options/
 saved-games/
 books/*.bin
 !books/lichess-all.bin
 !books/lichess-e4.bin
 !books/lichess-d4.bin
+
+# Local credentials, signing material and diagnostic output
+.env
+.env.*
+*.pfx
+*.p12
+*.key
+*.pem
+*.log
+.vscode/
+.idea/
+
+# Local corresponding-source archives and release evidence
+release-materials/

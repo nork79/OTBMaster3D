@@ -1,0 +1,5 @@
+ARCHIVED HISTORICAL LOG — not current test output.
+
+The original bytes are retained in release-materials/retired-engine-records.zip
+under this file's original path. Current engine tests are in
+supported-engine-tests.txt and fairy-stockfish-verification.json.

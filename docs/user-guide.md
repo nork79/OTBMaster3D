@@ -1,5 +1,48 @@
 # OTBMaster3D user guide
 
+## Practice difficulty
+
+The difficulty menu and engine settings show only installed levels.
+Fairy-Stockfish provides practice targets from 500 through 1500; Stockfish
+provides higher targets and full strength. Labels show approximate difficulty.
+These settings are not measured human Elo ratings. No external models are needed.
+See [engine setup](../engines/README.md) for the complete list.
+
+## Game details and player names
+
+Use **Game → Edit Game Details** to edit Event, Site, Date, White, Black and Round.
+Save applies the fields to PGN export and session recovery; Cancel discards edits.
+Comments, variations, moves and results are preserved.
+
+New games use today's local date and place the loaded engine's name on its colour.
+The name includes its configured strength, for example `Stockfish 19 (1900 Elo)`,
+and the PGN includes the matching `WhiteElo` or `BlackElo` tag. Unlimited engines
+show `Full strength` without an invented rating. Practice ratings are approximate.
+Saving an edited human name remembers it automatically, including after restarting
+the app. Against an engine, your name goes on the opposite colour. In a two-human
+game, the remembered name identifies your colour, defaulting to White. Editing
+other details leaves the remembered name unchanged. Switching sides before moves
+have been played swaps PGN names and Elo tags. Details edited before starting are
+kept when play begins. Imported names and dates are retained until you edit them.
+Dates use `YYYY.MM.DD`; unknown parts can use `?`,
+for example `2026.??.??`. Empty text fields become PGN's unknown value `?`.
+
+## Untimed play
+
+In the time-control settings, select **Infinite (clocks disabled)**. Both clocks
+show ∞, there is no countdown or timeout, and manual clock presses are unnecessary.
+Engines still make moves normally. The Start/Pause/Resume button sits directly
+below the Black clock; in untimed games it pauses or resumes play. Session recovery
+preserves untimed mode and restores the game paused.
+
+## Automatic draws
+
+The game ends automatically on threefold repetition, the fifty-move rule
+(100 half-moves without a pawn move or capture), stalemate or insufficient
+material. Repetition uses the played move history; a FEN alone cannot restore it.
+Draw conditions apply after the move is played, with checkmate taking precedence.
+There is no Claim draw button or menu action.
+
 ## Run on Windows
 
 Install Python 3.13 (64-bit) with Tkinter support and use a graphics driver that supports
@@ -9,7 +52,7 @@ OpenGL 2.1. From the project folder:
 py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe tools/install_stockfish.py
-.\.venv\Scripts\python.exe tools/install_maia.py
+.\.venv\Scripts\python.exe tools/install_fairy_stockfish.py
 .\.venv\Scripts\python.exe main.py
 ```
 
@@ -22,8 +65,8 @@ historical 3.14 test results remain recorded in the backend audit.
 An installer is available to authorized collaborators through the private repository release.
 The app opens one window. The optional Stockfish setup downloads the official
 Windows x64 release, verifies its SHA-256 hash, and preserves its source and licence.
-The optional Maia setup installs the CPU runtime and six human-move models for difficulty presets.
-Skip engine setup commands to use your own UCI engine or play without an engine.
+Unavailable difficulty levels are hidden.
+Skip engine setup to play without an engine.
 
 ## Board and pieces
 
@@ -260,13 +303,13 @@ their responsibility rather than adding application logic to `main.py`.
 
 ## Assets and licences
 
-**Help → Open Source Licences** shows the component inventory and local notice
-paths. See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md), the machine-readable
-[BOM](../third_party_bom.json), and [Windows distribution preparation](windows-commercial-distribution.md).
-This beta is free and open source under GPL-3.0-or-later. Installer packaging
-remains in development and is not part of this source release. Historical
-proprietary-distribution research is retained for reference, not as the current
-release plan. See [CONTRIBUTING.md](../CONTRIBUTING.md) for development and reporting.
+**Help > Open Source Licences** displays the full GPL, third-party notices and
+source-access instructions offline. **Help > About** shows the version, copyright
+and repository link. See [THIRD_PARTY_LICENSES.md](../THIRD_PARTY_LICENSES.md).
+The application is GPL-3.0-only. Free source and the planned AUD $10 itch.io installer
+have the same functionality; recipients retain redistribution rights.
+See [release readiness](OPEN_SOURCE_RELEASE_READINESS.md) and
+[CONTRIBUTING.md](../CONTRIBUTING.md).
 
 The bundled Staunton meshes are by
 [clarkerubber](https://github.com/clarkerubber/Staunton-Pieces), copyright 2014,

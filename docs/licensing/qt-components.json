@@ -1,0 +1,1490 @@
+[
+  {
+    "path": "PySide6/__init__.py",
+    "sha256": "bf8ddd12eae52e8508f295d80459bb3478a015a663892850c74126812e12b7db",
+    "bytes": 6400,
+    "wheel_record_match": [
+      "PySide6_Addons",
+      "6.11.2",
+      "PySide6/__init__.py"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/MSVCP140.dll",
+    "sha256": "4c667b706893593812cd111b369ba6a77f54d1f1b1ae87cf3bf37692663cfba2",
+    "bytes": 549176,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/msvcp140.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/MSVCP140_1.dll",
+    "sha256": "d419d24b0a76366f5c9d908b0e45fe70e9e9154bb8ad5f3de42070f2337f857b",
+    "bytes": 27448,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/msvcp140_1.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/MSVCP140_2.dll",
+    "sha256": "89917964abb6ca16a260cab258e180c3abc239b5af00eed659d0edf0efdd339c",
+    "bytes": 271672,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/msvcp140_2.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/opengl32sw.dll",
+    "sha256": "34b444c016289b560662ff896deceb7f4b2c0723aed3d319ae167c9186ce42b3",
+    "bytes": 20639544,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/opengl32sw.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/plugins/imageformats/qico.dll",
+    "sha256": "1684fd56f1758167f7b3ac011264ae5859b3cf6113e381626ec3dc1d3122fe52",
+    "bytes": 46904,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/plugins/imageformats/qico.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/plugins/platforms/qwindows.dll",
+    "sha256": "bf6dbc3009f386fa22f0ced560bea6bbf3e0e0b4442d2fb855db67cffce49dbf",
+    "bytes": 991032,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/plugins/platforms/qwindows.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/pyside6.abi3.dll",
+    "sha256": "d0b5c701fb3a8ea839e72b602058f3960935156ebeca084893c54c99e54dd707",
+    "bytes": 255288,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/pyside6.abi3.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/Qt6Core.dll",
+    "sha256": "d6a3c37c5263c5d418fc0e80b722bc9fca7c0859e6f635f9624a2fde00bdc653",
+    "bytes": 10363704,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/Qt6Core.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/Qt6Gui.dll",
+    "sha256": "ae29b005f51b6850bf57fa06fced0dc8c7039fd6fafc3bfbcfe76e38adc7abf1",
+    "bytes": 9546552,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/Qt6Gui.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/Qt6OpenGL.dll",
+    "sha256": "d51088f16db8c96dba7ef3c1474e611adb3ebdb211fea35b8e755d2a7407f7ad",
+    "bytes": 1988408,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/Qt6OpenGL.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/Qt6OpenGLWidgets.dll",
+    "sha256": "860cd7e95bb1c6acea2b7a15f863e322a26bcc7e100acf5aa737c891adb31f75",
+    "bytes": 65336,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/Qt6OpenGLWidgets.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/Qt6Widgets.dll",
+    "sha256": "ff0df9e2e6827e035f0731a4cedfc6333f4602bca00775e56346f27032406b74",
+    "bytes": 6497080,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/Qt6Widgets.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/QtCore.pyd",
+    "sha256": "74f96322c5e9cea73aefd2ed5870e5275336b31f552fcd32f12fc81d23f1bc6f",
+    "bytes": 3345720,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/QtCore.pyd"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/QtGui.pyd",
+    "sha256": "7bef20046045199c037b7cbfedaa1c5464730fa948b2c9ec8afbf718e63774d4",
+    "bytes": 3901240,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/QtGui.pyd"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/QtOpenGL.pyd",
+    "sha256": "645f5ffcdf31ada7a71bf40e9290ec0ca8afb125dfa0602ca7f10b624b3f1fd3",
+    "bytes": 8682808,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/QtOpenGL.pyd"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/QtOpenGLWidgets.pyd",
+    "sha256": "0b665e477a541900f9979d5f397a776bb9847fa68df3f7d65231365acf4e94bd",
+    "bytes": 123192,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/QtOpenGLWidgets.pyd"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/QtWidgets.pyd",
+    "sha256": "f12f4ca641998e5706d5f7b0023147d573f0f2d2361e26dadf31bdbf05fbfd1d",
+    "bytes": 4857656,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/QtWidgets.pyd"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/support/__init__.py",
+    "sha256": "0ec13f5a5f7e381a31c2d1994d5baaea4d88f3a0524ba7ab9416bb1e9b3635ff",
+    "bytes": 230,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/support/__init__.py"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/support/deprecated.py",
+    "sha256": "e7e533bcdf14072d0bd0f1b0760218db35d980a8849edaf0b6d6ac39e3ba7996",
+    "bytes": 624,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/support/deprecated.py"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_ar.qm",
+    "sha256": "b11333c520ccd8e375cde20985df402d586a1a95e0796313bbeb9f717d4db22e",
+    "bytes": 104,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_ar.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_bg.qm",
+    "sha256": "1e22ee126ec9f76031d880285a907b3a0c4510392319ff700dcdee964abbb1ad",
+    "bytes": 91,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_bg.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_ca.qm",
+    "sha256": "17ab2623c7f6e8def44b3dbcb517544185817d65f1298ddb10ef71136f232bdc",
+    "bytes": 91,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_ca.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_cs.qm",
+    "sha256": "c585918fb1d4821a054ea40bdcf279f275ca76c88a5793f433dac6a611ac7e8f",
+    "bytes": 95,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_cs.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_da.qm",
+    "sha256": "f6773c672acb73fdef6e092060d69d1e5dfee840012bac912d1e92de28714386",
+    "bytes": 91,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_da.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_de.qm",
+    "sha256": "0401c316aa3b50a172eb44a4ff1ec384924073beec7c928ef888ec48e4612688",
+    "bytes": 91,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_de.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_en.qm",
+    "sha256": "494ac9a2b2cb2fdeced353f4a9f898ed8dcf616e9bc667438c62681e3f7f79cf",
+    "bytes": 33,
+    "wheel_record_match": [
+      "PySide6_Addons",
+      "6.11.2",
+      "PySide6/translations/qtwebsockets_en.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_es.qm",
+    "sha256": "648ed4519bc45d7a4779479a7626ea16cf9aa23e93a0b178546cc47bea0591ab",
+    "bytes": 91,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_es.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_fa.qm",
+    "sha256": "3f4c989c6b2990d80cc6299408214b31698923b52f154483b3371875de91f88e",
+    "bytes": 84,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_fa.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_fi.qm",
+    "sha256": "342d01c7eeb234e431d0506821c4cd03c0433115d8d63fee3357be2331858879",
+    "bytes": 91,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_fi.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_fr.qm",
+    "sha256": "c896a38892a92346b033793d56440993236b23e47e06f3974afdb0552f628387",
+    "bytes": 91,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_fr.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_gd.qm",
+    "sha256": "49df855a004a17950338af3146466f6df4d5852410bd0b58ea80e0d0203a9d24",
+    "bytes": 70,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_gd.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_gl.qm",
+    "sha256": "204a01ac7deb6b5bae193afecbd1e50d18c73bf7d94badeb2bbfdf6123c4ed93",
+    "bytes": 323590,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_gl.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_he.qm",
+    "sha256": "36f01fff2f25e116d4b7af78097b7e49520fd5b7fb6fb120e40be228c05c045f",
+    "bytes": 57,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_he.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_ar.qm",
+    "sha256": "222088c9752d1cc3bab985ef2dc77e5ae78578dce18a61ec15b39f02e588163d",
+    "bytes": 8743,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_ar.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_bg.qm",
+    "sha256": "cbcdd1e0bbae332d80ddb0a286056f17c824fa28d353d7fdf12fc97d9f6fe054",
+    "bytes": 10599,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_bg.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_ca.qm",
+    "sha256": "fe40962c814a9f489e18d033e4aaabe435232c9bcf760830c6165af507cca80e",
+    "bytes": 7435,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_ca.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_cs.qm",
+    "sha256": "4ac56fc63e400943bab13f1d4c418502138908e1d488c24aee6131d3d17552aa",
+    "bytes": 15297,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_cs.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_da.qm",
+    "sha256": "6bb092552a398687119f6d52145f04bf8373977446d8f00c0dcbd56b96829f0f",
+    "bytes": 4795,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_da.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_de.qm",
+    "sha256": "037bc99abf98571ae9375c2513536c15b571d66406c36c1de447b547ff539c07",
+    "bytes": 7569,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_de.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_en.qm",
+    "sha256": "494ac9a2b2cb2fdeced353f4a9f898ed8dcf616e9bc667438c62681e3f7f79cf",
+    "bytes": 33,
+    "wheel_record_match": [
+      "PySide6_Addons",
+      "6.11.2",
+      "PySide6/translations/qtwebsockets_en.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_es.qm",
+    "sha256": "fd16b279f8cf69077f75e94d90c9c07a2afff3948a579e3789f5ffb5e5f4202d",
+    "bytes": 10704,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_es.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_fr.qm",
+    "sha256": "875ee2dcdc64e3dea888d84048e382d3921a175f12847de2e6b1cb12ad9add50",
+    "bytes": 3573,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_fr.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_gl.qm",
+    "sha256": "7399a248609974773f60866c87b78ea7dfbc4f750313d692f7886cd763883c9f",
+    "bytes": 10891,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_gl.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_hr.qm",
+    "sha256": "8c8cc3c5b1ab2b074f82937001b896603420ef75592b3b78172177360dd7ea61",
+    "bytes": 5170,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_hr.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_hu.qm",
+    "sha256": "7be32e015119c969453abb6e8f3fb377963a69fafb10c27b796737b5eb283eaf",
+    "bytes": 7255,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_hu.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_it.qm",
+    "sha256": "316fe8d0815e2b4b396895beb38ef1a40431915b5e054df80f4c0cd556f26e4b",
+    "bytes": 10612,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_it.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_ja.qm",
+    "sha256": "ae603b2c0d434d40cde433ffcba65f9ee27978a9e19316007be7fe782a5b8b47",
+    "bytes": 7917,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_ja.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_ka.qm",
+    "sha256": "159c74f94b384b5ee6afdf38b6cfc4806bc99ecf73be02d4a7021d4ceba7ec7e",
+    "bytes": 7091,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_ka.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_ko.qm",
+    "sha256": "f11c64694e8e34e1d2c46c1a1d15d6ba9f2db7b61de4fdf54eca5ab977c3e052",
+    "bytes": 5708,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_ko.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_nl.qm",
+    "sha256": "44a8a0daf775d14352180052d13f623814d7bdf98e2c5c80144b7bf74214e3b0",
+    "bytes": 5087,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_nl.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_nn.qm",
+    "sha256": "4c8a7213942078e4f72f5babd26c41b77ace70189714a58b5504a7d5ad0193dc",
+    "bytes": 6934,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_nn.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_pl.qm",
+    "sha256": "cc6cb4d8c54086224672f2e49e623c8cb7c0c1cd65b8d5ecd42fc9ba3a6065bd",
+    "bytes": 9673,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_pl.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_pt_BR.qm",
+    "sha256": "b4015c5d519b4fe93c00bf734d1742e4f0094d89862664d548eb64a46a2feae7",
+    "bytes": 16030,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_pt_BR.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_ru.qm",
+    "sha256": "557b644e6da5f1ec720ef93965617087e4d1f40b2494cc5aa524cf3796108de7",
+    "bytes": 7288,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_ru.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_sk.qm",
+    "sha256": "f41e33e1d790bd0d3eb180f1f875bc191fe74773628f25c2cad95e1402e66867",
+    "bytes": 10388,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_sk.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_sl.qm",
+    "sha256": "2ec955e662407ebcd8dcdae5aaa21e4108e0b5b0aee0e9db712c27072943535f",
+    "bytes": 10363,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_sl.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_sv.qm",
+    "sha256": "95bdb03dbaa6dbdfda46c249e9ccce9a353f71ddb8b112961e8b005b2c60b13c",
+    "bytes": 6934,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_sv.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_tr.qm",
+    "sha256": "81da2f88cd624097581f2d29b10311796bcd9ab289e65883346d276110542d28",
+    "bytes": 6723,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_tr.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_uk.qm",
+    "sha256": "497cfc473684692ee44d7a3795e8fb2270c57069fd9eb98a615dd29ab9be8a7c",
+    "bytes": 9750,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_uk.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_zh_CN.qm",
+    "sha256": "e256d1f6034a5a5521c62f129f91731216e474f71e1d9caea3d3dcb11b670deb",
+    "bytes": 5115,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_zh_CN.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_help_zh_TW.qm",
+    "sha256": "40112812abb43853d678cc6d97729f21f21b3a7321c827fc9d18f6c936447d1e",
+    "bytes": 5160,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_help_zh_TW.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_hr.qm",
+    "sha256": "fc9e4146f33be3d09b234be01e56235d3037d8d82d64f0700b4d4a6e253a61a7",
+    "bytes": 102,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_hr.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_hu.qm",
+    "sha256": "c2fa649f167cdb801d1cc0cb69c1d93594fd5bf8c0b7e79b969935da5c3e19aa",
+    "bytes": 84,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_hu.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_it.qm",
+    "sha256": "9e7a18bc20ebeec54baaaf41c918a74534511271f796dffffd0f9b9ec31c68d3",
+    "bytes": 91,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_it.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_ja.qm",
+    "sha256": "0f5fe50452947d1ee9755249d860354bff6977279b4c496a5bc77e5b89dd745e",
+    "bytes": 84,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_ja.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_ka.qm",
+    "sha256": "00b67c6dfc255079b5b98a5640f82519c96b2520a028682fba4078b39d743eaa",
+    "bytes": 94,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_ka.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_ko.qm",
+    "sha256": "1d254b535e1cb35cbcad8210b15b89f4488159826bf35b4504696263dd102fa3",
+    "bytes": 84,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_ko.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_lg.qm",
+    "sha256": "6ba668501f4c040c66da1bdc022362da3c8cf663da6aa484cbdb599028da98ed",
+    "bytes": 57,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_lg.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_lt.qm",
+    "sha256": "47eb5f97467df769261421d54a5bea1131c9fb9b6388791d38bb6574335b64bf",
+    "bytes": 165383,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_lt.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_lv.qm",
+    "sha256": "addeca285282338294f24ca50d37d08a5f68d3785d0a94af86dd4ec8f2a3b449",
+    "bytes": 63,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_lv.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_nl.qm",
+    "sha256": "39e870cbd25c0f97fa9b1828d5ea1ed9849857a2e26c5321b3f13c76be8f0548",
+    "bytes": 91,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_nl.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_nn.qm",
+    "sha256": "4e544e23f75eafe1553dc896973db23b5795cd243786d5c653cc0f36a46ca74f",
+    "bytes": 91,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_nn.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_pl.qm",
+    "sha256": "e6890afa0caf0f6db0248e4c94f6016b8ec8bc266f1e0e9b8f01e8ea912cf968",
+    "bytes": 99,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_pl.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_pt_BR.qm",
+    "sha256": "0e24c58e35271853f8cdfb3f0f7b0741b5a9a588e43cdec62ae85a3842771e0a",
+    "bytes": 106,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_pt_BR.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_pt_PT.qm",
+    "sha256": "2c1e7bbf5168a64b43752dd4c547601c0bde6d610f8671fa3e3af38597e84783",
+    "bytes": 70334,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_pt_PT.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_ru.qm",
+    "sha256": "1b388e2d6d1bd405603e794e498c6d7ec5f5a5ad819243546f6399181da36758",
+    "bytes": 102,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_ru.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_sk.qm",
+    "sha256": "840c3b01c89df976fc1d2e5bfc6fc84b65666b8a3ceb4cbf5aa0c22af3d2a383",
+    "bytes": 95,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_sk.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_sl.qm",
+    "sha256": "c44e0313a9414cc0e490b65b0c036fa11bca959353b228886547bc2c8492034f",
+    "bytes": 228428,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_sl.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_sv.qm",
+    "sha256": "daaae448e0814b469ac3d7a91096fde15491600a6b8bc6c01508425fb5e8b3ec",
+    "bytes": 91,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_sv.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_tr.qm",
+    "sha256": "59e8a0c411be3b0802a68561b090f182099d6b75c4fe46f398e55f11528e11b9",
+    "bytes": 84,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_tr.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_uk.qm",
+    "sha256": "053ec1f677c4dba48c6a97eb28f4fc78c1511324d1843d7f4cec2c7c00a66145",
+    "bytes": 102,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_uk.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_zh_CN.qm",
+    "sha256": "c0e29d32c9540a7e78643b74214e633c56f6ab11f018e516629f2c11b1fb09fc",
+    "bytes": 99,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_zh_CN.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qt_zh_TW.qm",
+    "sha256": "24e226954491689549a1a1990db3b8cb78888008d8163b2fd2442b772b6d1b5f",
+    "bytes": 99,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qt_zh_TW.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_ar.qm",
+    "sha256": "e03fe68d83201543698fd7fe267dd5dfc5bfd195147e74ff2f19ac3491401263",
+    "bytes": 160017,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_ar.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_bg.qm",
+    "sha256": "e448ac9e3f16c29eb27af3012efe21052daa78fabfb34cd6dff2f69ee3bd3cdb",
+    "bytes": 165337,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_bg.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_ca.qm",
+    "sha256": "5298532fc52ffbc4e2c549f277151a61e741921c834286f7c04d3753677b6b04",
+    "bytes": 269007,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_ca.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_cs.qm",
+    "sha256": "03028b42df5479270371e4c3bdc7df2f56cbbe6dda956a2864ac6f6415861fe8",
+    "bytes": 174701,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_cs.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_da.qm",
+    "sha256": "7d1e5ca3310b54d104c19bf2abd402b38e584e87039a70e153c4a9af74b25c22",
+    "bytes": 181387,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_da.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_de.qm",
+    "sha256": "ed828a83dfaa51944f166c842155b48ab3bd7cb2c46dcd96269eb5d48af4f63f",
+    "bytes": 223282,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_de.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_en.qm",
+    "sha256": "494ac9a2b2cb2fdeced353f4a9f898ed8dcf616e9bc667438c62681e3f7f79cf",
+    "bytes": 33,
+    "wheel_record_match": [
+      "PySide6_Addons",
+      "6.11.2",
+      "PySide6/translations/qtwebsockets_en.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_es.qm",
+    "sha256": "4ffda56ba3bb5414ab0482d1dde64a6f226e3488f6b7f3f11a150e01f53fa4c8",
+    "bytes": 165170,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_es.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_fa.qm",
+    "sha256": "f78e59b5bdd586181a999034ba418868ed17fe9c05707fb65e523f70e92253d2",
+    "bytes": 148156,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_fa.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_fi.qm",
+    "sha256": "e47fe13713e184d07fa4495dde0c589b0e8f562e91574a3558a9363443a4fa72",
+    "bytes": 179941,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_fi.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_fr.qm",
+    "sha256": "314243a55c32679ad473fdfe48dc7d66e973ad0fc8bf2164480c58dddb50c1a7",
+    "bytes": 159463,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_fr.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_gd.qm",
+    "sha256": "63b439dd44139aa3aed54c2ebe03fa9bc77f22c14ed8fba8eff2608445bb233d",
+    "bytes": 189580,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_gd.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_he.qm",
+    "sha256": "e1ebca16afe8994356f81ca007fbdb9ddf865842010fe908923d873b687cad3f",
+    "bytes": 138690,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_he.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_hr.qm",
+    "sha256": "bb9eec9a9a652c1340dc75eb2e749be50df00f885b3d6900dfc76799c45b244d",
+    "bytes": 149711,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_hr.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_hu.qm",
+    "sha256": "98463295539d769c8645a0b7fb95ad38454cfd0b14f36af485513f036ddbbbc6",
+    "bytes": 205885,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_hu.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_it.qm",
+    "sha256": "7808ed542a7833c4bd94ec8bdfbbca00bb4f2fe15979b9121ce3249323687300",
+    "bytes": 161166,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_it.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_ja.qm",
+    "sha256": "2b9581c69b975f59be505b127cd3c19d403ef3d12e0e8386fb97238223e9c1df",
+    "bytes": 129913,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_ja.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_ka.qm",
+    "sha256": "e55e4b72fa620bebee5297ca59dfe2f49894a1e544f2b7485b1cfd8829289d6f",
+    "bytes": 201105,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_ka.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_ko.qm",
+    "sha256": "0179ed1b136e1cb3f583351eaa2c545ba3d83a6ee3f82c32505926a1a5f5f183",
+    "bytes": 156799,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_ko.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_lg.qm",
+    "sha256": "31c0cc4ce13b1d74fe0c19ed0b47638fb31e20c93ee08092533e884007aebfb5",
+    "bytes": 315764,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_lg.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_lv.qm",
+    "sha256": "846e047573ae40c83671c3ba7f73e27efc24b98c82701da0df9973e574178bb2",
+    "bytes": 153608,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_lv.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_nl.qm",
+    "sha256": "f61513bcdbb6ad800585f9437a95d018aab17fa12ee414aa31462ff279d8240e",
+    "bytes": 202861,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_nl.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_nn.qm",
+    "sha256": "f9f2fb7c60e7fcb38bbd3c1314ef122145594265e20b0659ff00004baab13ac7",
+    "bytes": 196411,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_nn.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_pl.qm",
+    "sha256": "3cf6b5c14d5eb0cf81e9af2066e66b3aa579a6b9b3c323ed670761f6254a8c54",
+    "bytes": 162962,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_pl.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_pt_BR.qm",
+    "sha256": "3475d61604b938d459949801a906dbd34a8ca824ade94120015d676e208da859",
+    "bytes": 290955,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_pt_BR.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_ru.qm",
+    "sha256": "3da6605668f9178d11a838c4515478084dcfb4f9cf22f99d7a92b492db9c224b",
+    "bytes": 203767,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_ru.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_sk.qm",
+    "sha256": "d586ae2c314074cf398417fdecb40709d5478dfeb0a67c2fe60d509ee9b59ed7",
+    "bytes": 125763,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_sk.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_sv.qm",
+    "sha256": "5a2178dd2c03cc4516697f1fb0049649c9ed53f5cde6b937786733dae06aeda8",
+    "bytes": 249963,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_sv.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_tr.qm",
+    "sha256": "353fdfd7165659a49212e7a25bf91c0a71588e52c836f7496640f26782414634",
+    "bytes": 248720,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_tr.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_uk.qm",
+    "sha256": "51b8ff55b37dc5907d637a8ddda12fbe816852b0244c74eb4f0fb84867a786e0",
+    "bytes": 158274,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_uk.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_zh_CN.qm",
+    "sha256": "0481a9b92a6f0578400e960a7d5ee70217a6a450eaf7f98b7d32b8dbd0d58616",
+    "bytes": 147222,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_zh_CN.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/translations/qtbase_zh_TW.qm",
+    "sha256": "21012b2b427f8d09d31ce9cae582ca27955b478ca3dc2ec18a3068d808638c6a",
+    "bytes": 126185,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/translations/qtbase_zh_TW.qm"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/VCRUNTIME140.dll",
+    "sha256": "f893ae75a1a24eea174d982f94bc80ce2448201eaa919a73c0653a5657685de4",
+    "bytes": 116024,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/vcruntime140.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "PySide6/VCRUNTIME140_1.dll",
+    "sha256": "48aa2783793ea18ab3c2c71d420d4fff9814e662a1ff810053c6e5250061a716",
+    "bytes": 41272,
+    "wheel_record_match": [
+      "PySide6_Essentials",
+      "6.11.2",
+      "PySide6/vcruntime140_1.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "shiboken6/__init__.py",
+    "sha256": "86c675af8f2d10e80222d9148d22ba625fce1844009660c3290f418b777b7855",
+    "bytes": 697,
+    "wheel_record_match": [
+      "shiboken6",
+      "6.11.2",
+      "shiboken6/__init__.py"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "shiboken6/MSVCP140.dll",
+    "sha256": "fd4a8c046fa3fea9ca6132f50cf8a56cf1e783b2d3093ba5c85fa063bc6b3845",
+    "bytes": 549176,
+    "wheel_record_match": [
+      "shiboken6",
+      "6.11.2",
+      "shiboken6/msvcp140.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "shiboken6/Shiboken.pyd",
+    "sha256": "2f6f3a694f675b1dafdae26903191613c02866ab48e02591ae34ca1a3b1284f1",
+    "bytes": 33592,
+    "wheel_record_match": [
+      "shiboken6",
+      "6.11.2",
+      "shiboken6/Shiboken.pyd"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "shiboken6/shiboken6.abi3.dll",
+    "sha256": "de3c6b2ed5f75c9ac0de4a6844b653b3b9d09263ce68c2b5fc25a96c5c3e8469",
+    "bytes": 394040,
+    "wheel_record_match": [
+      "shiboken6",
+      "6.11.2",
+      "shiboken6/shiboken6.abi3.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "shiboken6/VCRUNTIME140.dll",
+    "sha256": "de617641d82eac15595d2e39394163ac33e49bb032cf2c2ea0044ed39d3675e9",
+    "bytes": 116024,
+    "wheel_record_match": [
+      "shiboken6",
+      "6.11.2",
+      "shiboken6/vcruntime140.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  },
+  {
+    "path": "shiboken6/VCRUNTIME140_1.dll",
+    "sha256": "fa577d54bd10a91e52472da784a619da6cf241af45f0a0c48b27e91fa0fe6104",
+    "bytes": 41272,
+    "wheel_record_match": [
+      "shiboken6",
+      "6.11.2",
+      "shiboken6/vcruntime140_1.dll"
+    ],
+    "licence_scope": "Microsoft terms for MSVC DLLs; otherwise binding/module and embedded source notices",
+    "status": "VERIFIED file inventory; notices mapped by component"
+  }
+]

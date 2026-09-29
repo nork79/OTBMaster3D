@@ -3,14 +3,18 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_dynamic_libs
 
 root = Path(SPECPATH).parent
+import sys
+sys.path.insert(0, str(root / 'tools'))
+from install_fairy_stockfish import verify_installation
+verify_installation()
 qt_modules = {'QtCore','QtGui','QtWidgets','QtOpenGL','QtOpenGLWidgets'}
 a = Analysis(
     [str(root/'main.py')], pathex=[str(root)],
     datas=[(str(root/'assets'),'assets'), (str(root/'licenses'),'licenses'),
-           (str(root/'LICENSE'),'.'),
+           *[(str(root/name),'.') for name in ('LICENSE', 'COPYRIGHT.md', 'THIRD_PARTY_LICENSES.md', 'SOURCE_ACCESS.md')],
            (str(root/'THIRD_PARTY_NOTICES.md'),'.'), (str(root/'third_party_bom.json'),'.'),
            (str(root/'engines'/'stockfish-19'),'engines/stockfish-19'),
-           (str(root/'engines'/'maia'),'engines/maia'),
+           (str(root/'engines'/'fairy-stockfish-14'),'engines/fairy-stockfish-14'),
            (str(root/'engines'/'README.md'),'engines'),
            (str(root/'books'/'sources'),'books/sources'),
            (str(root/'books'/'README.md'),'books'),
@@ -24,7 +28,9 @@ a = Analysis(
 # The stock hooks collect optional GL DLLs and Qt plugins not used by this app.
 # Keep the Windows platform and ICO decoder; PNG support is in QtGui itself.
 a.binaries = [entry for entry in a.binaries
-              if not any(name in Path(entry[0]).name.lower() for name in ('freeglut', 'gle32'))
+              if not any(name in Path(entry[0]).name.lower() for name in ('freeglut', 'gle32', 'gle64'))
+              # MSVCR100 was collected solely for optional gle64.vc10.dll.
+              and Path(entry[0]).name.lower() != 'msvcr100.dll'
               # Dependencies of removed PDF/SVG and virtual-keyboard plugins.
               and Path(entry[0]).name.lower() not in (
                   'qt6pdf.dll', 'qt6svg.dll', 'qt6network.dll', 'qt6virtualkeyboard.dll',
@@ -34,6 +40,12 @@ a.binaries = [entry for entry in a.binaries
                    or Path(entry[0]).name.lower() in ('qwindows.dll', 'qico.dll'))]
 
 # Fail closed on unexpected Qt payload. Do not copy the whole Addons wheel.
+import sys
+sys.path.insert(0, str(root / 'tools'))
+from native_runtime_policy import apply_policy
+from check_external_runtime import forbidden_name
+a.binaries = apply_policy(a.binaries, root)
+
 for destination,source,kind in a.binaries:
     path = Path(destination.replace('\\','/'))
     name = path.name.lower()
@@ -47,8 +59,19 @@ for destination,source,kind in a.binaries:
     if 'plugins/' in destination.replace('\\','/').lower() and name.endswith('.dll'):
         if name not in ('qwindows.dll', 'qico.dll'):
             raise RuntimeError(f'Unreviewed plugin: {destination}')
-    if 'freeglut' in name or name.startswith('gle32'):
+    if 'freeglut' in name or name.startswith(('gle32', 'gle64')):
         raise RuntimeError(f'Unneeded optional OpenGL library: {destination}')
+
+# Keep excluded resources out even if a hook collects them as data.
+for collection in (a.binaries, a.datas):
+    for destination, source, kind in collection:
+        if forbidden_name(Path(destination).name) or forbidden_name(Path(source).name):
+            raise RuntimeError(f'External Microsoft prerequisite must not be packaged: {destination}')
+        normalized = destination.replace('\\', '/').lower()
+        if (normalized.endswith('.pb.gz')
+                or Path(normalized).name in ('lc0.exe', 'libopenblas.dll')
+                or 'mimalloc' in Path(normalized).name):
+            raise RuntimeError(f'Unsupported engine payload: {destination}')
 
 pyz = PYZ(a.pure)
 exe = EXE(pyz,a.scripts,[],exclude_binaries=True,name='OTBMaster3D',

@@ -22,6 +22,7 @@ class NotationBoundaryTests(unittest.TestCase):
         host.board = rules.Board()
         host.game_started = host.game_over = False
         host.clock_paused = True
+        host.clocks_disabled = False
         host.clock_history = []
         host.refresh_move_list = Mock()
         return host

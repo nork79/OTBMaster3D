@@ -1,0 +1,19 @@
+{
+  "scope": "Read-only audit of historical payload; candidate list omits standalone runtimes without modifying files. Not a rebuilt payload or clean Windows test.",
+  "excluded_files": [
+    "VCRUNTIME140.dll",
+    "VCRUNTIME140_1.dll",
+    "PySide6\\MSVCP140.dll",
+    "PySide6\\MSVCP140_1.dll",
+    "PySide6\\MSVCP140_2.dll",
+    "PySide6\\VCRUNTIME140.dll",
+    "PySide6\\VCRUNTIME140_1.dll",
+    "shiboken6\\MSVCP140.dll",
+    "shiboken6\\VCRUNTIME140.dll",
+    "shiboken6\\VCRUNTIME140_1.dll"
+  ],
+  "historical_payload_rejected": "Standalone Microsoft binaries are excluded: C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\PySide6\\MSVCP140.dll, C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\PySide6\\MSVCP140_1.dll, C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\PySide6\\MSVCP140_2.dll, C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\PySide6\\VCRUNTIME140.dll, C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\PySide6\\VCRUNTIME140_1.dll, C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\VCRUNTIME140.dll, C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\VCRUNTIME140_1.dll, C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\shiboken6\\MSVCP140.dll, C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\shiboken6\\VCRUNTIME140.dll, C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\shiboken6\\VCRUNTIME140_1.dll",
+  "remaining_files_pass": true,
+  "installer_sha256": "a785b63b0857743d9dbdf664846032752cc22a298909e4b22d7da410b29ac8fc",
+  "static_code_review": "Not resolved by this standalone binary check"
+}

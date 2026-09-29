@@ -1,0 +1,26 @@
+{
+  "version": "1.4.0-beta.2",
+  "python": "3.13.12 (tags/v3.13.12:1cbe481, Feb  3 2026, 18:22:25) [MSC v.1944 64 bit (AMD64)]",
+  "qt": "6.11.2",
+  "ok": true,
+  "menus": [
+    "Game",
+    "File",
+    "View",
+    "Engine",
+    "Settings",
+    "Bookmarks",
+    "Help"
+  ],
+  "engine": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\engines\\stockfish-19\\stockfish\\stockfish-windows-x86-64-universal.exe",
+  "evaluation": "Analysing\u2026",
+  "books": {
+    "lichess-all.bin": 20,
+    "lichess-d4.bin": 1,
+    "lichess-e4.bin": 1
+  },
+  "framebuffer": [
+    1226,
+    969
+  ]
+}

@@ -1,0 +1,1 @@
+cba47efbaad1bedd529725cbc14e21f156c7a19366f07b3edfbb076ffd7afdf8  pyside-setup-everywhere-src-6.11.2.tar.xz

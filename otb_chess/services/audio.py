@@ -1,17 +1,18 @@
 """Bundled chess sound pack and asynchronous playback."""
 
-import threading
+import logging
+import atexit
+import sys
+import wave
 from otb_chess.services.settings import APP_DIR
-try:
-    import winsound
-except ImportError:
-    winsound = None
+from otb_chess.services.wave_audio import SoundPlayer, read_clip
 
-_sound_lock = threading.Lock()
+_player = SoundPlayer() if sys.platform == 'win32' else None
+if _player is not None:
+    atexit.register(_player.close)
 
 SOUND_PROFILES = {
     "01_Soft_Lichess_Like": "Soft Lichess-like",
-    "02_Crisp_Chesscom_Like": "Crisp Chess.com-like",
     "03_Tournament_Wood": "Tournament Wood",
     "04_Modern_Digital": "Modern Digital",
     "05_Mechanical": "Mechanical",
@@ -30,13 +31,28 @@ def ensure_sounds(profile=DEFAULT_SOUND_PROFILE):
             ("move", "capture", "castle", "check", "promote", "illegal", "game_start", "game_end")}
 
 
-def play_sound_blocking(path):
-    if winsound is None:
-        return
-    with _sound_lock:
-        winsound.PlaySound(str(path), winsound.SND_FILENAME | winsound.SND_NODEFAULT)
-
-
 def play_sound(path):
-    threading.Thread(target=play_sound_blocking, args=(path,), daemon=True).start()
+    """Mix this event with any playing move; never interrupt the other side."""
+    if _player is None:
+        return
+    try:
+        _player.play(path)
+    except (OSError, ValueError, EOFError, wave.Error, RuntimeError) as exc:
+        logging.getLogger(__name__).warning("Sound playback unavailable: %s: %s", path, exc)
+
+
+def prepare_sounds(profile):
+    """Preload clips and open the output before the first short move sound."""
+    if _player is not None:
+        try:
+            for path in ensure_sounds(profile).values():
+                read_clip(path)
+            _player.start()
+        except (OSError, ValueError, EOFError, wave.Error, RuntimeError) as exc:
+            logging.getLogger(__name__).warning('Cannot prepare sound profile: %s', exc)
+
+
+def stop_sounds():
+    if _player is not None:
+        _player.close()
 

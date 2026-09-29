@@ -144,9 +144,6 @@ class VariationPreview:
         self.end_variation(resume=False)
         return super().resign(*args, **kwargs)
 
-    def claim_draw(self, *args, **kwargs):
-        self.end_variation(resume=False)
-        return super().claim_draw(*args, **kwargs)
 
     def navigate_to_ply(self, ply):
         self.end_variation(resume=False)

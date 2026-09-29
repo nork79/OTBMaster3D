@@ -1,0 +1,11 @@
+{
+  "library": "dist/OTBMaster3D/glfw/glfw3.dll",
+  "version": "3.4.0 Win32 WGL Null EGL OSMesa VisualC DLL",
+  "pixel": [
+    64,
+    128,
+    191,
+    255
+  ],
+  "ok": true
+}
