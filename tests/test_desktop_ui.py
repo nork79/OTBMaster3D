@@ -669,10 +669,74 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual(g.history_board().root().fen(),expected)
         self.assertIn('[SetUp "1"]',g.export_pgn())
         self.assertIn('1... O-O',g.export_pgn())
-        self.assertFalse(w.setup_position_action.isEnabled())
+        self.assertTrue(w.setup_position_action.isEnabled())
         with patch.object(w,'confirm',return_value=True):
             w.new_game()
         self.assertEqual(g.board.fen(),chess.Board().fen())
+
+    def test_setup_after_white_engine_move_preserves_game_until_confirmed(self):
+        from otb_chess.ui.position_setup import PositionSetup
+        w,g = self.window,self.game
+        board = chess.Board()
+        board.push_san('e4')
+        custom = 'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1'
+        for accepted,confirmed in ((False,False),(True,False),(True,True)):
+            with self.subTest(accepted=accepted,confirmed=confirmed):
+                g.load_document(board)
+                g.game_started = True
+                g.clock_paused = False
+                g.engine_side = chess.WHITE
+                original = g.board.fen()
+                generation = g.engine_manager.search_generation
+                w.refresh_navigation()
+                self.assertTrue(w.setup_position_action.isEnabled())
+
+                def edit(dialog):
+                    self.assertFalse(w.timer.isActive())
+                    self.assertEqual(dialog.board.fen(),chess.Board().fen())
+                    dialog.fen.setText(custom)
+                    return QDialog.DialogCode.Accepted if accepted else QDialog.DialogCode.Rejected
+
+                with patch.object(PositionSetup,'exec',new=edit), \
+                        patch.object(w,'confirm',return_value=confirmed) as confirm:
+                    w.setup_position()
+                self.assertEqual(confirm.call_count,int(accepted))
+                if accepted and confirmed:
+                    self.assertEqual(g.board.fen(),custom)
+                    self.assertFalse(g.game_started)
+                    self.assertFalse(g.board.move_stack)
+                    self.assertEqual(g.engine_manager.search_generation,generation+1)
+                else:
+                    self.assertEqual(g.board.fen(),original)
+                    self.assertEqual(len(g.board.move_stack),1)
+                    self.assertTrue(g.game_started)
+                    self.assertEqual(g.engine_manager.search_generation,generation)
+
+    def test_setup_during_engine_search_discards_old_result(self):
+        from otb_chess.ui.position_setup import PositionSetup
+        w,g = self.window,self.game
+        g.game_started = True
+        g.engine_side = chess.WHITE
+        original = g.board.fen()
+        generation = g.engine_manager.search_generation
+
+        def edit(dialog):
+            # Simulate the search finishing while the modal editor is open.
+            g.pending_engine_move = OwnedMove(chess.E2,chess.E4)
+            g.pending_engine_position = original
+            g.pending_engine_generation = generation
+            return QDialog.DialogCode.Accepted
+
+        with patch.object(g.engine_manager,'thinking',True), \
+                patch.object(g.engine_manager,'stop_search') as stop, \
+                patch.object(PositionSetup,'exec',new=edit):
+            w.setup_position()
+            stop.assert_called_once()
+        self.assertEqual(g.engine_manager.search_generation,generation+1)
+        self.assertIsNone(g.pending_engine_move)
+        self.assertFalse(g.game_started)
+        g.apply_pending_engine_move()
+        self.assertEqual(g.board.fen(),original)
 
     def test_evaluation_graph_reviews_full_game_and_updates_on_new_game(self):
         from otb_chess.core.evaluation import evaluate_position

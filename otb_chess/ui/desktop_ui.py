@@ -459,6 +459,7 @@ class MainWindow(DocumentActions, QMainWindow):
             shortcut = QShortcut(QKeySequence(key), self.board_widget)
             shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
             shortcut.activated.connect(callback)
+        self.new_game_pending = False
         self.refresh_moves()
         self.statusBar().setSizeGripEnabled(True)
         self.board_status = QLabel("")
@@ -475,7 +476,6 @@ class MainWindow(DocumentActions, QMainWindow):
         self.last_output = None
         self.last_search = None
         self.closing = False
-        self.new_game_pending = False
         self.pending_difficulty = None
         self.refresh_difficulty_actions()
         self.bookmark_panel = None
@@ -896,7 +896,7 @@ class MainWindow(DocumentActions, QMainWindow):
         g = self.game
         current = len(g.board.move_stack)
         end = len(g.history_board().move_stack)
-        self.setup_position_action.setEnabled(not end and not g.game_over and g._review_live is None)
+        self.setup_position_action.setEnabled(not (g.engine_loading or self.new_game_pending))
         allowed = not (g.game_started and not g.game_over and not g.clock_paused and current)
         for symbol in ("<<","<"):
             self.move_navigation[symbol].setEnabled(allowed and current > 0)
@@ -942,19 +942,25 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def setup_position(self):
         g = self.game
-        if g.history_board().move_stack or g.game_over or g._review_live is not None:
-            g.result_text = "Choose New game before setting up a position."
-            return
-        if g.engine_loading or g.engine_manager.thinking or self.new_game_pending:
+        if g.engine_loading or self.new_game_pending:
             g.result_text = "Wait for the engine operation to finish before setting up a position."
             return
         from otb_chess.ui.position_setup import PositionSetup
-        dialog = PositionSetup(self,g.board.fen(en_passant='fen'), flipped=g.board_facing == 'black')
+        history = g.history_board()
+        replacing_game = bool(history.move_stack or g.game_over)
+        dialog = PositionSetup(self,history.root().fen(en_passant='fen'), flipped=g.board_facing == 'black')
         dialog.orientation_changed.connect(lambda flipped: g.set_board_facing('black' if flipped else 'white'))
         timer_running = self.timer.isActive()
         self.timer.stop()
         try:
             if dialog.exec() == QDialog.DialogCode.Accepted:
+                if replacing_game and not self.confirm("Setup Position", "Replace the current game with this position? The current moves will be cleared."):
+                    return
+                # Discard results from a search that began before opening the editor.
+                g.engine_manager.search_generation += 1
+                if g.engine_manager.thinking:
+                    g.engine_manager.stop_search()
+                g.pending_engine_error = None
                 g.load_document(dialog.board)
                 g.move_animation = None
                 g.engine_output = None
@@ -966,6 +972,7 @@ class MainWindow(DocumentActions, QMainWindow):
                 self.session.save(g,force=True)
                 self.board_widget.update()
         finally:
+            g.last_clock_tick = time.perf_counter()
             dialog.deleteLater()
             if timer_running:
                 self.timer.start()
