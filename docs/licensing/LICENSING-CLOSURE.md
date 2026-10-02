@@ -55,7 +55,7 @@ licence grants, rather than package classifiers, govern this matrix.
 | Qt Core, Gui, Widgets, OpenGL, OpenGLWidgets; qwindows/qico 6.11.2 | LGPLv3 §4(a–c) notice and licence copies; §4(d)(1) compatible shared replacement; GPLv3 §6 for library object-code source | Exact official QtBase archive/checksum, embedded sources/CMake; GPL/LGPL texts and module notices; 15-file replacement smoke; About now explicitly names Qt/PySide/Shiboken LGPL use | Publish corresponding archives. Historical compiler patch level and bit reproduction are not established requirements | PASS (local materials/mechanism) |
 | PySide6 Essentials / Shiboken 6.11.2 runtime | LGPLv3, same combined-work/source conditions | Official pyside-setup source, binding type systems, setup/CMake scripts, exact wheel mapping, support DLL/PYD replacement | Same public source prerequisite; preserve compatible x64 Python limited API | PASS (local materials/mechanism) |
 | Mesa 11.2.2 / LLVM 3.6.2 software OpenGL | Mesa MIT-style licences and LLVM University of Illinois/NCSA; binary copyright, conditions, disclaimer and no endorsement; see original notices | Matching-version source archives; Qt official prebuilt archive checksum and identical PE sections; original Mesa/LLVM notices under licenses/software-opengl | No identified mandatory source/patch/configuration item absent under these permissive binary grants | PASS (identified open-source obligations) |
-| Mesa historical compiler, patches and static CRT attribution | No exact-reproduction obligation identified in MIT/NCSA | Known Qt prebuilt origin; no proof identifying every statically incorporated compiler support byte | Review the specific Microsoft binary redistribution question below; obtaining the old compiler recipe is optional unless a concrete contrary grant is found | OPTIONAL ASSURANCE (reproduction) |
+| Mesa historical compiler, patches and static CRT attribution | No exact-reproduction obligation identified in MIT/NCSA | Known Qt prebuilt origin; no proof identifying every statically incorporated compiler support byte | Obtaining the old compiler recipe is optional; the speculative embedded-code concern was removed as a blocker on 2026-09-30 | OPTIONAL ASSURANCE (reproduction) |
 | GLFW 3.4 / Python glfw 2.10.2 | Native zlib/libpng, wrapper MIT: retain notices; mark modified source if any | Exact source; no native patches; recorded MSVC rebuild; both probes and 134 exports match; no MSVCR120 imports | None; preserve existing build evidence | PASS |
 | cozy-chess-py 0.1.1 / cozy-chess 0.3.4 and types 0.2.2 | MIT plus crate-specific MIT/Apache alternatives: retain copyright, permission and selected licence notices | sdist, Cargo.lock, all checksum-verified crate sources and notices | No new concrete gap; build-only crates are not automatically shipped runtime components | PASS |
 | Pillow 12.3.0 | MIT-CMU: copyright/permission in copies and supporting documentation; no unauthorized endorsement | Complete aggregate licence; sdist/upstream tag; Windows recipes, flags and patches | None for identified Pillow code | PASS |
@@ -76,7 +76,7 @@ licence grants, rather than package classifiers, govern this matrix.
 | PyOpenGL 3.1.10 | Upstream BSD-style notices, copyright/disclaimer | Full version-specific licence and sdist retained | No optional freeglut/GLE DLL redistributed | PASS |
 | Qt embedded libraries | Individual original grants; see separate detailed table below | Complete QtBase source and third-party attribution/licence files retained | Exact compiler feature list is optional assurance where both code/notices are already supplied; no claim all QtBase candidates are shipped | PASS (materials) |
 | Microsoft standalone x64 VC++ runtime | External prerequisite; no standalone runtime redistributed by current packaging | Individual build licence basis confirmed; reviewed import/export baseline retained; package and DLL exclusion checks added | Users obtain x64 runtime 14.44.35211.0 or newer directly from Microsoft. Verify the next actual build and clean-machine installation | ADDRESSED IN SOURCE; BUILD VALIDATION PENDING |
-| Microsoft support code possibly static in upstream native libraries | Microsoft grant relevant to upstream distribution, not GPL relicensing | Legitimate Qt/Python/Pillow upstream distributions; no identified prohibited component | Ask reviewer whether these unmodified upstream binaries plus supplied notices need any additional Microsoft pass-through terms; no speculative demand for entire historical build ecosystem | HUMAN REVIEW REQUIRED (same Microsoft review) |
+| Microsoft support code possibly static in upstream native libraries | Microsoft grant relevant to upstream distribution, not GPL relicensing | Legitimate Qt/Python/Pillow upstream distributions; no identified prohibited component | Maintainer removed this speculative concern as a blocker on 2026-09-30; no specific embedded component or licence violation identified | NOT A RELEASE BLOCKER |
 | PyInstaller 6.22.3 bootloader | GPL with bootloader exception; retain licence/exception; source provided | Exact sdist, staged build-tool licence texts | No bootloader patches | PASS |
 | Inno Setup 6.4.3 uninstaller | Original Inno Setup licence, attribution and no misrepresentation | Installer tool/retained licence; uninstaller separately inventoried | No upstream source changes | PASS |
 | Original code, icon, procedural meshes and sounds | Application GPL; author owns/authorizes original material | Prior maintainer confirmation; generators and asset sources retained | None; seven active sound profiles tested, profile 2 removed from menu | PASS |
@@ -84,7 +84,6 @@ licence grants, rather than package classifiers, govern this matrix.
 | Sci-fi Blender original; ambientCG Marble012/Wood049/Fabric030; Lichess opening TSVs | CC0 | Original Blender, map source hashes, TSVs/converter and full CC0 notices | None | PASS |
 | Textbook/Burnett; Chessnut; Firi | BSD-3-Clause; Apache-2.0; CC-BY-4.0 §3 attribution/licence/change indication | Retained grants, source artwork, copyright and conversion notices | Retain artist attribution and rasterization/modification statements | PASS |
 | Free public release archives | GPLv3 §6(d): equivalent free source access beside object-code offer | Local version-matched archives and manifest prepared | Authorized publication then signed-out download/hash check of exact links; no upload authorized here | FAIL (publication prerequisite only) |
-| itch.io proposed paid distribution | GPLv3 §§6,10 and platform publisher obligations | Explicit GPL rights/source notice; no DRM, activation or purchase checks | Review platform §4 publisher grant for third-party GPL/Microsoft material; preserve independent GPL grant and free source links in listing | HUMAN REVIEW REQUIRED |
 
 ### Qt embedded component detail
 
@@ -121,7 +120,8 @@ Ten old app-local copies are removed only after prerequisite validation; imports
 and exports remain checked. A folder build also requires the runtime installed.
 
 Direct redistribution of the standalone runtime is removed from the planned
-payload. The separate embedded-code question remains open. No Microsoft terms
+payload. The speculative embedded-code concern is no longer a release blocker,
+following the maintainer decision on 2026-09-30. No Microsoft terms
 are added to GPL-covered source. See [Microsoft remediation](MICROSOFT_RUNTIME_REMEDIATION.md)
 for five passing safeguard tests, the read-only payload audit, official references
 and limitations. No installer was rebuilt; clean Windows testing remains pending.
@@ -140,8 +140,9 @@ Mesa/LLVM's identified permissive binary grants require notices, not delivery
 of the exact historical compiler configuration or patches. Matching sources and
 the upstream Qt prebuilt are retained as assurance. No missing mandatory Mesa
 source file is identified. Earlier reports' blanket provenance blocker is
-therefore narrowed to the Microsoft interpretation above and actual runtime
-validation; no conclusion about unknown copyrighted code is fabricated.
+therefore withdrawn for speculative embedded Microsoft code by the maintainer
+decision on 2026-09-30. Actual runtime validation remains separate; no finding
+about the presence or absence of unknown copyrighted code is made.
 
 ## Source and LGPL replacement
 
@@ -159,16 +160,12 @@ gives prominent LGPL library notice alongside the application copyright notice
 contracts prohibiting debugging modified LGPL libraries. See
 [BUILD_AND_REPLACE.md](BUILD_AND_REPLACE.md) for replacement instructions.
 
-## itch.io and publication
+## Publication
 
-Selling GPL software is permitted. The reviewed
-[itch.io terms](https://itch.io/docs/legal/terms) §4 includes publisher grants
-and a service-based user licence; §8 permits paid downloads. This does not
-independently prove authority to grant every requested right over third-party
-code. The listing must retain the explicit GPL grant and free exact source
-links. Ask a qualified reviewer about §4's sublicensing/derivative-work grant
-for third-party GPL and Microsoft material; do not add a restrictive product
-EULA. Nothing was published or changed on itch.io.
+The maintainer has withdrawn the itch.io distribution plan. Review of that
+platform's publisher terms is no longer a release blocker. No replacement
+distribution channel has been selected. Any binary download page must retain
+the explicit GPL grant and free links to the exact corresponding source.
 
 An unavailable upstream URL is recorded separately from a verified local file.
 Local files are hashed again; independently downloaded upstream archives are

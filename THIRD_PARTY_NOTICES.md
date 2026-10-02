@@ -1,4 +1,11 @@
-# Third-party notices and bill of materials
+# Third-party notices and historical bill of materials
+
+Current user-facing acknowledgements are in `THIRD_PARTY_LICENSES.md`.
+The inventory below records the earlier development environment and audit;
+its versions and unresolved findings do not describe every current installation.
+See `build-info.json`, when included, for the installed build and
+`docs/licensing/LICENSING-CLOSURE.md` for the updated component assessment.
+Original copyright, attribution and licence notices remain applicable.
 
 ## Remediation update — 2026-09-28
 
@@ -125,9 +132,10 @@ by Microsoft's terms, separately from this application's GPL licence.
 
 `PySide6/opengl32sw.dll` is Qt's software-rendering Mesa 11.2.2 build incorporating
 LLVM 3.6.2. Retained upstream notices are under `licenses/software-opengl/` (or
-their indexed installed paths). Native source/build and Microsoft distribution
-review remains open; see `docs/licensing/NATIVE_RUNTIME_REMEDIATION.md` in the
-source archive. This preparation build is not cleared for publication.
+their indexed installed paths). The updated native source/build assessment is in
+`docs/licensing/LICENSING-CLOSURE.md` in the source archive. Current packaging
+uses the Microsoft runtime as an external prerequisite; see
+`licenses/Microsoft/DISTRIBUTION.md`.
 
 ## Fairy-Stockfish 14
 

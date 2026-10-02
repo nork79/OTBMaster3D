@@ -306,7 +306,7 @@ their responsibility rather than adding application logic to `main.py`.
 **Help > Open Source Licences** displays the full GPL, third-party notices and
 source-access instructions offline. **Help > About** shows the version, copyright
 and repository link. See [THIRD_PARTY_LICENSES.md](../THIRD_PARTY_LICENSES.md).
-The application is GPL-3.0-only. Free source and the planned AUD $10 itch.io installer
+The application is GPL-3.0-only. Free source and the Windows installer
 have the same functionality; recipients retain redistribution rights.
 See [release readiness](OPEN_SOURCE_RELEASE_READINESS.md) and
 [CONTRIBUTING.md](../CONTRIBUTING.md).

@@ -13,13 +13,10 @@ engine analysis and organized position study.
 licensed under GPL-3.0-only, at [norKI79/OTBMaster3D](https://github.com/norKI79/OTBMaster3D).
 Public release is pending the [release-readiness review](docs/OPEN_SOURCE_RELEASE_READINESS.md).
 
-**Official Windows installer ? AUD $10:** planned exclusively for itch.io.
-Purchase link: **ITCH_IO_URL_PENDING**. The store page has not yet been established.
+**Official Windows installer:** the distribution channel has not yet been selected.
 The installer offers the same functionality as the public source version.
 There are no licence keys, DRM, activation, application accounts or paid feature unlocks.
-The application works independently of itch.io after installation.
 Recipients may modify and redistribute it, including without charge, under GPLv3.
-Buying the installer is not required to exercise those rights.
 
 ## Play, analyse and organize
 
@@ -56,7 +53,7 @@ for the board and theme combinations.
 ## Install on Windows
 
 The official installer is not yet cleared for public distribution. Once approved,
-download it from the itch.io purchase link above, run Setup, and launch OTBMaster3D
+download it from the announced release location, run Setup, and launch OTBMaster3D
 from the Start menu. Python is not required for the installer. The existing packaging
 workflow includes Stockfish and three opening books, subject to the
 licensing checks in the release report.

@@ -2,9 +2,10 @@
 
 ## Outcome
 
-**Standalone redistributable issue addressed in packaging source; embedded-code
-review remains open.** No installer or frozen application was created or modified.
-The previous installer still contains its historical app-local CRT files.
+**Standalone redistributable issue addressed in the rebuilt installer.** The
+2026-09-30 build from commit `87d30dc` passed the standalone Microsoft binary
+exclusion check and the packaged application smoke test. The speculative
+embedded-code concern is no longer a release blocker; see the decision below.
 
 The maintainer's individual VS Community development basis is already confirmed.
 The outstanding provision was section 4's requirement for protective downstream
@@ -45,26 +46,23 @@ files themselves were not removed or replaced. See
 [audit evidence](evidence/external-runtime-check.json), which records the unchanged
 installer hash. The audit does not claim that a new build exists.
 
-The Inno Setup changes have not been compiled or executed. Clean Windows testing
+Inno Setup compiled successfully on 2026-09-30. The current smoke report is
+`installer-output/smoke-87d30dc.json`. Clean Windows testing
 must exercise missing, older, matching and newer runtimes; silent setup; upgrades
 from the app-local layout; startup and normal application behaviour.
 No clean Windows environment is available yet.
 
-## Remaining Microsoft question
+## Embedded-code concern: not a release blocker
 
-The external prerequisite does not remove code incorporated into another DLL or
-EXE. The retained Qt software renderer's exact historical CRT linkage and any
-applicable Microsoft pass-through terms remain unestablished. Qt/Mesa/LLVM
-provenance and notices are retained; permissive project licences alone do not
-prove that they relicense Microsoft compiler support code. Microsoft documents
-static and dynamic CRT linkage as distinct modes.
+On 2026-09-30, the maintainer directed that the speculative embedded Microsoft
+code concern be excluded from release blockers. No specific Microsoft function,
+byte range or embedded runtime has been identified in the retained
+`PySide6/opengl32sw.dll`, and no licence violation has been established.
 
-No prohibited embedded component has been identified. This is an unresolved
-grant/conditions question, not a demonstrated GPL violation or a requirement to
-rebuild every native library. Closure needs evidence establishing the applicable
-upstream distribution grant and any downstream terms for the retained binary.
-If those cannot be established, a separately reviewed renderer build could be
-considered while preserving software-rendering support.
+The retained evidence identifies the Qt-provided Mesa/LLVM renderer. It does not
+establish the presence or absence of embedded Microsoft code. This decision
+removes the speculative review requirement; it does not assert that the binary
+contains no Microsoft code or grant additional redistribution rights.
 
 ## Official evidence
 
@@ -81,5 +79,6 @@ considered while preserving software-rendering support.
   static libraries versus DLL import libraries; external installation does not
   replace statically incorporated code.
 
-Store-terms review is deferred at the maintainer's request. It was not investigated
-or resolved by this change. Overall release status remains blocked.
+The maintainer has withdrawn the itch.io distribution plan. Its store-terms
+review is no longer a release blocker. Overall release status remains blocked
+by the remaining requirements.

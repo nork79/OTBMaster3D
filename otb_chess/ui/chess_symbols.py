@@ -58,4 +58,9 @@ def clock_engine_label(game, color):
     family = config.get("engine_id", "")
     name = {"fairy-stockfish": "Fairy-Stockfish", "stockfish": "Stockfish", "rodent": "Rodent"}.get(family, config.get("name", "Engine"))
     strength = game.cfg.get("engine_elo")
+    if family == "rodent":
+        from otb_chess.services.personalities import PERSONALITIES
+        key = config.get("settings", {}).get("rodent", {}).get("personality", "default")
+        label = PERSONALITIES.get(key, (key, ""))[0].split(" — ")[0]
+        return f"{label} · {'~' + str(strength) if strength is not None else 'Full'}"
     return f"{name} * {strength if strength is not None else 'Full'}"

@@ -281,7 +281,7 @@ class BookmarkTests(unittest.TestCase):
                                         "profile": "Tal", "settings": {}}
         captured = capture_engine(manager)
         self.assertEqual(captured["elo"], 1700)
-        self.assertEqual(captured["style"], "Quiet")
+        self.assertEqual(captured["style"], "Balanced")  # Rodent uses its native personality.
         self.assertEqual(captured["settings"]["uci_options"]["PersonalityFile"], "Tal.txt")
         item = self.bookmark(engine=captured)
         self.assertEqual(BookmarkCollection.from_dict(self.collection.to_dict()).get(item)["engine"], captured)

@@ -41,9 +41,19 @@ class EngineManager:
                 if not limits or not limits[0] <= preset.rating <= limits[1]:
                     raise ValueError('The practice engine does not support this target rating.')
             configuration = {"engine_id": identify_engine(reported_name, path), "name": name,
-                             "profile": key if preset else "custom", "settings": {}}
-            if configuration["engine_id"] not in ("stockfish", "fairy-stockfish"):
-                raise ValueError("Only Stockfish and Fairy-Stockfish are supported.")
+                             "profile": key if preset or key == "personality" else "custom", "settings": {}}
+            if key == "personality" and configuration["engine_id"] != "rodent":
+                raise ValueError("Personality opponents require Rodent IV.")
+            if configuration["engine_id"] not in ("stockfish", "fairy-stockfish", "rodent"):
+                raise ValueError("Only Stockfish and Fairy-Stockfish, plus Rodent IV, are supported.")
+            if configuration["engine_id"] == "rodent":
+                from otb_chess.services import personalities
+                profile = personalities.profile_settings(
+                    self.app.cfg.get("engine_personality", "tal"),
+                    self.app.cfg.get("engine_book_mode", "none"),
+                    self.app.cfg.get("book_path", ""))
+                personalities.configure(self.engine, profile, self.app.cfg.get("engine_elo"))
+                configuration["settings"]["rodent"] = profile
             self.engine.configure_strength(self.app.cfg.get("engine_elo"))
             self.path = path
             self.loaded_configuration = configuration
@@ -86,8 +96,8 @@ class EngineManager:
             from otb_chess.services.settings import ENGINE_DIR
             config = deepcopy(configuration)
             engine_id = config["engine_id"]
-            if engine_id not in ("stockfish", "fairy-stockfish"):
-                raise ValueError("Only Stockfish and Fairy-Stockfish are supported.")
+            if engine_id not in ("stockfish", "fairy-stockfish", "rodent"):
+                raise ValueError("Only Stockfish and Fairy-Stockfish, plus Rodent IV, are supported.")
             path = Path(config.get("executable", ""))
             if not path.is_file():
                 if engine_id == "stockfish":
@@ -96,6 +106,8 @@ class EngineManager:
                 raise ValueError("Engine executable is unavailable.")
             settings = config.get("settings", {})
             allowed = {"uci_options"}
+            if engine_id == "rodent":
+                allowed.add("rodent")
             if set(settings) - allowed:
                 raise ValueError("This engine's saved configuration system is not supported yet.")
             options = settings.get("uci_options", {})
@@ -103,6 +115,12 @@ class EngineManager:
             identity = identify_engine(candidate.configuration_snapshot()["name"], path)
             if identity != engine_id:
                 raise ValueError("Executable does not match the saved engine identity.")
+            if engine_id == "rodent":
+                from otb_chess.services import personalities
+                personalities.configure(candidate, settings["rodent"], config.get("elo"))
+                # Restore personality first; replay the remaining effective options afterwards.
+                options = {key: value for key, value in options.items()
+                           if key not in ("PersonalityFile", "Personality")}
             candidate.restore_options(options)
             # Compare persistent options after configuration, rather than guessing
             # another profile from a difficulty label or nearby rating.
@@ -152,7 +170,8 @@ class EngineManager:
                     if not self.engine or not getattr(self.app, "engine_enabled", True) or generation != self.search_generation:
                         return
                     self.engine.configure_strength(self.app.cfg.get("engine_elo"))
-                    result = self.engine.play(position, style=self.app.cfg.get("engine_style", "Balanced"))
+                    rodent = (self.loaded_configuration or {}).get("engine_id") == "rodent"
+                    result = self.engine.play(position, style="Balanced" if rodent else self.app.cfg.get("engine_style", "Balanced"))
                 if generation != self.search_generation:
                     return
                 self.app.pending_engine_generation = generation

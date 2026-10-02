@@ -1,5 +1,6 @@
 > Historical research only. The current release strategy is GPL-3.0-only source
-> and an AUD $10 itch.io installer. See [release preparation](OPEN_SOURCE_RELEASE_READINESS.md).
+> and a Windows installer; its distribution channel is not yet selected.
+> See [release preparation](OPEN_SOURCE_RELEASE_READINESS.md).
 > The proprietary migration and paused-build statements below are superseded.
 
 # Historical proprietary-distribution research

@@ -43,6 +43,7 @@ subscription plan or paid feature gate was found. No `.github/FUNDING.yml` exist
 “Premium Wood” is an available sound style, not a paid edition; it is preserved.
 Upstream licence text, a saved upstream asset page and historical research retain
 their original wording. Active README, About, notices and audit generation now
-describe free GPLv3 source and the sole official commercial channel, itch.io.
+describe free GPLv3 source and a Windows installer. The earlier itch.io
+distribution plan has been withdrawn; a replacement channel is not yet selected.
 Historical GPL-3.0-or-later release records are retained because they describe
 earlier grants, not this release's current licence designation.

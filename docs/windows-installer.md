@@ -107,7 +107,7 @@ The current manifest explicitly marks publication BLOCKED.
 For each public version, retain the installer, its SHA-256, build-info.json,
 application ZIP, dependency source bundle, source hashes and a file-level native
 component inventory. Put prominent links to the exact free source downloads beside
-the itch.io binary. Use the [publication checklist](OPEN_SOURCE_RELEASE_READINESS.md).
+the installer download. Use the [publication checklist](OPEN_SOURCE_RELEASE_READINESS.md).
 
 Test install, upgrade, uninstall, offline launch, offline licence access and
 compatible Qt library replacement on a clean Windows machine. Source-level tests

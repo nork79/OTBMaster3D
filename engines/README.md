@@ -27,3 +27,37 @@ engine is retained if restoring a bookmark engine fails.
 Sources: [Stockfish 19](https://github.com/official-stockfish/Stockfish/tree/sf_19)
 and [Fairy-Stockfish 14](https://github.com/fairy-stockfish/Fairy-Stockfish/tree/fairy_sf_14).
 See [component evidence](../docs/licensing/FAIRY_STOCKFISH.md).
+
+## Rodent IV personality opponents
+
+With MinGW-w64 `g++` on PATH, run:
+
+```powershell
+python tools/install_rodent.py
+```
+
+This builds Rodent IV 0.33 from pinned upstream source and installs it in
+`engines/rodent-iv`. The helper verifies the source archive checksum and retains
+the archive, GPL notice, build helper, compiler flags, resource checksums and
+opening-book attribution files beside the engine. An existing archive can be
+passed with `--archive PATH`, and a compiler with `--compiler PATH`.
+
+In the app, choose **Engine → Difficulty → Personality opponents…**. Select
+Tal, Kasparov, Morphy, Karpov, Petrosian or Default, then set a target Elo from
+800 to 2800 or choose Full strength. Personality and rating are independent;
+the historical names describe style inspirations. Elo values are approximate.
+
+Opening choices are **No book** (the default), **Personality repertoire**, or
+**Custom book**. Repertoire moves can exceed the selected strength. Custom
+books use the app's existing Polyglot reader; Rodent's internal book is disabled
+in that mode. Native Rodent personalities own move selection, so the app's
+Active/Quiet adjustment is bypassed. Stockfish still supplies analysis.
+
+Settings and bookmarks retain the personality, target Elo and opening choice.
+Missing or changed bookmarked resources cause restoration to fail while retaining
+the working engine. Changing an opponent loads a fresh Rodent process so settings
+from the previous personality cannot carry over.
+
+This installs the engine for running from the source workspace. Existing frozen
+application folders and installers are not rebuilt by this command.
+See [Rodent source and build details](../docs/licensing/RODENT_IV.md).

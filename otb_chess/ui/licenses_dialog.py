@@ -78,12 +78,12 @@ def show_about(parent):
         'Licensed under GNU GPL version 3.\nFree and open-source software.\n\n'
         'Uses Qt, PySide6 and Shiboken under LGPL version 3.\n'
         'Copyright The Qt Company Ltd. and contributors.\n'
-        'Licence texts and notices: Third-party acknowledgements.'
+        'Licence texts and notices: Help > Open Source Licences.'
     ))
     buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
     for title, action in (
         ('GNU GPL version 3', lambda: show_licenses(dialog, 'LICENSE')),
-        ('Third-party acknowledgements', lambda: show_licenses(dialog, 'THIRD_PARTY_LICENSES.md')),
+        ('Open Source Licences', lambda: show_licenses(dialog, 'THIRD_PARTY_LICENSES.md')),
         ('Corresponding source', lambda: show_licenses(dialog, 'SOURCE_ACCESS.md')),
         ('GitHub repository', lambda: QDesktopServices.openUrl(QUrl(REPOSITORY_URL))),
     ):

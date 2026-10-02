@@ -5,10 +5,12 @@ Fairy-Stockfish 14. Both retain GPL notices and corresponding source. See
 [engine evidence](FAIRY_STOCKFISH.md) and [licensing closure](LICENSING-CLOSURE.md).
 
 The standalone Microsoft runtime is now an external prerequisite in packaging
-source. Setup neither bundles nor downloads it. This addresses direct runtime
-redistribution for the next build; possible embedded Microsoft code remains under
-review. See [Microsoft remediation](MICROSOFT_RUNTIME_REMEDIATION.md).
-Store-terms review is deferred at the maintainer's request.
+source and the 2026-09-30 rebuilt installer. Setup neither bundles nor downloads
+it, and the rebuilt payload passed the exclusion check. The maintainer removed
+the speculative embedded-code concern as a release blocker. See
+[Microsoft remediation](MICROSOFT_RUNTIME_REMEDIATION.md).
+The itch.io distribution plan has been withdrawn; its store-terms review is no
+longer a release blocker.
 
 The current source removes the obsolete model backend and replaces its stored
 difficulty IDs with neutral IDs. Unsupported saved selections reset to the
@@ -20,10 +22,10 @@ The previous reports and raw logs were archived unchanged in
 not the current engine configuration. Raw historical logs were not edited to
 claim new test results.
 
-Remaining release work includes current frozen-build verification, clean Windows
-testing (no test machine is available yet), and outstanding native distribution
-conditions and source/build review described in
-[native runtime remediation](NATIVE_RUNTIME_REMEDIATION.md).
+The rebuilt application passed its smoke test on 2026-09-30. Remaining release
+work includes clean Windows testing (no test machine is available yet) and
+matching source publication. Historical native-runtime reports do not reinstate
+the withdrawn speculative embedded-code blocker.
 Public source download URL verification remains a separate publication prerequisite.
 No publication, tag, push, upload or store change is authorized or performed.
 

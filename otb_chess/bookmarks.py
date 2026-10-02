@@ -87,6 +87,8 @@ def _capture_engine(manager):
     result.update(executable=manager.path, elo=cfg.get("engine_elo"),
                   rating=cfg.get("engine_rating"), style=cfg.get("engine_style", "Balanced"),
                   side=cfg.get("engine_side", "Black"))
+    if result.get("engine_id") == "rodent":
+        result["style"] = "Balanced"  # Native personality owns Rodent's move selection.
     configuration = manager.engine.configuration_snapshot()
     result["name"] = configuration["name"] or result["name"]
     result["settings"]["uci_options"] = configuration["uci_options"]

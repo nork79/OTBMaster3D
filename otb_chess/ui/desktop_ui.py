@@ -73,7 +73,7 @@ QSplitter::handle { background: #303a49; width: 4px; }
 QStatusBar { background: #1e242e; color: #a3afc1; }
 QComboBox, QLineEdit, QDoubleSpinBox, QSpinBox, QPlainTextEdit {
     background: #111720; border: 1px solid #414b5b; border-radius: 4px; padding: 7px; }
-QSpinBox#analysisOption, QDoubleSpinBox#analysisOption { padding-right: 60px; }
+QSpinBox#analysisOption, QDoubleSpinBox#analysisOption, QSpinBox#engineRating { padding-right: 60px; }
 QComboBox QAbstractItemView { background: #242c38; selection-background-color: #414b5b; }
 QScrollBar:vertical { background: #1b212b; width: 10px; }
 QScrollBar::handle:vertical { background: #4a5668; min-height: 24px; border-radius: 4px; }
@@ -222,7 +222,8 @@ class DesktopGame(VariationPreview, Chess3D):
     def load_engine_path(self, path):
         if getattr(self.owner, "bookmark_pending", None) is not None:
             return
-        if self.engine_loading or self.engine_manager.thinking or self.analysis_busy:
+        # Analysis has its own process and lock; it can continue during opponent changes.
+        if self.engine_loading or self.engine_manager.thinking:
             self.result_text = "Wait for the current engine search to finish."
             return
         self.engine_loading = True
@@ -733,6 +734,10 @@ class MainWindow(DocumentActions, QMainWindow):
         self.custom_difficulty_action = self.action(difficulty,"Custom settings…",lambda _:self.engine_settings("custom"),
                                                     checkable=True,checked=g.cfg.get("engine_difficulty","custom")=="custom")
         difficulty_group.addAction(self.custom_difficulty_action)
+        self.personality_difficulty_action = self.action(
+            difficulty, "Personality opponents…", lambda _: self.engine_settings("personality"),
+            checkable=True, checked=g.cfg.get("engine_difficulty") == "personality")
+        difficulty_group.addAction(self.personality_difficulty_action)
         difficulty.aboutToShow.connect(self.refresh_difficulty_actions)
         self.action(engine,"Engine and opening book…",self.engine_settings)
         self.analysis_action = self.action(engine,"Engine Analysis",self.toggle_analysis,"Ctrl+A",True,
@@ -1082,7 +1087,7 @@ class MainWindow(DocumentActions, QMainWindow):
             self.game.resign()
 
     def reset_board(self):
-        if self.game.engine_manager.thinking or self.game.engine_loading or self.game.analysis_busy:
+        if self.game.engine_manager.thinking or self.game.engine_loading:
             self.game.result_text = "Wait for the current engine operation to finish."
             return
         if not self.game.board.move_stack or self.confirm("Reset board","Clear the current moves and reset the board?"):
@@ -1294,7 +1299,8 @@ class MainWindow(DocumentActions, QMainWindow):
             action.setVisible(not unavailable)
             action.setEnabled(not unavailable)
             action.setToolTip(preset.description)
-        self.custom_difficulty_action.setChecked(key not in self.difficulty_actions)
+        self.custom_difficulty_action.setChecked(key not in self.difficulty_actions and key != "personality")
+        self.personality_difficulty_action.setChecked(key == "personality")
 
     def select_difficulty(self, key):
         from otb_chess.services.difficulty import DIFFICULTIES, missing_files, engine_path
@@ -1307,7 +1313,7 @@ class MainWindow(DocumentActions, QMainWindow):
             QMessageBox.warning(self,"Difficulty unavailable",", ".join(missing)+" is missing. Restore the bundled Stockfish engine or choose an installed engine in Custom settings.")
             self.refresh_difficulty_actions()
             return
-        if g.engine_loading or g.engine_manager.thinking or g.analysis_busy or g.engine_load_result is not None:
+        if g.engine_loading or g.engine_manager.thinking or g.engine_load_result is not None:
             self.pending_difficulty = key
             self.refresh_difficulty_actions()
             g.result_text = "Difficulty will change when the current engine operation finishes."
@@ -1340,6 +1346,7 @@ class MainWindow(DocumentActions, QMainWindow):
         presets = QComboBox()
         presets.setObjectName("engineDifficulty")
         presets.addItem("Custom settings", "custom")
+        presets.addItem("Personality opponents · Rodent IV", "personality")
         for key,preset in DIFFICULTIES.items():
             if missing_files(key):
                 continue
@@ -1352,7 +1359,7 @@ class MainWindow(DocumentActions, QMainWindow):
         form.addRow(preset_note)
         engine = QComboBox()
         engine.setEditable(True)
-        engine.addItems([""]+[str(p) for p in sorted(p for p in ENGINE_DIR.rglob("*.exe") if p.name.lower().startswith(("stockfish", "fairy-stockfish")))])
+        engine.addItems([""]+[str(p) for p in sorted(p for p in ENGINE_DIR.rglob("*.exe") if p.name.lower().startswith(("stockfish", "fairy-stockfish", "rodent")))])
         engine.setCurrentText(g.engine_var.get())
         book = QComboBox()
         book.setEditable(True)
@@ -1374,10 +1381,33 @@ class MainWindow(DocumentActions, QMainWindow):
             row.addWidget(button)
             form.addRow(label,row)
         form.addRow("Engine plays",side)
+        from otb_chess.services import personalities
+        personality = QComboBox()
+        personality.setObjectName("enginePersonality")
+        for key, (label, _) in personalities.PERSONALITIES.items():
+            personality.addItem(label, key)
+        personality.setCurrentIndex(max(0, personality.findData(g.cfg.get("engine_personality", "tal"))))
+        personality_note = QLabel()
+        personality_note.setWordWrap(True)
+        def describe_personality():
+            personality_note.setText(personalities.PERSONALITIES[personality.currentData()][1]
+                                     + " Historical names are style inspirations.")
+        personality.currentIndexChanged.connect(describe_personality)
+        describe_personality()
+        opening_mode = QComboBox()
+        opening_mode.setObjectName("engineBookMode")
+        for key, label in personalities.BOOK_MODES.items():
+            opening_mode.addItem(label, key)
+        opening_mode.setCurrentIndex(max(0, opening_mode.findData(g.cfg.get("engine_book_mode", "none"))))
+        form.addRow("Personality", personality)
+        form.addRow(personality_note)
+        form.addRow("Personality openings", opening_mode)
         strength = QComboBox()
         strength.setObjectName("engineStrength")
         strength.addItems(["Full strength", "Limit rating"])
         strength.setCurrentIndex(0 if g.cfg.get("engine_elo") is None else 1)
+        if initial_difficulty == "personality" and g.cfg.get("engine_difficulty") != "personality":
+            strength.setCurrentIndex(1)
         rating = QSpinBox()
         rating.setObjectName("engineRating")
         rating.setSpecialValueText("Not rated")
@@ -1390,6 +1420,8 @@ class MainWindow(DocumentActions, QMainWindow):
         def update_limits():
             loaded = g.engine_manager.engine
             limits = loaded.strength_range() if loaded and engine.currentText() == g.engine_manager.path else None
+            if presets.currentData() == "personality" and limits is None:
+                limits = (800, 2800)  # Pinned Rodent IV; validated again when loading.
             strength.setEnabled(limits is not None)
             if limits:
                 rating.setRange(*limits)
@@ -1415,6 +1447,7 @@ class MainWindow(DocumentActions, QMainWindow):
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save|QDialogButtonBox.StandardButton.Cancel)
         def preset_changed():
             preset = DIFFICULTIES.get(presets.currentData())
+            rodent = presets.currentData() == "personality"
             strength.setItemText(0, f'Practice skill {preset.skill}/20' if preset and preset.skill is not None else 'Full strength')
             if preset:
                 from otb_chess.services.difficulty import engine_path
@@ -1426,18 +1459,51 @@ class MainWindow(DocumentActions, QMainWindow):
                 style.setCurrentText("Balanced")
             for widget in (engine,book,strength,rating,style):
                 widget.setEnabled(preset is None)
+            for widget in (personality, personality_note, opening_mode):
+                widget.setEnabled(rodent)
+                widget.setVisible(rodent)
+                label = form.labelForField(widget)
+                if label is not None:
+                    label.setVisible(rodent)
+            style.setVisible(not rodent)
+            form.labelForField(style).setVisible(not rodent)
+            help_text.setVisible(not rodent)
+            if rodent:
+                engine.setCurrentText(str(personalities.engine_path()))
+                engine.setEnabled(False)
+                style.setCurrentText("Balanced")
+                style.setEnabled(False)
+                book.setEnabled(opening_mode.currentData() == "custom")
+                update_limits()
+                preset_note.setText("Choose a personality and target Elo independently. Ratings are approximate. "
+                                   "Opening books can play above the chosen strength.")
+                return
             if preset:
                 preset_note.setText(preset.description+" Opening books are disabled for presets.")
             else:
                 preset_note.setText("Custom engine settings. Ratings are estimates.")
                 update_limits()
         presets.currentIndexChanged.connect(preset_changed)
+        opening_mode.currentIndexChanged.connect(
+            lambda: book.setEnabled(presets.currentData() == "custom" or
+                                    (presets.currentData() == "personality" and opening_mode.currentData() == "custom")))
         preset_changed()
         def accept():
-            if g.engine_manager.thinking or g.engine_loading or g.analysis_busy:
+            if (g.engine_manager.thinking or g.engine_loading
+                    or g.engine_load_result is not None or self.bookmark_pending is not None):
                 QMessageBox.information(dialog,"Engine busy","Wait for the current engine operation to finish.")
                 return
             from otb_chess.services.difficulty import missing_files
+            if presets.currentData() == "personality":
+                try:
+                    if not personalities.engine_path().is_file():
+                        raise ValueError("Rodent IV is missing. Run tools/install_rodent.py first.")
+                    personalities.profile_settings(personality.currentData(), opening_mode.currentData(), book.currentText().strip())
+                except ValueError as exc:
+                    QMessageBox.warning(dialog, "Opponent unavailable", str(exc))
+                    return
+                dialog.accept()
+                return
             if presets.currentData() != "custom":
                 if missing_files(presets.currentData()):
                     QMessageBox.warning(dialog,"Engine missing","This preset needs optional engine/model files. See engines/README.md, or choose an available Stockfish preset.")
@@ -1455,6 +1521,23 @@ class MainWindow(DocumentActions, QMainWindow):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             previous_difficulty = g.cfg.get("engine_difficulty","custom")
             g.engine_side_var.set(side.currentText())
+            if presets.currentData() == "personality":
+                rating.interpretText()
+                self.pending_difficulty = None
+                g.cfg.update(engine_difficulty="personality", engine_personality=personality.currentData(),
+                             engine_book_mode=opening_mode.currentData(), engine_style="Balanced",
+                             engine_rating=rating.value(), engine_elo=rating.value() if strength.currentIndex() else None)
+                selected_book = book.currentText().strip() if opening_mode.currentData() == "custom" else ""
+                g.cfg["book_path"] = selected_book
+                g.book_var.set(selected_book)
+                g.book_path = selected_book
+                g.pending_engine_move = g.pending_engine_position = None
+                g.pending_engine_error = g.last_engine_search = None
+                g.engine_manager.search_generation += 1
+                g.load_engine_path(str(personalities.engine_path()))
+                self.refresh_difficulty_actions()
+                dialog.deleteLater()
+                return
             if presets.currentData() != "custom":
                 self.select_difficulty(presets.currentData())
                 dialog.deleteLater()
@@ -1462,6 +1545,7 @@ class MainWindow(DocumentActions, QMainWindow):
             g.cfg["engine_difficulty"] = "custom"
             self.refresh_difficulty_actions()
             g.book_var.set(book.currentText().strip())
+            g.cfg["book_path"] = g.book_var.get()
             if strength.isEnabled():
                 rating.interpretText()
                 g.cfg["engine_rating"] = rating.value()
@@ -1597,12 +1681,17 @@ class MainWindow(DocumentActions, QMainWindow):
     def show_controls(self):
         QMessageBox.information(self,"Controls",
             "Move: click source and destination, or drag a piece.\n"
+            "Cancel a selected piece: right-click.\n"
             "Zoom: wheel up / down. Pan: drag an empty area.\n"
             "Rotate 3D: right-drag or Ctrl + left-drag.\n"
             "When Right Mouse is the OTB binding, use Ctrl + left-drag to rotate.\n\n"
+            "Ctrl+N: new game   Ctrl+P: start / pause clock\n"
             "Ctrl+F: flip   Ctrl+R: reset view   U: take back\n"
             "Space: press OTB clock   F11: fullscreen\n"
-            "Ctrl+B: sidebar   Ctrl+Shift+F: Focus mode")
+            "Ctrl+B: sidebar   Ctrl+Shift+F: Focus mode\n\n"
+            "Analysis preview (board focused): Left / Right to step; Esc to return.\n"
+            "Engine > Difficulty > Personality opponents: choose an opponent.\n"
+            "Select Limit rating to edit Target rating; Full strength disables it.")
 
     def refresh_material(self):
         from otb_chess.ui.material import material_summary

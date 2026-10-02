@@ -474,7 +474,7 @@ class DesktopTests(unittest.TestCase):
                 (root / 'fairy-stockfish-14').mkdir()
                 (root / 'fairy-stockfish-14/fairy-stockfish_x86-64.exe').touch()
             self.window.refresh_difficulty_actions()
-            expected = {'custom'}
+            expected = {'custom', 'personality'}
             for key, preset in DIFFICULTIES.items():
                 visible = model_installed or preset.engine == 'stockfish'
                 action = self.window.difficulty_actions[key]
@@ -1234,6 +1234,150 @@ class DesktopTests(unittest.TestCase):
             dialog.reject()
         QTimer.singleShot(0, reopen)
         w.engine_settings()
+
+    def test_rodent_personality_dialog_and_bookmark_restore(self):
+        from otb_chess.ui.desktop_ui import ENGINE_DIR
+        from otb_chess.services import personalities
+        from otb_chess.bookmarks import capture_engine, capture_position
+        from otb_chess.services.bookmark_actions import restore_bookmark
+        from otb_chess.ui.chess_symbols import clock_engine_label
+        if sys.platform != 'win32' or not (ENGINE_DIR / 'rodent-iv/rodent-iv.exe').is_file():
+            self.skipTest('Install Rodent IV first')
+        w, g = self.window, self.game
+        errors = []
+        with patch.object(settings, 'ENGINE_DIR', ENGINE_DIR):
+            def choose():
+                dialog = self.qt.activeModalWidget()
+                try:
+                    personality = dialog.findChild(QComboBox, 'enginePersonality')
+                    rating = dialog.findChild(QSpinBox, 'engineRating')
+                    self.assertEqual((rating.minimum(), rating.maximum()), (800, 2800))
+                    self.assertEqual(dialog.findChild(QComboBox, 'engineStrength').currentIndex(), 1)
+                    rating.setValue(1400)
+                    # Send the click to the actual child under each arrow. A
+                    # padded editor used to cover the up arrow and eat clicks.
+                    from PySide6.QtWidgets import QStyle, QStyleOptionSpinBox
+                    for subcontrol, expected in ((QStyle.SubControl.SC_SpinBoxUp, 1401),
+                                                 (QStyle.SubControl.SC_SpinBoxDown, 1400)):
+                        option = QStyleOptionSpinBox()
+                        rating.initStyleOption(option)
+                        rect = rating.style().subControlRect(
+                            QStyle.ComplexControl.CC_SpinBox, option, subcontrol, rating)
+                        target = rating.childAt(rect.center()) or rating
+                        QTest.mouseClick(target, Qt.MouseButton.LeftButton,
+                                         pos=target.mapFrom(rating, rect.center()))
+                        self.assertEqual(rating.value(), expected)
+                    personality.setCurrentIndex(personality.findData('petrosian'))
+                    self.assertEqual(rating.value(), 1400)
+                    opening = dialog.findChild(QComboBox, 'engineBookMode')
+                    opening.setCurrentIndex(opening.findData('personality'))
+                    dialog.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Save).click()
+                except Exception as exc:
+                    errors.append(exc)
+                    dialog.reject()
+            QTimer.singleShot(0, choose)
+            w.engine_settings('personality')
+            if errors:
+                raise errors[0]
+            deadline = time.monotonic() + 8
+            while g.engine_loading and time.monotonic() < deadline:
+                QTest.qWait(10)
+            w.tick()
+            self.assertIsNotNone(g.engine_manager.engine, g.result_text)
+            saved = capture_engine(g.engine_manager)
+            self.assertEqual(saved['settings']['rodent']['personality'], 'petrosian')
+            self.assertEqual(saved['elo'], 1400)
+            self.assertEqual(settings.load_config()['engine_personality'], 'petrosian')
+            self.assertEqual(clock_engine_label(g, False), 'Petrosian · ~1400')
+            self.assertTrue(w.personality_difficulty_action.isChecked())
+            from otb_chess.ui.desktop_ui import BOOK_DIR
+            g.book_var.set(str(BOOK_DIR / 'lichess-e4.bin'))
+            g.cfg['engine_book_mode'] = 'custom'
+            self.assertEqual(g.pick_book_move().uci(), 'e2e4')
+            g.cfg['engine_book_mode'] = 'none'
+            self.assertIsNone(g.pick_book_move())
+            # Restore a saved opponent after another personality was selected.
+            g.cfg.update(engine_personality='tal', engine_elo=1800, engine_book_mode='none')
+            self.assertTrue(g.engine_manager.load(str(personalities.engine_path()))[0])
+            result = g.engine_manager.restore_configuration(saved)
+            self.assertEqual(result, (True, ''))
+            restore_bookmark(g, {'type': 'bookmark', 'name': 'Petrosian practice', 'position': capture_position(g.board),
+                                 'engine': saved}, result)
+            self.assertEqual(g.cfg['engine_personality'], 'petrosian')
+            self.assertEqual(g.cfg['engine_elo'], 1400)
+            self.assertEqual(g.cfg['engine_book_mode'], 'personality')
+            self.assertEqual(capture_engine(g.engine_manager)['profile_id'], saved['profile_id'])
+
+    def test_save_rodent_opponent_while_analysis_worker_is_running(self):
+        import threading
+        from otb_chess.ui.desktop_ui import ENGINE_DIR
+        from PySide6.QtWidgets import QMessageBox
+        if sys.platform != 'win32' or not (ENGINE_DIR / 'rodent-iv/rodent-iv.exe').is_file():
+            self.skipTest('Install Rodent IV first')
+        w, g = self.window, self.game
+        started, release = threading.Event(), threading.Event()
+        engine_root = patch.object(settings, 'ENGINE_DIR', ENGINE_DIR)
+        engine_root.start()
+        self.addCleanup(engine_root.stop)
+        def analyse(*args, **kwargs):
+            started.set()
+            release.wait(30)
+            return ()
+        g.analysis_engine = Mock()
+        g.analysis_engine.analyse_variations.side_effect = analyse
+        g.analysis_enabled = True
+        g.request_analysis()
+        try:
+            self.assertTrue(started.wait(3))
+            errors = []
+            def choose():
+                dialog = self.qt.activeModalWidget()
+                try:
+                    dialog.findChild(QSpinBox, 'engineRating').setValue(1600)
+                    dialog.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Save).click()
+                except Exception as exc:
+                    errors.append(exc)
+                    dialog.reject()
+            # Close on a regression instead of leaving a modal message box hanging.
+            with patch.object(
+                    QMessageBox, 'information', side_effect=lambda dialog, *args: dialog.reject()) as busy:
+                QTimer.singleShot(0, choose)
+                w.engine_settings('personality')
+            if errors:
+                raise errors[0]
+            busy.assert_not_called()
+            deadline = time.monotonic() + 8
+            while g.engine_loading and time.monotonic() < deadline:
+                QTest.qWait(10)
+            w.tick()
+            self.assertIsNotNone(g.engine_manager.loaded_configuration, g.result_text)
+            self.assertEqual(g.engine_manager.loaded_configuration['engine_id'], 'rodent')
+            self.assertEqual(g.cfg['engine_elo'], 1600)
+            self.assertTrue(g.analysis_enabled)
+            self.assertTrue(g.analysis_busy)
+            g.analysis_engine.stop_search.assert_not_called()
+        finally:
+            release.set()
+            deadline = time.monotonic() + 3
+            while g.analysis_busy and time.monotonic() < deadline:
+                QTest.qWait(10)
+        self.assertFalse(g.analysis_busy)
+        self.assertIsNotNone(g.engine_output)
+
+    def test_background_analysis_does_not_block_difficulty_or_reset(self):
+        w, g = self.window, self.game
+        g.analysis_busy = True
+        with patch('otb_chess.services.difficulty.missing_files', return_value=[]), \
+                patch('otb_chess.services.difficulty.engine_path', return_value=Path('stockfish.exe')), \
+                patch.object(g, 'load_engine_path') as load:
+            w.select_difficulty('level_1600')
+        load.assert_called_once()
+        self.assertIsNone(w.pending_difficulty)
+        g.board.push_uci('e2e4')
+        with patch.object(w, 'confirm', return_value=True):
+            w.reset_board()
+        self.assertFalse(g.board.move_stack)
+        g.analysis_busy = False
 
     def test_static_evaluation_follows_review_without_engine(self):
         w, g = self.window, self.game

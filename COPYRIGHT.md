@@ -14,8 +14,7 @@ See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). This notice does not cla
 ownership of those components or of independently contributed work. Contributors
 generally retain copyright in their original contributions unless separately agreed.
 
-GPLv3 permits selling copies. The official Windows installer is intended to cost
-AUD $10 on itch.io. Recipients may copy, modify and redistribute the software,
+GPLv3 permits selling copies. Recipients may copy, modify and redistribute the software,
 including without charge, under its applicable licences. Purchase is not required
 to exercise rights in a copy lawfully received. No exclusive distribution right is
 claimed over recipients' copies.

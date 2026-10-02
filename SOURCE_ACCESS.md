@@ -6,13 +6,13 @@ Qt/PySide and native sources are retained. Public archive links remain pending
 authorized publication, separately from local source completeness.
 
 OTBMaster3D is licensed under GPL-3.0-only. You may copy, modify and redistribute
-it under GPLv3, including redistribution without charge. The official AUD $10
-itch.io installer pays for a packaged build with the same functionality as the
-free source version. It has no licence key, activation or purchase verification.
+it under GPLv3, including redistribution without charge. The Windows installer
+packages the same functionality as the free source version. It has no licence
+key, activation or purchase verification.
 
 Project repository: https://github.com/norKI79/OTBMaster3D
 
-Official store: **ITCH_IO_URL_PENDING** (no product has been published by this task).
+Installer distribution channel: not yet selected.
 
 ## Find the source for an installed version
 
@@ -24,13 +24,20 @@ the base Git commit, working-tree status and archive SHA-256; a dirty build is
 identified by the archived bytes, not by the base commit alone.
 
 Public releases must also provide the exact application archive and a matching
-dependency source bundle at no additional charge. The itch.io binary download
+dependency source bundle at no additional charge. The binary download
 page must prominently link those exact archives and their hashes on the public
 GitHub release for the same version, with equivalent downloading facilities.
 Source access must not require purchasing the installer. Keep those sources
 available for as long as the binary is offered and meet any continuing obligations.
 
-## Dependency sources and current preparation status
+## Dependency sources and historical preparation build
+
+The commands and beta version below describe the retained 1.4.0-beta.2
+preparation build. For the current installed version, consult `build-info.json`
+and its matching source manifest. Optional Rodent IV source-workspace installs
+retain their own source and notices beside the engine; see
+`docs/licensing/RODENT_IV.md`. The frozen build still includes Stockfish and
+Fairy-Stockfish.
 
 The application archive alone is **not complete Corresponding Source for the whole
 installer**. Stockfish source is under `engines/stockfish-19/stockfish/src` in the
@@ -46,9 +53,8 @@ The manifest identifies the exact bytes. See docs/licensing/source-inventory.jso
 and docs/licensing/BUILD_AND_REPLACE.md for source URLs, hashes and build information.
 
 **This preparation build is blocked for public distribution.** Exact dependency
-public source download locations have not yet been established. Microsoft/store
-distribution terms require narrowly scoped review; clean Windows verification
-remains pending. See docs/licensing/RELEASE-COMPLIANCE.md for test results and
+public source download locations have not yet been established. Clean Windows
+verification remains pending. See docs/licensing/RELEASE-COMPLIANCE.md for test results and
 the exact installer hash. Historical compiler reproduction is optional assurance
 unless a specific licence requirement is identified.
 Do not present the repository homepage or upstream project links as a substitute

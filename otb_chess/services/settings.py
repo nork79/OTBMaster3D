@@ -137,6 +137,8 @@ def default_config():
         "engine_difficulty": "custom",
         "engine_rating": 1500,
         "engine_style": "Balanced",
+        "engine_personality": "tal",
+        "engine_book_mode": "none",
         "engine_defaults_applied": False,
         "clock_mode": "Online",
         "clock_binding": "Spacebar",
@@ -170,13 +172,16 @@ def load_config():
         config["engine_defaults_applied"] = True
     # Retire unsupported saved presets without silently assigning a new rating.
     from otb_chess.services.difficulty import DIFFICULTIES
-    if config.get('engine_difficulty', 'custom') not in (*DIFFICULTIES, 'custom'):
+    if config.get('engine_difficulty', 'custom') not in (*DIFFICULTIES, 'custom', 'personality'):
         config['engine_difficulty'] = 'custom'
         config['engine_elo'] = None
         config['engine_path'] = default_config()['engine_path']
     # Resolve the selected preset's actual engine; do not retain a path from
     # another backend after changing preset mappings. Bookmarks remain separate.
     preset = DIFFICULTIES.get(config.get('engine_difficulty'))
+    if config.get('engine_difficulty') == 'personality':
+        from otb_chess.services.personalities import engine_path
+        config['engine_path'] = str(engine_path())
     if preset:
         from otb_chess.services.difficulty import engine_path
         config['engine_path'] = str(engine_path(config['engine_difficulty']) or '')

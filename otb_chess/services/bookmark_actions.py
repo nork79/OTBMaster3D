@@ -130,6 +130,13 @@ def restore_bookmark(game, node, engine_result):
         game.engine_side_var.set(side)
         game.engine_side = {"White": True, "Black": False}.get(side)
         game.engine_var.set(game.engine_manager.path)
+        if engine.get("engine_id") == "rodent":
+            profile = engine["settings"]["rodent"]
+            game.cfg.update(engine_personality=profile["personality"],
+                            engine_book_mode=profile["book_mode"], engine_style="Balanced")
+            game.book_var.set(profile.get("custom_book", ""))
+            game.book_path = game.book_var.get()
+            game.cfg["book_path"] = game.book_path
     elif success and engine is None:
         game.engine_var.set("")
         game.engine_side_var.set("None")
