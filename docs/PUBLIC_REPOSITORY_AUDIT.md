@@ -1,5 +1,16 @@
 # Public repository privacy and security audit
 
+## Privacy cleanup — 2026-10-02
+
+Personal Windows usernames in tracked build evidence have been replaced with
+`USER`. These logs and inventories are redacted copies; their embedded binary
+hashes remain historical evidence. Third-party author and licence notices remain
+intact. Future commits in this checkout use the maintainer's GitHub noreply email.
+Existing commits and previously built archives require separate cleanup; changing
+the working files does not remove personal information from those copies.
+
+## Historical assessment
+
 2026-09-28; baseline f6c9852 with existing local changes. **Publication requires
 maintainer review.** No files were deleted, history rewritten or remote settings changed.
 

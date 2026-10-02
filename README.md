@@ -3,16 +3,16 @@
 A free and open-source Windows chess application focused on natural over-the-board play,
 engine analysis and organized position study.
 
-**Latest version: 1.6.0 | Windows | main: unreleased development changes**
+**Version: 1.6.2 | Windows | Local installer preparation**
 
 ![Ruy Lopez on Rounded Oak with the Forest interface and opening name below navigation](docs/images/3d-middlegame.png)
 
 ## Source and official installer
 
 **Source:** application source and build instructions are licensed under GPL-3.0-only
-in [norKI79/OTBMaster3D](https://github.com/norKI79/OTBMaster3D). The repository is
-currently private; public source downloads remain pending. Version 1.6.0 is the
-latest tagged version. Current `main` includes later, unreleased changes.
+in [nork79/OTBMaster3D](https://github.com/nork79/OTBMaster3D). The repository is
+currently private; public source downloads remain pending. The current build
+version is 1.6.2; the latest existing release tag remains `v1.6.0`.
 
 **Official Windows installer:** the distribution channel has not yet been selected.
 Local installer artifacts are not cleared for public distribution and do not
@@ -130,7 +130,7 @@ To compile an installer, follow [the Windows build procedure](docs/windows-insta
 
 ## Licensing, source access and acknowledgements
 
-Copyright (C) 2026 norKI79 for original project material. Application source is
+Copyright (C) 2026 nork79 for original project material. Application source is
 licensed under **GPL-3.0-only**; see [LICENSE](LICENSE) and [COPYRIGHT.md](COPYRIGHT.md).
 Third-party engines, libraries and artwork retain their own terms. See
 [third-party licences](THIRD_PARTY_LICENSES.md) and [source access](SOURCE_ACCESS.md).
@@ -143,7 +143,7 @@ A repository homepage alone is not the matching source distribution.
 
 ## Bugs, contributions and maintenance
 
-Report reproducible bugs in [GitHub issues](https://github.com/norKI79/OTBMaster3D/issues),
+Report reproducible bugs in [GitHub issues](https://github.com/nork79/OTBMaster3D/issues),
 including version, Windows version, steps and a sanitised PGN/FEN when useful.
 Use [SECURITY.md](SECURITY.md) for private security reports. Read
 [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing.

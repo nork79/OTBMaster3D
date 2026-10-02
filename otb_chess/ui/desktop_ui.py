@@ -1398,7 +1398,7 @@ class MainWindow(DocumentActions, QMainWindow):
         opening_mode.setObjectName("engineBookMode")
         for key, label in personalities.BOOK_MODES.items():
             opening_mode.addItem(label, key)
-        opening_mode.setCurrentIndex(max(0, opening_mode.findData(g.cfg.get("engine_book_mode", "none"))))
+        opening_mode.setCurrentIndex(max(0, opening_mode.findData(g.cfg.get("engine_book_mode", "personality"))))
         form.addRow("Personality", personality)
         form.addRow(personality_note)
         form.addRow("Personality openings", opening_mode)

@@ -1,6 +1,6 @@
 # Copyright and licensing
 
-Copyright (C) 2026 norKI79, for original OTBMaster3D material authored by norKI79.
+Copyright (C) 2026 nork79, for original OTBMaster3D material authored by nork79.
 SPDX-License-Identifier: GPL-3.0-only
 
 Original project code and documentation are offered under the GNU General Public

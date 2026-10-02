@@ -12,7 +12,7 @@
     "Bookmarks",
     "Help"
   ],
-  "engine": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\engines\\stockfish-19\\stockfish\\stockfish-windows-x86-64-universal.exe",
+  "engine": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\engines\\stockfish-19\\stockfish\\stockfish-windows-x86-64-universal.exe",
   "evaluation": "Analysing\u2026",
   "books": {
     "lichess-all.bin": 20,

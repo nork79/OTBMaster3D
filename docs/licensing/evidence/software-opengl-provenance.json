@@ -4,7 +4,7 @@
   "section_match": true,
   "files": [
     {
-      "path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.tmp\\native-runtime-downloads\\opengl32sw.dll",
+      "path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.tmp\\native-runtime-downloads\\opengl32sw.dll",
       "sha256": "b04de4541863bc7d8879040a78889c4849c1b1da2784c4630f734c146c2998ce",
       "sections": {
         ".text": "39880e8a7f5ca7e58e7aa0a635508842dace554d77f62267cb2927e48d951307",
@@ -18,7 +18,7 @@
       }
     },
     {
-      "path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\PySide6\\opengl32sw.dll",
+      "path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D\\PySide6\\opengl32sw.dll",
       "sha256": "34b444c016289b560662ff896deceb7f4b2c0723aed3d319ae167c9186ce42b3",
       "sections": {
         ".text": "39880e8a7f5ca7e58e7aa0a635508842dace554d77f62267cb2927e48d951307",

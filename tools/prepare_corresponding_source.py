@@ -1,4 +1,4 @@
-# Copyright (C) 2026 norKI79
+# Copyright (C) 2026 nork79
 # SPDX-License-Identifier: GPL-3.0-only
 """Verify and package the inventoried release sources without publishing them.
 

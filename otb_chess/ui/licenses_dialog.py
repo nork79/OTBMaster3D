@@ -1,4 +1,4 @@
-# Copyright (C) 2026 norKI79
+# Copyright (C) 2026 nork79
 # SPDX-License-Identifier: GPL-3.0-only
 """Offline application licence, source information and third-party notices."""
 from PySide6.QtCore import QUrl
@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPlainTextEdit, QDia
 from otb_chess.services.settings import APP_DIR
 from otb_chess.version import __version__
 
-REPOSITORY_URL = 'https://github.com/norKI79/OTBMaster3D'
+REPOSITORY_URL = 'https://github.com/nork79/OTBMaster3D'
 
 
 def licence_documents(root=APP_DIR):
@@ -74,7 +74,7 @@ def show_about(parent):
     dialog.setWindowTitle('About OTBMaster3D')
     layout = QVBoxLayout(dialog)
     layout.addWidget(QLabel(
-        f'OTBMaster3D\nVersion {__version__}\n\nCopyright (C) 2026 norKI79\n\n'
+        f'OTBMaster3D\nVersion {__version__}\n\nCopyright (C) 2026 nork79\n\n'
         'Licensed under GNU GPL version 3.\nFree and open-source software.\n\n'
         'Uses Qt, PySide6 and Shiboken under LGPL version 3.\n'
         'Copyright The Qt Company Ltd. and contributors.\n'

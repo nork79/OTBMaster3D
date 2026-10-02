@@ -138,7 +138,7 @@ def default_config():
         "engine_rating": 1500,
         "engine_style": "Balanced",
         "engine_personality": "tal",
-        "engine_book_mode": "none",
+        "engine_book_mode": "personality",
         "engine_defaults_applied": False,
         "clock_mode": "Online",
         "clock_binding": "Spacebar",

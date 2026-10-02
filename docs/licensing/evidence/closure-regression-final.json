@@ -1,6 +1,6 @@
 {
   "command": [
-    "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Scripts\\python.exe",
+    "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Scripts\\python.exe",
     "-m",
     "unittest",
     "discover",
@@ -9,5 +9,5 @@
     "-v"
   ],
   "exit_code": 1,
-  "raw_output": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\docs\\licensing\\evidence\\closure-regression-final.txt"
+  "raw_output": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\docs\\licensing\\evidence\\closure-regression-final.txt"
 }

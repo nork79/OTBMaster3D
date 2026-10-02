@@ -1,5 +1,5 @@
 {
-  "payload": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D",
+  "payload": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\dist\\OTBMaster3D",
   "python": "3.13.12 (tags/v3.13.12:1cbe481, Feb  3 2026, 18:22:25) [MSC v.1944 64 bit (AMD64)]",
   "files": [
     {
@@ -192,7 +192,7 @@
       ],
       "path": "_asyncio.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_asyncio.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_asyncio.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -348,7 +348,7 @@
       ],
       "path": "_bz2.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_bz2.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_bz2.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -693,7 +693,7 @@
       ],
       "path": "_ctypes.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_ctypes.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_ctypes.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -963,7 +963,7 @@
       ],
       "path": "_decimal.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_decimal.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_decimal.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -1184,7 +1184,7 @@
       ],
       "path": "_elementtree.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_elementtree.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_elementtree.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -1392,7 +1392,7 @@
       ],
       "path": "_hashlib.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_hashlib.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_hashlib.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -1555,7 +1555,7 @@
       ],
       "path": "_lzma.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_lzma.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_lzma.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -1719,7 +1719,7 @@
       ],
       "path": "_multiprocessing.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_multiprocessing.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_multiprocessing.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -1913,7 +1913,7 @@
       ],
       "path": "_overlapped.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_overlapped.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_overlapped.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -2039,7 +2039,7 @@
       ],
       "path": "_queue.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_queue.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_queue.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -2327,7 +2327,7 @@
       ],
       "path": "_socket.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_socket.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_socket.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -2830,7 +2830,7 @@
       ],
       "path": "_ssl.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_ssl.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_ssl.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -3133,7 +3133,7 @@
       ],
       "path": "_tkinter.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_tkinter.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_tkinter.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -3242,7 +3242,7 @@
       ],
       "path": "_uuid.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_uuid.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_uuid.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -3442,7 +3442,7 @@
       ],
       "path": "_wmi.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_wmi.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\_wmi.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -3671,10 +3671,10 @@
           "package": "cozy-chess-py",
           "version": "0.1.1",
           "record_path": "cozy_chess/cozy_chess.cp313-win_amd64.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\cozy_chess\\cozy_chess.cp313-win_amd64.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\cozy_chess\\cozy_chess.cp313-win_amd64.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\cozy_chess\\cozy_chess.cp313-win_amd64.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\cozy_chess\\cozy_chess.cp313-win_amd64.pyd",
       "baseline_component": "cozy-chess-py 0.1.1",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -3894,7 +3894,7 @@
       ],
       "path": "engines/stockfish-19/stockfish/stockfish-windows-x86-64-universal.exe",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\engines\\stockfish-19\\stockfish\\stockfish-windows-x86-64-universal.exe",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\engines\\stockfish-19\\stockfish\\stockfish-windows-x86-64-universal.exe",
       "baseline_component": "Stockfish 19",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -4191,7 +4191,7 @@
       ],
       "path": "glfw3.dll",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\build\\native-runtime\\glfw3.dll",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\build\\native-runtime\\glfw3.dll",
       "baseline_component": null,
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -4528,7 +4528,7 @@
       ],
       "path": "libcrypto-3.dll",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\libcrypto-3.dll",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\libcrypto-3.dll",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -4604,7 +4604,7 @@
       ],
       "path": "libffi-8.dll",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\libffi-8.dll",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\libffi-8.dll",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -5264,7 +5264,7 @@
       ],
       "path": "libssl-3.dll",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\libssl-3.dll",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\libssl-3.dll",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -5280,8 +5280,8 @@
         2
       ],
       "version_resources": {
-        "CompanyName": "norKI79",
-        "LegalCopyright": "Copyright (C) 2026 norKI79",
+        "CompanyName": "nork79",
+        "LegalCopyright": "Copyright (C) 2026 nork79",
         "Comments": "Licensed under GNU GPL version 3 (GPL-3.0-only)",
         "FileDescription": "OTBMaster3D \u2014 Desktop Chess",
         "FileVersion": "1.4.0-beta.2",
@@ -5713,10 +5713,10 @@
           "package": "pillow",
           "version": "12.3.0",
           "record_path": "PIL/_avif.cp313-win_amd64.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_avif.cp313-win_amd64.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_avif.cp313-win_amd64.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_avif.cp313-win_amd64.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_avif.cp313-win_amd64.pyd",
       "baseline_component": "Pillow 12.3.0 and static codecs",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -6096,10 +6096,10 @@
           "package": "pillow",
           "version": "12.3.0",
           "record_path": "PIL/_imaging.cp313-win_amd64.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imaging.cp313-win_amd64.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imaging.cp313-win_amd64.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imaging.cp313-win_amd64.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imaging.cp313-win_amd64.pyd",
       "baseline_component": "Pillow 12.3.0 and static codecs",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -6316,10 +6316,10 @@
           "package": "pillow",
           "version": "12.3.0",
           "record_path": "PIL/_imagingcms.cp313-win_amd64.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingcms.cp313-win_amd64.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingcms.cp313-win_amd64.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingcms.cp313-win_amd64.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingcms.cp313-win_amd64.pyd",
       "baseline_component": "Pillow 12.3.0 and static codecs",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -6562,10 +6562,10 @@
           "package": "pillow",
           "version": "12.3.0",
           "record_path": "PIL/_imagingft.cp313-win_amd64.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingft.cp313-win_amd64.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingft.cp313-win_amd64.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingft.cp313-win_amd64.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingft.cp313-win_amd64.pyd",
       "baseline_component": "Pillow 12.3.0 and static codecs",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -6662,10 +6662,10 @@
           "package": "pillow",
           "version": "12.3.0",
           "record_path": "PIL/_imagingmath.cp313-win_amd64.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingmath.cp313-win_amd64.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingmath.cp313-win_amd64.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingmath.cp313-win_amd64.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingmath.cp313-win_amd64.pyd",
       "baseline_component": "Pillow 12.3.0 and static codecs",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -6802,10 +6802,10 @@
           "package": "pillow",
           "version": "12.3.0",
           "record_path": "PIL/_imagingtk.cp313-win_amd64.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingtk.cp313-win_amd64.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingtk.cp313-win_amd64.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingtk.cp313-win_amd64.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_imagingtk.cp313-win_amd64.pyd",
       "baseline_component": "Pillow 12.3.0 and static codecs",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -6965,10 +6965,10 @@
           "package": "pillow",
           "version": "12.3.0",
           "record_path": "PIL/_webp.cp313-win_amd64.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_webp.cp313-win_amd64.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_webp.cp313-win_amd64.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_webp.cp313-win_amd64.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PIL\\_webp.cp313-win_amd64.pyd",
       "baseline_component": "Pillow 12.3.0 and static codecs",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -7188,7 +7188,7 @@
       ],
       "path": "pyexpat.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\pyexpat.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\pyexpat.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -8120,10 +8120,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/opengl32sw.dll",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\opengl32sw.dll"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\opengl32sw.dll"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\opengl32sw.dll",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\opengl32sw.dll",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -8351,10 +8351,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/plugins/imageformats/qico.dll",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\plugins\\imageformats\\qico.dll"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\plugins\\imageformats\\qico.dll"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\plugins\\imageformats\\qico.dll",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\plugins\\imageformats\\qico.dll",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -10454,10 +10454,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/plugins/platforms/qwindows.dll",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -11166,10 +11166,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/pyside6.abi3.dll",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\pyside6.abi3.dll"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\pyside6.abi3.dll"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\pyside6.abi3.dll",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\pyside6.abi3.dll",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -11874,10 +11874,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/Qt6Core.dll",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6Core.dll"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6Core.dll"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6Core.dll",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6Core.dll",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -13743,10 +13743,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/Qt6Gui.dll",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6Gui.dll"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6Gui.dll"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6Gui.dll",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6Gui.dll",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -14530,10 +14530,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/Qt6OpenGL.dll",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6OpenGL.dll"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6OpenGL.dll"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6OpenGL.dll",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6OpenGL.dll",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -14903,10 +14903,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/Qt6OpenGLWidgets.dll",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6OpenGLWidgets.dll"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6OpenGLWidgets.dll"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6OpenGLWidgets.dll",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6OpenGLWidgets.dll",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -18290,10 +18290,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/Qt6Widgets.dll",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6Widgets.dll"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6Widgets.dll"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6Widgets.dll",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\Qt6Widgets.dll",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -22622,10 +22622,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/QtCore.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtCore.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtCore.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtCore.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtCore.pyd",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -27191,10 +27191,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/QtGui.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtGui.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtGui.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtGui.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtGui.pyd",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -35409,10 +35409,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/QtOpenGL.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtOpenGL.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtOpenGL.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtOpenGL.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtOpenGL.pyd",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -35904,10 +35904,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/QtOpenGLWidgets.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtOpenGLWidgets.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtOpenGLWidgets.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtOpenGLWidgets.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtOpenGLWidgets.pyd",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -41656,10 +41656,10 @@
           "package": "PySide6_Essentials",
           "version": "6.11.2",
           "record_path": "PySide6/QtWidgets.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtWidgets.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtWidgets.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtWidgets.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\PySide6\\QtWidgets.pyd",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -41925,7 +41925,7 @@
       "imports": [],
       "path": "python3.dll",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\python3.dll",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\python3.dll",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -42497,7 +42497,7 @@
       ],
       "path": "python313.dll",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\python313.dll",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\python313.dll",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -42630,7 +42630,7 @@
       ],
       "path": "select.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\select.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\select.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -43150,10 +43150,10 @@
           "package": "shiboken6",
           "version": "6.11.2",
           "record_path": "shiboken6/Shiboken.pyd",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\shiboken6\\Shiboken.pyd"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\shiboken6\\Shiboken.pyd"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\shiboken6\\Shiboken.pyd",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\shiboken6\\Shiboken.pyd",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -43644,10 +43644,10 @@
           "package": "shiboken6",
           "version": "6.11.2",
           "record_path": "shiboken6/shiboken6.abi3.dll",
-          "installed_path": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\shiboken6\\shiboken6.abi3.dll"
+          "installed_path": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\shiboken6\\shiboken6.abi3.dll"
         }
       ],
-      "freezer_input": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\shiboken6\\shiboken6.abi3.dll",
+      "freezer_input": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.venv-test\\Lib\\site-packages\\shiboken6\\shiboken6.abi3.dll",
       "baseline_component": "Qt/PySide/Shiboken 6.11.2",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -44338,7 +44338,7 @@
       ],
       "path": "tcl86t.dll",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\tcl86t.dll",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\tcl86t.dll",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -44816,7 +44816,7 @@
       ],
       "path": "tk86t.dll",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\tk86t.dll",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\tk86t.dll",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -44970,7 +44970,7 @@
       ],
       "path": "unicodedata.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\unicodedata.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\unicodedata.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -45341,7 +45341,7 @@
       ],
       "path": "winsound.pyd",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\winsound.pyd",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\winsound.pyd",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,
@@ -45430,7 +45430,7 @@
       ],
       "path": "zlib1.dll",
       "record_matches": [],
-      "freezer_input": "C:\\Users\\norch\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\zlib1.dll",
+      "freezer_input": "C:\\Users\\USER\\Downloads\\otb_3d_chess_py314_v7_2\\.tmp\\python313-check\\runtime\\DLLs\\zlib1.dll",
       "baseline_component": "CPython 3.13.12 / native dependency",
       "microsoft_crt": false,
       "freezer_input_hash_match": true,

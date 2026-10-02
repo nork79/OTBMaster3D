@@ -2,8 +2,8 @@
 
 OTBMaster3D is intended as a stable, substantially finished chess application.
 It is feature-complete for its intended release scope, subject to final verification.
-The latest tagged application version is 1.6.0. Current `main` contains
-unreleased changes while retaining that version number. Public distribution
+The current build version is 1.6.2; the latest existing release tag is 1.6.0.
+The local build includes subsequent changes. Public distribution
 remains pending; the repository is private and no distribution channel is selected.
 
 Future development is not guaranteed. Bug fixes may be provided at the maintainer's

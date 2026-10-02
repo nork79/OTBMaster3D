@@ -419,7 +419,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
 
     def pick_book_move(self):
         if (self.engine_manager.loaded_configuration or {}).get("engine_id") == "rodent":
-            if self.cfg.get("engine_book_mode", "none") != "custom":
+            if self.cfg.get("engine_book_mode", "personality") != "custom":
                 return None
         elif self.cfg.get("engine_difficulty", "custom") != "custom":
             return None  # Presets should play at their chosen strength from move one.

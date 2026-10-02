@@ -1,9 +1,14 @@
 # Changelog
 
-## Unreleased
+## 1.6.2 - 2026-10-02
 
-Current `main` contains changes after the `v1.6.0` tag; the application version
-remains 1.6.0. A tag or changelog entry does not establish public availability.
+Local installer preparation; public distribution and clean-machine validation
+remain pending. A changelog entry does not establish public availability.
+
+- Default Rodent personality openings to Personality repertoire, preserving saved choices.
+- Update the project identity and repository links to nork79.
+- Redact personal filesystem usernames from source evidence and use a private commit email.
+- Separate ordinary headless CI from installed-engine integration coverage.
 
 - Allow position setup after automatic engine moves.
 - Add optional Rodent IV personality opponents for the source workspace, fix

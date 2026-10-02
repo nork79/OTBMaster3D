@@ -50,7 +50,7 @@ class EngineManager:
                 from otb_chess.services import personalities
                 profile = personalities.profile_settings(
                     self.app.cfg.get("engine_personality", "tal"),
-                    self.app.cfg.get("engine_book_mode", "none"),
+                    self.app.cfg.get("engine_book_mode", "personality"),
                     self.app.cfg.get("book_path", ""))
                 personalities.configure(self.engine, profile, self.app.cfg.get("engine_elo"))
                 configuration["settings"]["rodent"] = profile

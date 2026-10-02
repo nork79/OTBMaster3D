@@ -10,7 +10,7 @@ it under GPLv3, including redistribution without charge. Each Windows installer
 must be paired with its exact source snapshot; current `main` may contain later
 changes. The application has no licence key, activation or purchase verification.
 
-Project repository: https://github.com/norKI79/OTBMaster3D
+Project repository: https://github.com/nork79/OTBMaster3D
 
 Installer distribution channel: not yet selected.
 

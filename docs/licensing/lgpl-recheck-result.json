@@ -97,7 +97,7 @@
       "Bookmarks",
       "Help"
     ],
-    "engine": "C:\\Users\\norch\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.tmp\\remediation\\lgpl-replacement-be5voat8\\app\\engines\\stockfish-19\\stockfish\\stockfish-windows-x86-64-universal.exe",
+    "engine": "C:\\Users\\USER\\Documents\\Code\\otb_3d_chess_py314_v7_2\\.tmp\\remediation\\lgpl-replacement-be5voat8\\app\\engines\\stockfish-19\\stockfish\\stockfish-windows-x86-64-universal.exe",
     "evaluation": "Engine evaluation: +0.31   \u00b7   Depth 18",
     "books": {
       "lichess-all.bin": 20,

@@ -1,13 +1,13 @@
 #define AppName "OTBMaster3D"
-#define AppVersion "1.6.0"
+#define AppVersion "1.6.2"
 
 [Setup]
 AppId={{5E090E3F-4FD2-4E88-B0BE-81A3C7347D19}
 AppName={#AppName}
 AppVersion={#AppVersion}
-AppPublisher=norKI79
-AppCopyright=Copyright (C) 2026 norKI79
-AppPublisherURL=https://github.com/norKI79/OTBMaster3D
+AppPublisher=nork79
+AppCopyright=Copyright (C) 2026 nork79
+AppPublisherURL=https://github.com/nork79/OTBMaster3D
 InfoBeforeFile=..\SOURCE_ACCESS.md
 LicenseFile=..\LICENSE
 DefaultDirName={localappdata}\Programs\{#AppName}
@@ -26,7 +26,7 @@ WizardStyle=modern
 DisableProgramGroupPage=yes
 CloseApplications=yes
 RestartApplications=no
-VersionInfoVersion=1.6.0.0
+VersionInfoVersion=1.6.2.0
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"; Flags: unchecked

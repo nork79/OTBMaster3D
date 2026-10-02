@@ -4,7 +4,7 @@ The installer is built with Python 3.13, PyInstaller 6.22.3 and Inno Setup 6.4.3
 The revised packaging includes the application, Python/Qt runtime, assets, Stockfish 19,
 Fairy-Stockfish 14 and all three
 opening books. Users do not need to install Python separately.
-The application and packaging version remains 1.6.0, while `main` contains changes
+The application and packaging version is 1.6.2, while `main` contains changes
 after the `v1.6.0` tag. Optional Rodent IV is built separately for the source
 workspace and is not included by the frozen build specification. The retained
 [1.6.0 source preparation](releases/1.6.0-source.md) describes a particular local
@@ -42,7 +42,7 @@ From the repository root:
 .\tools\build_installer.ps1 -Python .\.venv\Scripts\python.exe -Compiler 'C:\path\to\ISCC.exe'
 ```
 
-The result is `installer-output/OTBMaster3D-1.6.0-Setup.exe`.
+The result is `installer-output/OTBMaster3D-1.6.2-Setup.exe`.
 `dist/OTBMaster3D` is the complete standalone application folder; the executable
 needs its neighbouring files. Do not copy just OTBMaster3D.exe.
 
@@ -70,10 +70,10 @@ and the final distribution channel is not selected.
 Local builds are review artifacts. Before a release build, finish review, choose
 one immutable source revision, and set the same version in otb_chess/version.py,
 packaging/windows-installer.iss and packaging/version-info.txt. No version bump is
-made automatically. The current target is 1.6.0 / Windows tuple 1.6.0.0.
+made automatically. The current target is 1.6.2 / Windows tuple 1.6.2.0.
 
 ```powershell
-git clone https://github.com/norKI79/OTBMaster3D.git
+git clone https://github.com/nork79/OTBMaster3D.git
 cd OTBMaster3D
 # Select the reviewed release commit, once the maintainer has created it.
 py -3.13 -m venv .venv
@@ -93,7 +93,7 @@ options. Do not promise bit-for-bit reproducibility from version pins alone.
 The build copies LICENSE, COPYRIGHT.md, THIRD_PARTY_LICENSES.md,
 THIRD_PARTY_NOTICES.md, SOURCE_ACCESS.md and licences into the folder payload.
 Per-asset and per-engine notices remain in their existing directories. The About
-dialog reads them without network access. Installer metadata identifies norKI79
+dialog reads them without network access. Installer metadata identifies nork79
 as publisher and GPLv3 as the application licence; no company or signing identity
 is invented. The installer displays the GPL and source-access information.
 

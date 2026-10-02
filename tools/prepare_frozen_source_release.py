@@ -86,7 +86,7 @@ if __name__ == '__main__':
     parser.add_argument('--installer', type=Path, default=ROOT / 'installer-output/OTBMaster3D-1.6.0-Setup.exe')
     parser.add_argument('--cache', type=Path, default=ROOT / 'release-materials/1.4.0-beta.2/sources')
     parser.add_argument('--output', type=Path, default=ROOT / 'release-materials/1.6.0')
-    parser.add_argument('--repository', default='norKI79/OTBMaster3D')
+    parser.add_argument('--repository', default='nork79/OTBMaster3D')
     parser.add_argument('--tag', default='v1.6.0-source-87d30dc')
     args = parser.parse_args()
     prepare(args.frozen, args.installer, args.cache, args.output, args.repository, args.tag)

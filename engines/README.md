@@ -48,7 +48,7 @@ Tal, Kasparov, Morphy, Karpov, Petrosian or Default, then set a target Elo from
 800 to 2800 or choose Full strength. Personality and rating are independent;
 the historical names describe style inspirations. Elo values are approximate.
 
-Opening choices are **No book** (the default), **Personality repertoire**, or
+Opening choices are **No book**, **Personality repertoire** (the default), or
 **Custom book**. Repertoire moves can exceed the selected strength. Custom
 books use the app's existing Polyglot reader; Rodent's internal book is disabled
 in that mode. Native Rodent personalities own move selection, so the app's
