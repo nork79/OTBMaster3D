@@ -1,14 +1,14 @@
 # Corresponding source and your rights
 
-Latest assessment: docs/licensing/LICENSING-CLOSURE.md and
-docs/licensing/RELEASE-COMPLIANCE.md in the source archive. Exact libyuv source,
-Qt/PySide and native sources are retained. Public archive links remain pending
-authorized publication, separately from local source completeness.
+See [1.6.0 source preparation](docs/releases/1.6.0-source.md) for the retained
+local build and proposed archive locations. The repository is private and public
+archive links remain pending. The dated [component assessment](docs/licensing/LICENSING-CLOSURE.md)
+records earlier review evidence, not clearance of current `main`.
 
 OTBMaster3D is licensed under GPL-3.0-only. You may copy, modify and redistribute
-it under GPLv3, including redistribution without charge. The Windows installer
-packages the same functionality as the free source version. It has no licence
-key, activation or purchase verification.
+it under GPLv3, including redistribution without charge. Each Windows installer
+must be paired with its exact source snapshot; current `main` may contain later
+changes. The application has no licence key, activation or purchase verification.
 
 Project repository: https://github.com/norKI79/OTBMaster3D
 
@@ -54,8 +54,8 @@ and docs/licensing/BUILD_AND_REPLACE.md for source URLs, hashes and build inform
 
 **This preparation build is blocked for public distribution.** Exact dependency
 public source download locations have not yet been established. Clean Windows
-verification remains pending. See docs/licensing/RELEASE-COMPLIANCE.md for test results and
-the exact installer hash. Historical compiler reproduction is optional assurance
+verification remains pending. See the retained build's manifest for its exact
+installer hash. Historical compiler reproduction is optional assurance
 unless a specific licence requirement is identified.
 Do not present the repository homepage or upstream project links as a substitute
 for the matching source bundle. Replace this preparation notice with the verified

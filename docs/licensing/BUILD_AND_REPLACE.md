@@ -1,5 +1,12 @@
 # Building sources and replacing LGPL components
 
+The runtime staging policy and review results below record an earlier preparation
+build. Current packaging requires the Microsoft runtime to be installed separately;
+it does not stage the redistributable. See [current build instructions](../windows-installer.md),
+[runtime remediation](MICROSOFT_RUNTIME_REMEDIATION.md) and
+[1.6.0 source preparation](../releases/1.6.0-source.md). The historical cache and
+bundle names below remain inputs to the retained tooling, not the current app version.
+
 Current status: [finite licensing closure](LICENSING-CLOSURE.md).
 The following central-runtime policy is prepared in source; the existing
 installer predates it because desktop-access approval for rebuilding was declined.

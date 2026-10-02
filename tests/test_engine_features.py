@@ -79,6 +79,10 @@ class EngineFeatureTests(unittest.TestCase):
         self.assertLess(uci.Engine.style_preference(board, check, "Quiet"),
                         uci.Engine.style_preference(board, quiet, "Quiet"))
 
+
+class EngineIntegrationTests(unittest.TestCase):
+    """Requires the installed Windows Stockfish executable."""
+
     def test_stockfish_strength_styles_and_white_perspective_evaluation(self):
         executable = next(settings.ENGINE_DIR.rglob("stockfish*.exe"), None)
         if executable is None:

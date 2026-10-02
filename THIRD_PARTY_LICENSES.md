@@ -2,8 +2,10 @@
 
 ## Component acknowledgements
 
-The current component assessment is docs/licensing/LICENSING-CLOSURE.md in the
-source archive. Qt/PySide/Shiboken 6.11.2 are used under LGPLv3; their exact
+The dated component assessment is docs/licensing/LICENSING-CLOSURE.md in the
+source archive; it is not distribution clearance for current `main`. See
+[source preparation status](docs/releases/1.6.0-source.md) for the retained 1.6.0 build.
+Qt/PySide/Shiboken 6.11.2 are used under LGPLv3; their exact
 sources, notices and practical replacement instructions are retained. Mesa
 11.2.2/LLVM 3.6.2 remain included under their permissive licences. GLFW 3.4 is
 rebuilt from retained source. The frozen Windows runtime uses CPython 3.13.12;

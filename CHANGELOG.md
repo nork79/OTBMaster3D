@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+Current `main` contains changes after the `v1.6.0` tag; the application version
+remains 1.6.0. A tag or changelog entry does not establish public availability.
+
+- Allow position setup after automatic engine moves.
+- Add optional Rodent IV personality opponents for the source workspace, fix
+  rating controls, and refresh Help and release documentation.
+
 ## 1.6.0 - 2026-09-30
 
 - Include the pending chess, PGN details, audio, engine and desktop UI updates.

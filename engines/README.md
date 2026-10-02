@@ -1,6 +1,7 @@
 # Supported engines
 
-OTBMaster3D uses Stockfish 19 and Fairy-Stockfish 14 for standard chess.
+OTBMaster3D uses Stockfish 19 and Fairy-Stockfish 14 for its difficulty presets,
+with optional Rodent IV personality opponents in the source workspace.
 Run these commands from the project folder with Python 3.13:
 
 ```powershell

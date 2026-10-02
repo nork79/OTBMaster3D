@@ -3,18 +3,27 @@ import unittest
 from unittest.mock import Mock, patch
 from types import SimpleNamespace
 import json
+import sys
 from pathlib import Path
 import tempfile
 from otb_chess.chess_backend import rules, uci
 from otb_chess.services.difficulty import DIFFICULTIES, engine_path, missing_files
 
 
-class DifficultyTests(unittest.TestCase):
+class DifficultyIntegrationTests(unittest.TestCase):
+    """Live UCI coverage; install both Windows difficulty engines first."""
+
+    def setUp(self):
+        if sys.platform != 'win32':
+            self.skipTest('Bundled engines require Windows')
+        missing = sorted({preset.engine for key, preset in DIFFICULTIES.items()
+                          if missing_files(key)})
+        if missing:
+            self.skipTest('Install difficulty engines first: ' + ', '.join(missing))
+
     def test_builtin_levels_run_with_correct_bundled_engine(self):
         from otb_chess.services.engine import EngineManager
         from otb_chess.bookmarks import capture_engine
-        self.assertTrue(all(p.engine == 'fairy-stockfish' for p in DIFFICULTIES.values() if p.rating is not None and p.rating < 1500))
-        self.assertEqual({p.engine for p in DIFFICULTIES.values()}, {'stockfish', 'fairy-stockfish'})
         for key, preset in DIFFICULTIES.items():
             with self.subTest(level=key):
                 self.assertEqual(missing_files(key), [])
@@ -40,6 +49,50 @@ class DifficultyTests(unittest.TestCase):
                     self.assertEqual(capture_engine(manager)['profile_id'], saved['profile_id'])
                 finally:
                     manager.unload()
+
+
+class DifficultyTests(unittest.TestCase):
+    """Difficulty contracts that need no installed engine executables."""
+
+    def test_builtin_level_definitions(self):
+        expected = {
+            'beginner_500': ('fairy-stockfish', 500),
+            **{f'level_{rating}': ('fairy-stockfish', rating)
+               for rating in (600, 700, 800, 900, 1100, 1300, 1400, 1500)},
+            **{f'level_{rating}': ('stockfish', rating)
+               for rating in (1600, 1700, 1800, 1900)},
+            'cm_practice': ('stockfish', 2000),
+            'master': ('stockfish', 2200),
+            'expert': ('stockfish', 2500),
+            'full': ('stockfish', None),
+        }
+        self.assertEqual({key: (preset.engine, preset.rating)
+                          for key, preset in DIFFICULTIES.items()}, expected)
+        for key, preset in DIFFICULTIES.items():
+            with self.subTest(level=key):
+                self.assertTrue(preset.label)
+                self.assertTrue(preset.description)
+                self.assertIsNone(preset.skill)
+
+    def test_engine_selection_and_missing_executables(self):
+        from otb_chess.services import settings
+        with tempfile.TemporaryDirectory() as folder, \
+                patch.object(settings, 'ENGINE_DIR', Path(folder)):
+            for key in DIFFICULTIES:
+                with self.subTest(level=key, installed=False):
+                    self.assertEqual(missing_files(key), ['Engine executable'])
+            paths = {
+                'fairy-stockfish': Path(folder) / 'fairy-stockfish-14' / 'fairy-stockfish_x86-64.exe',
+                'stockfish': Path(folder) / 'stockfish-19' / 'stockfish' / 'stockfish-windows-x86-64-universal.exe',
+            }
+            # Empty files exercise discovery only; they are never launched.
+            for path in paths.values():
+                path.parent.mkdir(parents=True)
+                path.touch()
+            for key, preset in DIFFICULTIES.items():
+                with self.subTest(level=key, installed=True):
+                    self.assertEqual(engine_path(key), paths[preset.engine])
+                    self.assertEqual(missing_files(key), [])
 
     def test_saved_lower_selection_migrates_to_fairy_stockfish(self):
         from otb_chess.services import settings

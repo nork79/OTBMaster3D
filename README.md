@@ -3,18 +3,20 @@
 A free and open-source Windows chess application focused on natural over-the-board play,
 engine analysis and organized position study.
 
-**1.4.0-beta.2 | Windows | Release preparation**
+**Latest version: 1.6.0 | Windows | main: unreleased development changes**
 
 ![Ruy Lopez on Rounded Oak with the Forest interface and opening name below navigation](docs/images/3d-middlegame.png)
 
 ## Source and official installer
 
-**Free GitHub source code:** complete application source and build instructions,
-licensed under GPL-3.0-only, at [norKI79/OTBMaster3D](https://github.com/norKI79/OTBMaster3D).
-Public release is pending the [release-readiness review](docs/OPEN_SOURCE_RELEASE_READINESS.md).
+**Source:** application source and build instructions are licensed under GPL-3.0-only
+in [norKI79/OTBMaster3D](https://github.com/norKI79/OTBMaster3D). The repository is
+currently private; public source downloads remain pending. Version 1.6.0 is the
+latest tagged version. Current `main` includes later, unreleased changes.
 
 **Official Windows installer:** the distribution channel has not yet been selected.
-The installer offers the same functionality as the public source version.
+Local installer artifacts are not cleared for public distribution and do not
+establish that current `main` has been packaged or tested on a clean Windows machine.
 There are no licence keys, DRM, activation, application accounts or paid feature unlocks.
 Recipients may modify and redistribute it, including without charge, under GPLv3.
 
@@ -23,7 +25,7 @@ Recipients may modify and redistribute it, including without charge, under GPLv3
 - Interactive 3D board and flat 2D view, with click/drag moves, rotation, zoom and pan.
 - Automatic or over-the-board clocks, configurable time controls, takeback, resign,
   draw and switch sides with clocks paused.
-- Stockfish analysis, compatible UCI engines and bundled practice difficulty levels.
+- Stockfish analysis, Stockfish/Fairy-Stockfish practice levels and optional Rodent IV opponents.
 - Hierarchical bookmarks for positions: nested folders, drag/drop ordering, a
   floating organizer and matching Bookmarks menu.
 - PGN/FEN import and export, move review, static evaluation and session recovery.
@@ -55,17 +57,22 @@ for the board and theme combinations.
 The official installer is not yet cleared for public distribution. Once approved,
 download it from the announced release location, run Setup, and launch OTBMaster3D
 from the Start menu. Python is not required for the installer. The existing packaging
-workflow includes Stockfish and three opening books, subject to the
-licensing checks in the release report.
-Lower difficulty levels use Fairy-Stockfish; higher levels use Stockfish.
+workflow includes Stockfish 19, Fairy-Stockfish 14 and three opening books. See
+[source preparation status](docs/releases/1.6.0-source.md) for the retained build's scope.
+Fairy-Stockfish presets cover 500–1500; Stockfish presets cover 1600–2500 and full strength.
 Unavailable levels are hidden from both difficulty selectors. No external model
-files are required. See [engine setup](engines/README.md).
+files are required. See [engine setup](engines/README.md) for the available targets.
+
+Optional Rodent IV personality opponents are built separately for the source
+workspace with MinGW-w64: Tal, Kasparov, Morphy, Karpov, Petrosian and Default.
+Personality and target Elo (800–2800, or full strength) are independent.
+The frozen installer does not include Rodent; see [Rodent setup](engines/README.md#rodent-iv-personality-opponents).
 
 
 Requirements: Windows 10 or later, x64-compatible hardware and an OpenGL 2.1-capable
 graphics driver. Source builds require Python 3.13 (64-bit), including Tkinter.
 
-The next installer requires Microsoft Visual C++ x64 Redistributable 14.44.35211.0
+Current installer configuration requires Microsoft Visual C++ x64 Redistributable 14.44.35211.0
 or newer, installed separately from
 [Microsoft](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist).
 Setup checks this prerequisite and gives instructions if it is missing.
@@ -73,9 +80,9 @@ Setup checks this prerequisite and gives instructions if it is missing.
 The pinned cozy-chess-py wheel requires Python 3.13. Disk and RAM minimums beyond
 these requirements have not been measured. Engine ratings are approximate.
 
-The installer is unsigned. Windows SmartScreen may show an unknown-publisher or
-reputation warning. Check the published SHA-256 before installation; no signing
-certificate or publisher verification is claimed.
+Installer signing is not configured. Windows SmartScreen may show an
+unknown-publisher or reputation warning. Any future public installer should be
+accompanied by its SHA-256; no publisher verification is claimed.
 
 ## Useful controls
 
@@ -100,10 +107,11 @@ Use **Python 3.13 (64-bit)** with Tkinter on Windows:
 py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe tools/install_stockfish.py
+.\.venv\Scripts\python.exe tools/install_fairy_stockfish.py
 .\.venv\Scripts\python.exe main.py
 ```
 
-Engine setup is optional when using your own UCI engine or playing without one.
+Engine setup is optional when using an existing supported engine or playing without one.
 See the [user guide](docs/user-guide.md), [installer build instructions](docs/windows-installer.md),
 [bookmark guide](docs/bookmark-ui.md) and [contribution/testing instructions](CONTRIBUTING.md).
 
@@ -116,8 +124,8 @@ See the [user guide](docs/user-guide.md), [installer build instructions](docs/wi
 ```
 
 The complete suite needs a Windows desktop with OpenGL and Tk. See
-[CONTRIBUTING.md](CONTRIBUTING.md) for the dedicated Python 3.13 test environment,
-and the [release report](docs/OPEN_SOURCE_RELEASE_READINESS.md) for actual results.
+[CONTRIBUTING.md](CONTRIBUTING.md) for the dedicated Python 3.13 test environment
+and which tests require installed engines.
 To compile an installer, follow [the Windows build procedure](docs/windows-installer.md).
 
 ## Licensing, source access and acknowledgements
@@ -125,7 +133,7 @@ To compile an installer, follow [the Windows build procedure](docs/windows-insta
 Copyright (C) 2026 norKI79 for original project material. Application source is
 licensed under **GPL-3.0-only**; see [LICENSE](LICENSE) and [COPYRIGHT.md](COPYRIGHT.md).
 Third-party engines, libraries and artwork retain their own terms. See
-[third-party licences](THIRD_PARTY_LICENSES.md) and [the audit](docs/OPEN_SOURCE_AUDIT.md).
+[third-party licences](THIRD_PARTY_LICENSES.md) and [source access](SOURCE_ACCESS.md).
 Complete licence texts are available offline in Help > Open Source Licences.
 
 Every public installer must link to its exact application and dependency source

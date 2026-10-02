@@ -4,8 +4,11 @@ The installer is built with Python 3.13, PyInstaller 6.22.3 and Inno Setup 6.4.3
 The revised packaging includes the application, Python/Qt runtime, assets, Stockfish 19,
 Fairy-Stockfish 14 and all three
 opening books. Users do not need to install Python separately.
-Only reviewed engine resources are included. Version 1.6.0 packages the current
-engine changes and external Microsoft runtime prerequisite. Historical installer
+The application and packaging version remains 1.6.0, while `main` contains changes
+after the `v1.6.0` tag. Optional Rodent IV is built separately for the source
+workspace and is not included by the frozen build specification. The retained
+[1.6.0 source preparation](releases/1.6.0-source.md) describes a particular local
+installer, not validation of current `main`. Historical installer
 verification is recorded in [native remediation](licensing/NATIVE_RUNTIME_REMEDIATION.md).
 
 Current packaging requires Microsoft Visual C++ x64 Redistributable 14.44.35211.0
@@ -61,7 +64,9 @@ does not replace testing on a clean Windows machine.
 
 ## Clean checkout procedure and source pairing
 
-Public distribution is blocked until [the audit](OPEN_SOURCE_AUDIT.md) is resolved.
+Public source downloads and clean Windows validation remain pending; see
+[source preparation status](releases/1.6.0-source.md). The repository is private
+and the final distribution channel is not selected.
 Local builds are review artifacts. Before a release build, finish review, choose
 one immutable source revision, and set the same version in otb_chess/version.py,
 packaging/windows-installer.iss and packaging/version-info.txt. No version bump is
@@ -81,7 +86,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_installer.ps1 -P
 
 The process-only execution policy option permits this reviewed local script to
 run; it does not change machine policy. Engine setup requires network access on
-a fresh checkout. Both supported engines are installed by this workflow. Preserve exact
+a fresh checkout. Stockfish and Fairy-Stockfish are installed by this workflow. Preserve exact
 download archives, dependency sources, wheel hashes, compiler version and build
 options. Do not promise bit-for-bit reproducibility from version pins alone.
 
@@ -107,7 +112,7 @@ The current manifest explicitly marks publication BLOCKED.
 For each public version, retain the installer, its SHA-256, build-info.json,
 application ZIP, dependency source bundle, source hashes and a file-level native
 component inventory. Put prominent links to the exact free source downloads beside
-the installer download. Use the [publication checklist](OPEN_SOURCE_RELEASE_READINESS.md).
+the installer download. Follow [source-access requirements](../SOURCE_ACCESS.md).
 
 Test install, upgrade, uninstall, offline launch, offline licence access and
 compatible Qt library replacement on a clean Windows machine. Source-level tests

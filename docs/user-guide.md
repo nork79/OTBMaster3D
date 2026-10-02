@@ -62,7 +62,9 @@ existing `.venv` uses 3.14, create a fresh 3.13 environment rather than reusing 
 unchanged. See the [3.13 compatibility results](python-313-compatibility.md);
 historical 3.14 test results remain recorded in the backend audit.
 
-An installer is available to authorized collaborators through the private repository release.
+The repository is private and the installer distribution channel is not selected.
+Retained local builds do not establish public availability or clean Windows validation;
+see [source preparation status](releases/1.6.0-source.md).
 The app opens one window. The optional Stockfish setup downloads the official
 Windows x64 release, verifies its SHA-256 hash, and preserves its source and licence.
 Unavailable difficulty levels are hidden.
@@ -155,10 +157,15 @@ This control is separate from **Start analysis / Stop analysis** in Engine Analy
 
 ## Engines and opening books
 
-Open **Engine → Engine and opening book**. Choose a compatible Windows UCI engine
+Open **Engine → Engine and opening book**. Choose a supported Windows UCI engine
 from `engines/` or browse for one, choose its side, and Save. Loading runs in the
 background. Leave the engine path empty to unload it. Engine side and opening
 book selections apply to the next game.
+
+Supported engines are Stockfish, Fairy-Stockfish and optional Rodent IV.
+Rodent is built separately for the source workspace and offers Tal, Kasparov,
+Morphy, Karpov, Petrosian and Default personalities, independently of target Elo.
+See [engine setup](../engines/README.md#rodent-iv-personality-opponents).
 
 The setup command installs Stockfish 19 for Windows x64 under `engines/stockfish-19/`, with its
 source and GPLv3 licence. It loads automatically on first use and plays Black;
@@ -306,9 +313,10 @@ their responsibility rather than adding application logic to `main.py`.
 **Help > Open Source Licences** displays the full GPL, third-party notices and
 source-access instructions offline. **Help > About** shows the version, copyright
 and repository link. See [THIRD_PARTY_LICENSES.md](../THIRD_PARTY_LICENSES.md).
-The application is GPL-3.0-only. Free source and the Windows installer
-have the same functionality; recipients retain redistribution rights.
-See [release readiness](OPEN_SOURCE_RELEASE_READINESS.md) and
+The application is GPL-3.0-only; recipients retain redistribution rights.
+Each installer must be paired with its exact source snapshot. Current `main`
+includes changes after the 1.6.0 tag; public distribution remains pending.
+See [source access](../SOURCE_ACCESS.md) and
 [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 The bundled Staunton meshes are by

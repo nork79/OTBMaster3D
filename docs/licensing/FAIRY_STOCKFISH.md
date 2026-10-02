@@ -1,6 +1,8 @@
 # Fairy-Stockfish 14
 
-The current application supports Stockfish 19 and Fairy-Stockfish 14 only.
+Stockfish 19 and Fairy-Stockfish 14 provide the built-in difficulty presets.
+Current source also supports optional [Rodent IV opponents](RODENT_IV.md),
+built separately for the source workspace.
 Fairy-Stockfish supplies the lower standard-chess difficulty targets. These
 settings are not independently calibrated human Elo ratings.
 

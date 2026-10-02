@@ -2,6 +2,7 @@
 from copy import deepcopy
 from pathlib import Path
 import tempfile
+import sys
 import time
 from types import SimpleNamespace
 import unittest
@@ -121,25 +122,6 @@ class BookmarkIntegrationTests(unittest.TestCase):
         self.assertIs(manager.engine, previous)
         previous.quit.assert_not_called()
 
-    def test_exact_stockfish_configuration_roundtrip(self):
-        path = next(settings.ENGINE_DIR.rglob("stockfish*.exe"), None)
-        if path is None:
-            self.skipTest("Bundled Stockfish not installed")
-        manager = self.game.engine_manager
-        self.addCleanup(manager.unload)
-        self.game.cfg.update(engine_elo=1500, engine_style="Active")
-        self.assertTrue(manager.load(str(path))[0])
-        saved = capture_engine(manager)
-        self.game.cfg.update(engine_elo=None, engine_style="Quiet")
-        self.assertEqual(manager.restore_configuration(saved), (True, ""))
-        node = {"type": "bookmark", "name": "Engine", "position": capture_position(rules.Board()), "engine": saved}
-        restore_bookmark(self.game, node, (True, ""))
-        actual = capture_engine(manager)
-        self.assertEqual(actual["profile_id"], saved["profile_id"])
-        self.assertEqual(actual["settings"], saved["settings"])
-        self.assertEqual(self.game.cfg["engine_style"], "Active")
-
-
     def test_unsupported_profile_keeps_current_engine(self):
         executable = Path(self.temp.name) / "rodent.exe"
         executable.write_bytes(b"fake executable")
@@ -167,6 +149,31 @@ class BookmarkIntegrationTests(unittest.TestCase):
         self.assertFalse(success)  # A fallback is never reported as the saved profile.
         self.assertIn("Default Stockfish loaded instead", message)
         self.assertIsNotNone(manager.engine)
+
+
+class BookmarkEngineIntegrationTests(unittest.TestCase):
+    """Requires the installed Windows Stockfish executable."""
+
+    def test_exact_stockfish_configuration_roundtrip(self):
+        if sys.platform != 'win32':
+            self.skipTest('Bundled engines require Windows')
+        path = next(settings.ENGINE_DIR.rglob("stockfish*.exe"), None)
+        if path is None:
+            self.skipTest("Bundled Stockfish not installed")
+        self.game = Host()
+        manager = self.game.engine_manager
+        self.addCleanup(manager.unload)
+        self.game.cfg.update(engine_elo=1500, engine_style="Active")
+        self.assertTrue(manager.load(str(path))[0])
+        saved = capture_engine(manager)
+        self.game.cfg.update(engine_elo=None, engine_style="Quiet")
+        self.assertEqual(manager.restore_configuration(saved), (True, ""))
+        node = {"type": "bookmark", "name": "Engine", "position": capture_position(rules.Board()), "engine": saved}
+        restore_bookmark(self.game, node, (True, ""))
+        actual = capture_engine(manager)
+        self.assertEqual(actual["profile_id"], saved["profile_id"])
+        self.assertEqual(actual["settings"], saved["settings"])
+        self.assertEqual(self.game.cfg["engine_style"], "Active")
 
 
 class BookmarkUITests(unittest.TestCase):

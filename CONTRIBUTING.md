@@ -8,6 +8,28 @@ Use Python 3.13 on Windows, install requirements.txt in a virtual environment,
 and run `python -m unittest discover -s tests -v`. Rendering tests require native
 OpenGL and Tk. The CI workflow runs tests that do not need a graphics context.
 
+Windows CI has two jobs, both using Python 3.13:
+
+- `test` installs only Python dependencies, compiles the application, owned chess
+  core, tests and tools, and runs the existing headless suite. It selects
+  `tests.test_difficulty.DifficultyTests` and
+  `tests.test_engine_features.EngineFeatureTests` for engine contracts without
+  launching downloaded executables.
+- `engine-integration` runs `tools/install_stockfish.py` and
+  `tools/install_fairy_stockfish.py`, checks that all difficulty executables are
+  present, then runs only the live engine classes and optional Rodent tests.
+
+To run the live tests locally on Windows after [installing the engines](engines/README.md):
+
+```powershell
+python -m unittest -v tests.test_difficulty.DifficultyIntegrationTests tests.test_engine_features.EngineIntegrationTests tests.test_bookmark_ui.BookmarkEngineIntegrationTests tests.test_rodent
+```
+
+These tests check real UCI options, legal moves, strength/style handling and
+bookmark restoration. Discovery skips them when their Windows executables are
+unavailable. Rodent tests require its separate MinGW build and installed resources;
+CI does not build or download Rodent.
+
 On Windows, create a dedicated test environment with
 `powershell -File tools/setup_test_env.ps1 -Python C:\path\to\Python313\python.exe`
 (omit `-Python` to discover a registered 3.13 installation). Then run
