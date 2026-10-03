@@ -1296,17 +1296,15 @@ class DesktopTests(unittest.TestCase):
             self.assertEqual(g.pick_book_move().uci(), 'e2e4')
             g.cfg['engine_book_mode'] = 'none'
             self.assertIsNone(g.pick_book_move())
-            # Restore a saved opponent after another personality was selected.
+            # Opening a legacy bookmark keeps the current opponent.
             g.cfg.update(engine_personality='tal', engine_elo=1800, engine_book_mode='none')
             self.assertTrue(g.engine_manager.load(str(personalities.engine_path()))[0])
-            result = g.engine_manager.restore_configuration(saved)
-            self.assertEqual(result, (True, ''))
             restore_bookmark(g, {'type': 'bookmark', 'name': 'Petrosian practice', 'position': capture_position(g.board),
-                                 'engine': saved}, result)
-            self.assertEqual(g.cfg['engine_personality'], 'petrosian')
-            self.assertEqual(g.cfg['engine_elo'], 1400)
-            self.assertEqual(g.cfg['engine_book_mode'], 'personality')
-            self.assertEqual(capture_engine(g.engine_manager)['profile_id'], saved['profile_id'])
+                                 'engine': saved})
+            self.assertEqual(g.cfg['engine_personality'], 'tal')
+            self.assertEqual(g.cfg['engine_elo'], 1800)
+            self.assertEqual(g.cfg['engine_book_mode'], 'none')
+            self.assertNotEqual(capture_engine(g.engine_manager)['profile_id'], saved['profile_id'])
 
     def test_save_rodent_opponent_while_analysis_worker_is_running(self):
         import threading

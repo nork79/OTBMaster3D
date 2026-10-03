@@ -49,43 +49,27 @@ could not load is not silently overwritten by a UI edit; an error explains that
 the source needs recovery. All data continues to use `bookmarks.json` beside the
 application configuration, with no bookmark schema redesign.
 
-## Opening and engine restoration
+## Opening bookmarks
 
 Opening validates the authoritative FEN first, pauses clocks, disables board/game
 controls briefly, and requests UCI stop. Existing search, analysis, and engine-load
-workers are allowed to finish before their pending results are discarded. A
-background worker prepares the saved engine, so the panel remains responsive.
-The selected position is installed only after that worker completes. The
-previous engine remains alive until a candidate engine is successfully verified.
+workers finish before their pending results are discarded.
 
-The engine loader uses the saved stable family ID and exact persistent UCI
-options. It verifies identity and, when supplied, the stable
-configuration/profile fingerprint. It never chooses the nearest rating.
-Unsupported configuration systems, missing personality resources, changed
-options, or mismatching fingerprints produce a nonfatal diagnostic. The current
-engine is retained; if none exists, bundled Stockfish is tried explicitly as a
-fallback. The message states the substitution. If neither exists, the chess
-position remains usable with no engine.
+Restoration applies the saved position, move history, and semantic White/Black
+facing. The current engine, difficulty, personality, engine side, time control,
+clock mode, increment, and remaining times stay unchanged. Older engine snapshots
+and saved time controls do not affect restoration. Saving no longer captures an
+engine configuration; time-control metadata remains stored.
 
-On the UI thread, restoration uses the existing FEN/history restoration and
-document loader, applies semantic White/Black facing, restores preset/custom
-base and increment values and clock mode, and refreshes board, move list,
-clocks, difficulty controls, status, and session recovery. Clocks remain paused;
-Resume continues the loaded position/history rather than resetting the board.
-Analysis resumes only if it was enabled before opening. A missing saved engine
-does not prevent position, facing, or time restoration. No camera orbit/zoom,
-theme, pieces, colours, or sound profile is copied from the bookmark. Flipping
-the semantic side uses the existing board-flip operation.
-
-Delay configurations can be stored by the data layer, but current application
-clocks have no delay implementation; opening such a bookmark reports that limit.
-Older bookmarks with no time-control snapshot retain current clock settings.
+The board, move list, clocks, status, and session recovery refresh. Clocks remain
+paused; Resume continues the loaded position/history. Analysis resumes only if
+it was enabled before opening. Camera orbit/zoom and appearance are not restored.
 
 ## Verification
 
 `tests/test_bookmark_ui.py` exercises destination rules, transactional edits and
-save failures, rename validation, deletion, FEN/facing/time restoration, missing
-engines, exact Stockfish and Fairy-Stockfish configuration round trips, native tree events,
+save failures, rename validation, deletion, FEN/facing restoration, preserving
+current engine and clock settings, legacy snapshots, native tree events,
 inline edit/cancel, confirmation, selection-only clicks, double click/Enter,
 scrolling, long names, context selection, stale search results, panel geometry,
 and ordinary board interaction after restoring. Run the full suite in Python 3.13:

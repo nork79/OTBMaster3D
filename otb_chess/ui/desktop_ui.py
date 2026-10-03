@@ -1196,20 +1196,10 @@ class MainWindow(DocumentActions, QMainWindow):
             g.engine_load_result = None
             g.pending_engine_move = g.pending_engine_position = g.pending_engine_error = None
             g.engine_output = None
-            pending["stage"] = "engine"
-            def worker():
-                try:
-                    pending["result"] = g.engine_manager.restore_configuration(pending["node"].get("engine"))
-                except Exception as exc:
-                    pending["result"] = (False, str(exc))
-            threading.Thread(target=worker, daemon=True).start()
-            return
-        if "result" not in pending:
-            return
         try:
             from otb_chess.services.bookmark_actions import restore_bookmark
             self.board_widget.makeCurrent()
-            restore_bookmark(g, pending["node"], pending["result"])
+            restore_bookmark(g, pending["node"])
             self.last_fen = self.last_output = self.last_search = None
             self.engine_line.clear()
             self.refresh_moves()

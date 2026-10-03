@@ -71,6 +71,13 @@ class BookmarkIntegrationTests(unittest.TestCase):
         self.actions.delete(folder)
         self.assertEqual(self.actions.collection.get(root)["children"], [])
 
+    def test_saving_bookmark_does_not_capture_engine(self):
+        self.game.engine_manager = Mock()
+        self.game.engine_loading = True
+        item = self.actions.create_bookmark(self.game)
+        self.assertNotIn("engine", self.actions.collection.get(item))
+        self.assertEqual(self.game.engine_manager.mock_calls, [])
+
     def test_failed_save_does_not_publish_phantom_edits(self):
         item = self.actions.create_bookmark(self.game)
         before = self.actions.collection.to_dict()
@@ -92,24 +99,37 @@ class BookmarkIntegrationTests(unittest.TestCase):
             actions.create_folder()
         self.assertEqual(self.store.path.read_text(), "broken")
 
-    def test_restore_facing_time_position_and_missing_engine_fallback(self):
+    def test_restore_position_facing_preserves_engine_and_clock_settings(self):
         self.game.board.push_uci("e2e4")
         item = self.actions.create_bookmark(self.game)
         saved = self.actions.collection.get(item)
         original_cfg = deepcopy(self.game.cfg)
+        self.game.white_time, self.game.black_time, self.game.increment = 91, 83, 1
+        self.game.engine_side = False
+        current_engine = self.game.engine_manager.engine = Mock()
+        self.game.engine_var.set("current.exe")
         for facing in ("black", "white"):
             saved["facing"] = facing
             saved["engine"] = {"engine_id": "missing", "name": "Missing"}
-            saved["time_control"].update(preset_name="Custom", base_seconds=432, increment_seconds=7)
-            warnings = restore_bookmark(self.game, saved, (False, "Missing personality file"))
-            self.assertTrue(warnings)
+            saved["time_control"].update(preset_name="Custom", base_seconds=432, increment_seconds=7, clock_mode="OTB")
+            warnings = restore_bookmark(self.game, saved)
+            self.assertFalse(warnings)
             self.assertEqual(self.game.board.fen(en_passant="fen"), saved["position"]["fen"])
             self.assertEqual(self.game.board_facing, facing)
             self.assertTrue(self.game.clock_paused)
             self.assertTrue(self.game.game_started)
-            self.assertEqual((self.game.white_time, self.game.black_time, self.game.increment), (432, 432, 7))
+            self.assertEqual((self.game.white_time, self.game.black_time, self.game.increment), (91, 83, 1))
+            self.assertEqual(self.game.time_control_var.get(), "Bullet 2+1")
             self.assertEqual((self.game.pitch, self.game.distance, self.game.piece_set), (.8, 14, "tournament"))
             self.assertEqual(self.game.cfg, original_cfg)
+            self.assertEqual(self.game.clock_mode_var.get(), "Online")
+            self.assertEqual(self.game.clock_mode, "Online")
+            self.assertEqual(self.game.custom_initial_var.get(), 120)
+            self.assertEqual(self.game.custom_increment_var.get(), 1)
+            self.assertEqual(self.game.engine_side_var.get(), "Black")
+            self.assertFalse(self.game.engine_side)
+            self.assertEqual(self.game.engine_var.get(), "current.exe")
+            self.assertIs(self.game.engine_manager.engine, current_engine)
 
     def test_candidate_engine_failure_keeps_current_engine(self):
         manager = self.game.engine_manager
@@ -154,7 +174,7 @@ class BookmarkIntegrationTests(unittest.TestCase):
 class BookmarkEngineIntegrationTests(unittest.TestCase):
     """Requires the installed Windows Stockfish executable."""
 
-    def test_exact_stockfish_configuration_roundtrip(self):
+    def test_legacy_bookmark_preserves_current_stockfish_configuration(self):
         if sys.platform != 'win32':
             self.skipTest('Bundled engines require Windows')
         path = next(settings.ENGINE_DIR.rglob("stockfish*.exe"), None)
@@ -167,13 +187,13 @@ class BookmarkEngineIntegrationTests(unittest.TestCase):
         self.assertTrue(manager.load(str(path))[0])
         saved = capture_engine(manager)
         self.game.cfg.update(engine_elo=None, engine_style="Quiet")
-        self.assertEqual(manager.restore_configuration(saved), (True, ""))
+        before = capture_engine(manager)
         node = {"type": "bookmark", "name": "Engine", "position": capture_position(rules.Board()), "engine": saved}
-        restore_bookmark(self.game, node, (True, ""))
+        restore_bookmark(self.game, node)
         actual = capture_engine(manager)
-        self.assertEqual(actual["profile_id"], saved["profile_id"])
-        self.assertEqual(actual["settings"], saved["settings"])
-        self.assertEqual(self.game.cfg["engine_style"], "Active")
+        self.assertEqual(actual["profile_id"], before["profile_id"])
+        self.assertEqual(actual["settings"], before["settings"])
+        self.assertEqual(self.game.cfg["engine_style"], "Quiet")
 
 
 class BookmarkUITests(unittest.TestCase):
@@ -305,11 +325,12 @@ class BookmarkUITests(unittest.TestCase):
             self.assertFalse(self.widget.isEnabled())
             self.game.pending_engine_move = rules.Move.from_uci("e2e4")
             self.game.engine_manager.thinking = False
-            with self.assertLogs("otb_chess.services.engine", level="WARNING"):
+            with patch.object(self.game.engine_manager, "restore_configuration") as restore:
                 self.wait_restore()
+                restore.assert_not_called()
         self.assertIsNone(self.game.pending_engine_move)
         self.assertEqual(self.game.board.fen(), rules.Board().fen())
-        self.assertIn("could not be restored", self.game.result_text)
+        self.assertNotIn("could not be restored", self.game.result_text)
         self.assertTrue(self.game.clock_paused)
 
     def test_context_selection_order_scrolling_and_long_names(self):

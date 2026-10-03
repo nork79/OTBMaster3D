@@ -1,6 +1,6 @@
 # Corresponding source and your rights
 
-See [1.6.0 source preparation](docs/releases/1.6.0-source.md) for the retained
+See [1.6.3 source preparation](docs/releases/1.6.3-source.md) for the retained
 local build and proposed archive locations. The repository is private and public
 archive links remain pending. The dated [component assessment](docs/licensing/LICENSING-CLOSURE.md)
 records earlier review evidence, not clearance of current `main`.

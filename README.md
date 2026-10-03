@@ -3,7 +3,7 @@
 A free and open-source Windows chess application focused on natural over-the-board play,
 engine analysis and organized position study.
 
-**Version: 1.6.2 | Windows | Local installer preparation**
+**Version: 1.6.3 | Windows | Local installer and source preparation**
 
 ![Ruy Lopez on Rounded Oak with the Forest interface and opening name below navigation](docs/images/3d-middlegame.png)
 
@@ -12,11 +12,14 @@ engine analysis and organized position study.
 **Source:** application source and build instructions are licensed under GPL-3.0-only
 in [nork79/OTBMaster3D](https://github.com/nork79/OTBMaster3D). The repository is
 currently private; public source downloads remain pending. The current build
-version is 1.6.2; the latest existing release tag remains `v1.6.0`.
+version is 1.6.3. Matching application and dependency source archives have been
+prepared locally; see [1.6.3 source preparation](docs/releases/1.6.3-source.md).
 
 **Official Windows installer:** the distribution channel has not yet been selected.
-Local installer artifacts are not cleared for public distribution and do not
-establish that current `main` has been packaged or tested on a clean Windows machine.
+The local 1.6.3 installer passed its packaged application smoke test on retry.
+Its exact source snapshot and all 70 dependency source inputs have been hash-verified.
+Public downloads and clean Windows installation testing remain pending; later
+changes on `main` are not automatically part of that installer.
 There are no licence keys, DRM, activation, application accounts or paid feature unlocks.
 Recipients may modify and redistribute it, including without charge, under GPLv3.
 
@@ -27,7 +30,8 @@ Recipients may modify and redistribute it, including without charge, under GPLv3
   draw and switch sides with clocks paused.
 - Stockfish analysis, Stockfish/Fairy-Stockfish practice levels and optional Rodent IV opponents.
 - Hierarchical bookmarks for positions: nested folders, drag/drop ordering, a
-  floating organizer and matching Bookmarks menu.
+  floating organizer and matching Bookmarks menu. Opening a bookmark preserves
+  current engine and clock settings, restores board facing, and pauses the clocks.
 - PGN/FEN import and export, move review, static evaluation and session recovery.
 - Offline opening recognition below the move navigation controls, with the opening
   name and ECO code following the displayed move history.
@@ -58,7 +62,7 @@ The official installer is not yet cleared for public distribution. Once approved
 download it from the announced release location, run Setup, and launch OTBMaster3D
 from the Start menu. Python is not required for the installer. The existing packaging
 workflow includes Stockfish 19, Fairy-Stockfish 14 and three opening books. See
-[source preparation status](docs/releases/1.6.0-source.md) for the retained build's scope.
+[source preparation status](docs/releases/1.6.3-source.md) for the retained build's scope.
 Fairy-Stockfish presets cover 500–1500; Stockfish presets cover 1600–2500 and full strength.
 Unavailable levels are hidden from both difficulty selectors. No external model
 files are required. See [engine setup](engines/README.md) for the available targets.

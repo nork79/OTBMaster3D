@@ -114,17 +114,8 @@ def _bookmark(node):
     node.setdefault("facing", "white")
     if node["facing"] not in ("white", "black"):
         raise ValueError("Invalid board facing")
-    node.setdefault("engine", None)
-    if node["engine"] is not None:
-        engine = node["engine"] = _object(node["engine"])
-        _name(engine["engine_id"])
-        _name(engine["name"])
-        engine.setdefault("settings", {})
-        _object(engine["settings"])
-        # Older snapshots may lack a registry/profile ID. Preserve provided IDs
-        # verbatim, including references unavailable on the current computer.
-        if "profile_id" in engine:
-            _name(engine["profile_id"])
+    # Ignore engine snapshots from older bookmarks.
+    node.pop("engine", None)
     node.setdefault("time_control", None)
     if node["time_control"] is not None:
         control = node["time_control"] = _object(node["time_control"])
@@ -186,10 +177,10 @@ class BookmarkCollection:
         return self._insert(parent_id, {"id": node_id or str(uuid4()), "type": "folder",
                                        "name": name, "children": []}, index)
 
-    def create_bookmark(self, parent_id, name, position, *, facing="white", engine=None,
+    def create_bookmark(self, parent_id, name, position, *, facing="white",
                         time_control=None, index=None, node_id=None):
         node = _object({"id": node_id or str(uuid4()), "type": "bookmark", "name": name,
-                        "position": position, "facing": facing, "engine": engine,
+                        "position": position, "facing": facing,
                         "time_control": time_control})
         _bookmark(node)
         return self._insert(parent_id, node, index)
@@ -243,8 +234,8 @@ class BookmarkCollection:
     def from_dict(cls, data, *, engine_available=None):
         """Recover valid reachable nodes. First valid parent wins damaged edges.
 
-        An optional resolver checks engine identity/profile/resources without
-        launching engines. Unavailable references are retained unchanged.
+        Legacy engine snapshots are discarded. engine_available is accepted for
+        compatibility with older callers and is never invoked.
         """
         if not isinstance(data, dict) or type(data.get("schema_version")) is not int or data["schema_version"] != SCHEMA_VERSION:
             raise ValueError("Unsupported bookmark schema")
@@ -284,14 +275,6 @@ class BookmarkCollection:
             node_id = pending.pop()
             node = result._nodes[node_id]
             if node["type"] == "bookmark":
-                if node["engine"] is not None and engine_available is not None:
-                    try:
-                        available = engine_available(deepcopy(node["engine"]))
-                    except Exception as exc:
-                        log.warning("Engine resolver failed for %s: %s", node_id, exc)
-                        available = False
-                    if not available:
-                        log.warning("Unavailable engine configuration for bookmark %s; retained", node_id)
                 continue
             children = node["children"]
             node["children"] = []

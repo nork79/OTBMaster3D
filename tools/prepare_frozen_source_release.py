@@ -33,7 +33,10 @@ def prepare(frozen, installer, cache, output, repository, tag):
         for name, expected in hashes.items():
             if hashlib.sha256(archive.read('OTBMaster3D/' + name)).hexdigest() != expected:
                 raise ValueError('Application source file mismatch: ' + name)
-    inventory = json.loads((ROOT / 'docs/licensing/source-inventory.json').read_text())
+        inventory = json.loads(archive.read('OTBMaster3D/docs/licensing/source-inventory.json'))
+    release_notes = ROOT / f'docs/releases/{version}-source.md'
+    if not release_notes.is_file():
+        raise ValueError('Missing version-specific release notes: ' + str(release_notes))
     for entry in inventory['sources']:
         if Path(entry['file']).name != entry['file']:
             raise ValueError('Unsafe source filename')
@@ -50,7 +53,7 @@ def prepare(frozen, installer, cache, output, repository, tag):
         archive.writestr('source-inventory.json', json.dumps(inventory, indent=2))
         for entry in inventory['sources']:
             archive.write(cache / entry['file'], 'sources/' + entry['file'])
-        archive.write(ROOT / 'docs/releases/1.6.0-source.md', 'SOURCE_RELEASE.md')
+        archive.write(release_notes, 'SOURCE_RELEASE.md')
     with zipfile.ZipFile(dependencies) as archive:
         for entry in inventory['sources']:
             with archive.open('sources/' + entry['file']) as stream:
@@ -58,13 +61,15 @@ def prepare(frozen, installer, cache, output, repository, tag):
                     raise ValueError('Packaged dependency mismatch: ' + entry['file'])
     shutil.copy2(frozen / 'build-info.json', output / 'build-info.json')
     shutil.copy2(frozen / 'source/application-files.sha256.json', output / 'application-files.sha256.json')
+    shutil.copy2(release_notes, output / 'README.md')
     manifest = dict(version=version, base_commit=info['commit'],
+                    working_tree_status=info.get('working_tree_status', []),
                     application_archive_matches_installer=True,
                     installer=dict(file=installer.name, sha256=sha256(installer),
                                    bytes=installer.stat().st_size, published=False),
                     dependency_source_count=len(inventory['sources']),
                     packages=info['packages'], archives={},
-                    publication_status='LOCAL_ONLY; hosting decision deferred by maintainer',
+                    publication_status='LOCAL_ONLY; public downloads not yet published or verified',
                     public_downloads_verified=False,
                     release_scope='Source publication; clean Windows installer validation pending')
     base_url = f'https://github.com/{repository}/releases/download/{tag}/'
@@ -74,7 +79,7 @@ def prepare(frozen, installer, cache, output, repository, tag):
     manifest_path = output / 'source-release-manifest.json'
     manifest_path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
     files = (app, dependencies, output / 'build-info.json',
-             output / 'application-files.sha256.json', manifest_path)
+             output / 'application-files.sha256.json', manifest_path, output / 'README.md')
     (output / 'SHA256SUMS.txt').write_text(
         ''.join(f'{sha256(path)}  {path.name}\n' for path in files), encoding='ascii')
     print(json.dumps(manifest, indent=2))
@@ -83,10 +88,15 @@ def prepare(frozen, installer, cache, output, repository, tag):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--frozen', type=Path, default=ROOT / 'dist/OTBMaster3D')
-    parser.add_argument('--installer', type=Path, default=ROOT / 'installer-output/OTBMaster3D-1.6.0-Setup.exe')
+    parser.add_argument('--installer', type=Path)
     parser.add_argument('--cache', type=Path, default=ROOT / 'release-materials/1.4.0-beta.2/sources')
-    parser.add_argument('--output', type=Path, default=ROOT / 'release-materials/1.6.0')
+    parser.add_argument('--output', type=Path)
     parser.add_argument('--repository', default='nork79/OTBMaster3D')
-    parser.add_argument('--tag', default='v1.6.0-source-87d30dc')
+    parser.add_argument('--tag')
     args = parser.parse_args()
+    info = json.loads((args.frozen / 'build-info.json').read_text(encoding='utf-8'))
+    version = info['version']
+    args.installer = args.installer or ROOT / f'installer-output/OTBMaster3D-{version}-Setup.exe'
+    args.output = args.output or ROOT / f'release-materials/{version}'
+    args.tag = args.tag or f'v{version}-source-{info["commit"][:7]}'
     prepare(args.frozen, args.installer, args.cache, args.output, args.repository, args.tag)

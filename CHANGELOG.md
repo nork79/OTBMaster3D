@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.6.3 - 2026-10-04
+
+Local installer and matching source preparation; public downloads and clean Windows
+validation remain pending.
+
+- Preserve the current engine, difficulty, personality and clock settings when
+  opening bookmarks; restore the position and board facing with clocks paused.
+- Stop capturing engine settings in bookmarks and discard legacy engine snapshots
+  on load and subsequent save.
+- Build the 1.6.3 installer and prepare its exact application source snapshot,
+  70 hash-verified dependency inputs, release manifest and checksums.
+- Select source-package versions and dependency inventories from the frozen build,
+  and include version-specific release instructions.
+- Packaged smoke test passed on retry. The source suite passed 264 of 265 tests;
+  the remaining engine-analysis test passed when rerun alone.
+
 ## 1.6.2 - 2026-10-02
 
 Local installer preparation; public distribution and clean-machine validation

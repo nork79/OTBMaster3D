@@ -196,7 +196,7 @@ class BookmarkTests(unittest.TestCase):
         data["future_metadata"] = {"x": 1}
         node = next(n for n in data["nodes"] if n["id"] == item)
         node["future_feature"] = ["opaque"]
-        for field in ("engine", "time_control", "facing", "created_at", "modified_at"):
+        for field in ("time_control", "facing", "created_at", "modified_at"):
             del node[field]
         loaded = BookmarkCollection.from_dict(json.loads(json.dumps(data)))
         self.assertEqual(loaded.get(item)["future_feature"], ["opaque"])
@@ -232,15 +232,15 @@ class BookmarkTests(unittest.TestCase):
         loaded.delete(first)
         self.assertEqual(len(loaded.to_dict()["nodes"]), 1)
 
-    def test_unavailable_engine_references_are_retained(self):
-        for identity, profile in (("fairy-stockfish", "900"), ("stockfish", "Aggressive"), ("rodent", "Tal")):
-            engine = {"engine_id": identity, "name": identity, "profile": profile,
-                      "settings": {"personality": {"file": "missing.txt", "option": 42}}}
-            item = self.bookmark(engine=engine)
-            with self.assertLogs("otb_chess.bookmarks", level="WARNING"):
-                loaded = BookmarkCollection.from_dict(self.collection.to_dict(), engine_available=lambda _: False)
-            self.assertEqual(loaded.get(item)["engine"], engine)
-
+    def test_legacy_engine_snapshots_are_discarded_without_resolution(self):
+        item = self.bookmark()
+        data = self.collection.to_dict()
+        node = next(node for node in data["nodes"] if node["id"] == item)
+        node["engine"] = {"engine_id": "missing", "name": "Old engine"}
+        resolver = Mock(side_effect=AssertionError("Must not resolve engine"))
+        loaded = BookmarkCollection.from_dict(data, engine_available=resolver)
+        self.assertNotIn("engine", loaded.get(item))
+        resolver.assert_not_called()
 
     def test_stable_engine_and_profile_identifiers(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -283,8 +283,6 @@ class BookmarkTests(unittest.TestCase):
         self.assertEqual(captured["elo"], 1700)
         self.assertEqual(captured["style"], "Balanced")  # Rodent uses its native personality.
         self.assertEqual(captured["settings"]["uci_options"]["PersonalityFile"], "Tal.txt")
-        item = self.bookmark(engine=captured)
-        self.assertEqual(BookmarkCollection.from_dict(self.collection.to_dict()).get(item)["engine"], captured)
 
 
 class BookmarkStoreTests(unittest.TestCase):
@@ -310,18 +308,18 @@ class BookmarkStoreTests(unittest.TestCase):
             self.assertIsNotNone(store.error)
             self.assertEqual(self.path.read_text(encoding="utf-8"), source)
 
-    def test_missing_engine_file_survives_restart_without_launch(self):
+    def test_legacy_engine_is_removed_on_next_save(self):
         collection = BookmarkCollection()
-        engine = {"engine_id": "missing", "name": "Missing engine",
-                  "profile_id": "registry:personality:tal",
-                  "executable": str(self.path.parent / "absent.exe"), "settings": {}}
-        item = collection.create_bookmark(collection.root_id, "Saved", capture_position(rules.Board()), engine=engine)
+        item = collection.create_bookmark(collection.root_id, "Saved", capture_position(rules.Board()))
+        data = collection.to_dict()
+        next(node for node in data["nodes"] if node["id"] == item)["engine"] = {"name": "Missing"}
+        self.path.write_text(json.dumps(data), encoding="utf-8")
         store = BookmarkStore(self.path)
-        self.assertTrue(store.save(collection))
-        with patch.object(uci.Engine, "open", side_effect=AssertionError("Must not launch")), \
-                self.assertLogs("otb_chess.bookmarks", level="WARNING"):
-            loaded = BookmarkStore(self.path).load()
-        self.assertEqual(loaded.get(item)["engine"], engine)
+        with patch.object(uci.Engine, "open", side_effect=AssertionError("Must not launch")):
+            loaded = store.load()
+        self.assertNotIn("engine", loaded.get(item))
+        self.assertTrue(store.save(loaded))
+        self.assertNotIn('"engine"', self.path.read_text(encoding="utf-8"))
 
     def test_failed_flush_or_replace_preserves_previous_collection(self):
         collection = BookmarkCollection()
