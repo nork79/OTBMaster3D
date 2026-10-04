@@ -2,11 +2,11 @@
 
 The installer is built with Python 3.13, PyInstaller 6.22.3 and Inno Setup 6.4.3.
 The revised packaging includes the application, Python/Qt runtime, assets, Stockfish 19,
-Fairy-Stockfish 14 and all three
+Fairy-Stockfish 14, Rodent IV with its personalities and repertoire books, and all three
 opening books. Users do not need to install Python separately.
-The application and packaging version is 1.6.3, while `main` contains changes
-after the `v1.6.0` tag. Optional Rodent IV is built separately for the source
-workspace and is not included by the frozen build specification. The retained
+The application and packaging version is 1.6.5, while `main` contains changes
+after the `v1.6.0` tag. Rodent IV is required by the 1.6.5 frozen build specification;
+packaging verifies its executable, resources, source archive and notices. The retained
 [1.6.0 source preparation](releases/1.6.0-source.md) describes a particular local
 installer, not validation of current `main`. Historical installer
 verification is recorded in [native remediation](licensing/NATIVE_RUNTIME_REMEDIATION.md).
@@ -32,6 +32,8 @@ prevent this even when Tcl files are installed.
 
 Create a Python 3.13 virtual environment, install requirements.txt, then install
 `pyinstaller==6.22.3`. Install Inno Setup separately. Native preparation also
+requires MinGW-w64 `g++` on PATH to build Rodent IV on a fresh checkout. An existing
+Rodent installation is reused only after its resource manifest is verified. It also
 requires a licensed VS2022 C++ toolchain/Windows SDK, the retained GLFW 3.4 source
 archive under `release-materials/1.4.0-beta.2/sources/`, and the reviewed CRT
 hashes in `docs/licensing/crt-selection.json`. `OTB_VS_ROOT` and `OTB_CRT_ROOT`
@@ -42,7 +44,7 @@ From the repository root:
 .\tools\build_installer.ps1 -Python .\.venv\Scripts\python.exe -Compiler 'C:\path\to\ISCC.exe'
 ```
 
-The result is `installer-output/OTBMaster3D-1.6.3-Setup.exe`.
+The result is `installer-output/OTBMaster3D-1.6.5-Setup.exe`.
 `dist/OTBMaster3D` is the complete standalone application folder; the executable
 needs its neighbouring files. Do not copy just OTBMaster3D.exe.
 
@@ -70,7 +72,7 @@ and the final distribution channel is not selected.
 Local builds are review artifacts. Before a release build, finish review, choose
 one immutable source revision, and set the same version in otb_chess/version.py,
 packaging/windows-installer.iss and packaging/version-info.txt. No version bump is
-made automatically. The current target is 1.6.3 / Windows tuple 1.6.3.0.
+made automatically. The current target is 1.6.5 / Windows tuple 1.6.5.0.
 
 ```powershell
 git clone https://github.com/nork79/OTBMaster3D.git
@@ -86,7 +88,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_installer.ps1 -P
 
 The process-only execution policy option permits this reviewed local script to
 run; it does not change machine policy. Engine setup requires network access on
-a fresh checkout. Stockfish and Fairy-Stockfish are installed by this workflow. Preserve exact
+a fresh checkout. Stockfish, Fairy-Stockfish and Rodent IV are installed by this workflow. Preserve exact
 download archives, dependency sources, wheel hashes, compiler version and build
 options. Do not promise bit-for-bit reproducibility from version pins alone.
 

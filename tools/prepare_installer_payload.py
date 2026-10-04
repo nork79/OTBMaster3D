@@ -79,6 +79,8 @@ def prepare():
     target = ROOT / "dist" / "OTBMaster3D"
     if not (target / "OTBMaster3D.exe").is_file():
         raise RuntimeError("Build the application with PyInstaller first")
+    from install_rodent import verify_installation as verify_rodent
+    verify_rodent(target / "engines/rodent-iv")
     from check_external_runtime import check_folder
     check_folder(target)
     for name in DOCUMENTS:

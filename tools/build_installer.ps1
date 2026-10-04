@@ -13,7 +13,8 @@ try {
     if ($LASTEXITCODE) { throw 'Stockfish setup failed' }
     & $Python tools/install_fairy_stockfish.py
     if ($LASTEXITCODE) { throw 'Fairy-Stockfish setup failed' }
-    # Only the two reviewed engine payloads are packaged.
+    & $Python tools/install_rodent.py --ensure
+    if ($LASTEXITCODE) { throw 'Rodent IV setup failed' }
     & $Python tools/build_native_runtime.py
     if ($LASTEXITCODE) { throw 'Native GLFW build failed' }
     & $Python tools/build_icon.py

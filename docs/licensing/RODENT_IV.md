@@ -1,6 +1,6 @@
 # Rodent IV local integration
 
-The optional source-workspace opponent uses Rodent IV 0.33, built from upstream
+The personality opponent uses Rodent IV 0.33, built from upstream
 revision `e8d84c8c8c189a1cf4eb27c578fc573af3b916d2`.
 
 - Source: https://github.com/nescitus/rodent-iv/tree/e8d84c8c8c189a1cf4eb27c578fc573af3b916d2
@@ -25,6 +25,7 @@ and per-directory attribution files are retained. The player-book attribution
 file credits Pawel Hase, the Robinson jeux collection, Brendan J. Norman and
 Pawel Koziol. The two default books come from the upstream `exe` directory.
 
-These local integration artifacts do not alter the previously produced frozen
-release, its inventory or its installer. The current frozen build specification
-continues to include its existing Stockfish and Fairy-Stockfish payloads.
+The 1.6.4 frozen build includes the complete `engines/rodent-iv` directory alongside
+Stockfish and Fairy-Stockfish. Build preparation verifies the source revision and
+all manifest file hashes, and payload staging verifies the copied directory again.
+Previously produced installers and historical inventories remain unchanged.

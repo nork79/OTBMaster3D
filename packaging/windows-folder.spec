@@ -7,6 +7,8 @@ import sys
 sys.path.insert(0, str(root / 'tools'))
 from install_fairy_stockfish import verify_installation
 verify_installation()
+from install_rodent import verify_installation as verify_rodent
+verify_rodent()
 qt_modules = {'QtCore','QtGui','QtWidgets','QtOpenGL','QtOpenGLWidgets'}
 a = Analysis(
     [str(root/'main.py')], pathex=[str(root)],
@@ -15,6 +17,7 @@ a = Analysis(
            (str(root/'THIRD_PARTY_NOTICES.md'),'.'), (str(root/'third_party_bom.json'),'.'),
            (str(root/'engines'/'stockfish-19'),'engines/stockfish-19'),
            (str(root/'engines'/'fairy-stockfish-14'),'engines/fairy-stockfish-14'),
+           (str(root/'engines'/'rodent-iv'),'engines/rodent-iv'),
            (str(root/'engines'/'README.md'),'engines'),
            (str(root/'books'/'sources'),'books/sources'),
            (str(root/'books'/'README.md'),'books'),

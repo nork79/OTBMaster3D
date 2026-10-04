@@ -34,6 +34,7 @@ class EngineAnalysisWindow(QDialog):
         self.line_view = VariationText()
         self.line_view.setMinimumHeight(400)
         self.line_view.setReadOnly(True)
+        self.line_view.viewport().setCursor(Qt.CursorShape.ArrowCursor)
         self.line_view.setPlaceholderText('Engine variations will appear here. Click a move to preview its position.')
         self.line_view.selected_move.connect(self.select_move)
         self.selected_variation = None

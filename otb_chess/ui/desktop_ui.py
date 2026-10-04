@@ -8,6 +8,7 @@ import math
 import sys
 import threading
 import time
+from copy import deepcopy
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer, QSize
@@ -18,7 +19,7 @@ from PySide6.QtWidgets import (
     QPushButton, QToolButton, QSplitter, QTableWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView, QDialog, QFormLayout, QComboBox,
     QDoubleSpinBox, QSpinBox, QAbstractSpinBox, QDialogButtonBox, QFileDialog, QColorDialog,
-    QMessageBox, QPlainTextEdit, QSlider, QSizePolicy,
+    QMessageBox, QPlainTextEdit, QSlider, QSizePolicy, QStyle,
 )
 
 from otb_chess.core.game import Chess3D
@@ -31,7 +32,7 @@ from otb_chess.ui.document_actions import DocumentActions
 from otb_chess.graphics.board_types import BOARD_TYPES
 from otb_chess.graphics.board_colors import BOARD_COLOR_THEMES
 from otb_chess.ui.licenses_dialog import show_licenses, show_about
-from otb_chess.ui.chess_symbols import promotion_icon, flag_icon, clock_engine_label, engine_icon
+from otb_chess.ui.chess_symbols import promotion_icon, flag_icon, clock_engine_label, engine_icon, reset_icon
 from otb_chess.ui.variation_preview import VariationPreview
 from otb_chess.ui.engine_analysis import EngineAnalysisWindow
 
@@ -481,6 +482,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.refresh_difficulty_actions()
         self.bookmark_panel = None
         self.bookmark_pending = None
+        self.last_selected_bookmark = None
         remembered = self.game.engine_var.get()
         if remembered and Path(remembered).is_file():
             QTimer.singleShot(0,lambda: self.game.load_engine_path(remembered))
@@ -550,6 +552,17 @@ class MainWindow(DocumentActions, QMainWindow):
             button.clicked.connect(lambda checked=False, action=key: self.invoke(self.human_game_action, action))
             self.clock_actions[key] = button
             actions.addWidget(button)
+        self.reset_board_button = QPushButton()
+        self.reset_board_button.setObjectName("humanGameAction")
+        self.reset_board_button.setFixedSize(28, 24)
+        self.reset_board_button.setIconSize(QSize(22, 22))
+        self.reset_board_button.setIcon(reset_icon())
+        self.reset_board_button.setToolTip(
+            "Reset board to the last opened bookmark and reset both clocks.\n"
+            "If unavailable, reset to the initial chess position. Clocks stay paused.")
+        self.reset_board_button.setAccessibleName("Reset board and clocks")
+        self.reset_board_button.clicked.connect(lambda: self.invoke(self.reset_board_and_clocks))
+        actions.addWidget(self.reset_board_button)
         actions.addWidget(self.engine_enabled_button)
         actions.addStretch()
         layout.addWidget(self.game_actions_row)
@@ -1161,7 +1174,22 @@ class MainWindow(DocumentActions, QMainWindow):
         elif self.bookmark_panel is not None:
             self.bookmark_panel.hide()
 
-    def open_bookmark(self, node):
+    def reset_board_and_clocks(self):
+        if self.bookmark_pending is not None or self.new_game_pending:
+            return
+        node = self.last_selected_bookmark
+        if node is not None and self.bookmark_panel is not None:
+            try:
+                node = self.bookmark_panel.actions.collection.get(node["id"])
+            except KeyError:
+                node = None
+        if node is None:
+            from otb_chess.bookmarks import capture_position
+            node = {"type": "bookmark", "name": "Initial position",
+                    "position": capture_position(chess.Board()), "facing": self.game.board_facing}
+        self.open_bookmark(node, reset_clocks=True)
+
+    def open_bookmark(self, node, *, reset_clocks=False):
         from otb_chess.services.bookmark_actions import validate_restore
         try:
             validate_restore(node)
@@ -1175,7 +1203,8 @@ class MainWindow(DocumentActions, QMainWindow):
         g.clock_paused = True
         self.new_game_pending = False
         self.pending_difficulty = None
-        self.bookmark_pending = {"node": node, "analysis": g.analysis_enabled, "stage": "waiting"}
+        self.bookmark_pending = {"node": deepcopy(node), "analysis": g.analysis_enabled,
+                                 "stage": "waiting", "reset_clocks": reset_clocks}
         g.analysis_enabled = False
         g.result_text = "Opening bookmark — clocks paused"
         self.board_widget.setEnabled(False)
@@ -1200,6 +1229,12 @@ class MainWindow(DocumentActions, QMainWindow):
             from otb_chess.services.bookmark_actions import restore_bookmark
             self.board_widget.makeCurrent()
             restore_bookmark(g, pending["node"])
+            if pending.get("reset_clocks"):
+                g.reset_clock()
+                g.active_clock_color = g.board.turn
+                g.clock_paused = True
+                g.result_text = "Reset to " + pending["node"]["name"] + " — clocks paused"
+            self.last_selected_bookmark = deepcopy(pending["node"]) if pending["node"].get("id") else None
             self.last_fen = self.last_output = self.last_search = None
             self.engine_line.clear()
             self.refresh_moves()
@@ -1255,7 +1290,7 @@ class MainWindow(DocumentActions, QMainWindow):
             form.setRowVisible(binding, preset.currentText() != 'Infinite (clocks disabled)')
         preset.currentTextChanged.connect(custom_visibility)
         custom_visibility()
-        note = QLabel("Saved settings update idle clocks immediately.\nDuring a game, settings apply to the next game.\nOnline = automatic clock switching; OTB = press after moving.")
+        note = QLabel("Saving resets both clocks to the selected time control and pauses them.\nResume the clock when ready to continue.\nOnline = automatic clock switching; OTB = press after moving.")
         note.setObjectName("hint")
         note.setWordWrap(True)
         form.addRow(note)
@@ -1268,16 +1303,23 @@ class MainWindow(DocumentActions, QMainWindow):
                                (g.custom_increment_var,increment.value()),(g.clock_mode_var,mode.currentText()),
                                (g.clock_binding_var,binding.currentText())):
                 cell.set(value)
-            if not g.game_started or g.clocks_waiting_for_first_move():
-                tc = g.selected_time_control()
-                g.white_time = g.black_time = tc.initial_seconds
-                g.clocks_disabled = tc.name == 'Infinite (clocks disabled)'
-                g.increment = tc.increment_seconds
-                g.clock_mode = g.clock_mode_var.get()
-                g.clock_binding = g.clock_binding_var.get()
-                self.white_clock.refresh(g)
-                self.black_clock.refresh(g)
+            g.end_variation(resume=False)
+            g.return_to_live()
+            tc = g.selected_time_control()
+            g.white_time = g.black_time = tc.initial_seconds
+            g.clocks_disabled = tc.name == 'Infinite (clocks disabled)'
+            g.increment = tc.increment_seconds
+            g.clock_mode = g.clock_mode_var.get()
+            g.clock_binding = g.clock_binding_var.get()
+            g.clock_paused = True
+            g.active_clock_color = g.board.turn
+            g.awaiting_clock_press = False
+            g.awaiting_clock_color = None
+            g.last_clock_tick = time.perf_counter()
+            if not g.game_over:
+                g.result_text = f"Clock settings changed - {tc.name}; clocks paused"
             g.persist()
+            self.tick()
 
     def refresh_difficulty_actions(self):
         from otb_chess.services.difficulty import DIFFICULTIES, missing_files

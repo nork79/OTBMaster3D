@@ -12,7 +12,7 @@ Original copyright, attribution and licence notices remain applicable.
 Current evidence: [docs/licensing/REMEDIATION.md](docs/licensing/REMEDIATION.md).
 Full PyOpenGL 3.1.10 text is now retained in licenses/PyOpenGL/LICENSE.txt;
 Qt/PySide and native source notices are inventoried in notice-inventory.json.
-Packaging includes only Stockfish and Fairy-Stockfish engine resources. The maintainer confirmed original code/icon/sound/screenshot rights.
+Packaging for 1.6.4 includes Stockfish, Fairy-Stockfish and Rodent IV engine resources. Rodent's source, GPL notice, upstream credits and book attributions are retained under `engines/rodent-iv`; see [Rodent details](docs/licensing/RODENT_IV.md). The maintainer confirmed original code/icon/sound/screenshot rights.
 Earlier unresolved statements below are historical where superseded by this update.
 Existing third-party attribution and licence texts remain applicable.
 

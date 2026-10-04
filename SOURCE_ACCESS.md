@@ -34,17 +34,17 @@ available for as long as the binary is offered and meet any continuing obligatio
 
 The commands and beta version below describe the retained 1.4.0-beta.2
 preparation build. For the current installed version, consult `build-info.json`
-and its matching source manifest. Optional Rodent IV source-workspace installs
-retain their own source and notices beside the engine; see
-`docs/licensing/RODENT_IV.md`. The frozen build still includes Stockfish and
-Fairy-Stockfish.
+and its matching source manifest. The 1.6.4 frozen build includes Rodent IV's
+`rodent-iv-source.zip`, build helper, manifest and notices beside the engine in
+`engines/rodent-iv`; see `docs/licensing/RODENT_IV.md`. Stockfish and
+Fairy-Stockfish remain included.
 
 The application archive alone is **not complete Corresponding Source for the whole
 installer**. Stockfish source is under `engines/stockfish-19/stockfish/src` in the
 installed payload; verify the matching NNUE inputs and build instructions too.
 The separately prepared dependency bundle must include the matching python-chess,
 Qt/PySide/Shiboken sources, necessary submodules, build scripts, patches,
-and other covered dependencies. Engine packaging is limited to Stockfish and Fairy-Stockfish.
+and other covered dependencies. Engine packaging includes Stockfish, Fairy-Stockfish and Rodent IV.
 
 Run `python tools/prepare_corresponding_source.py` with the inventoried archives
 in `release-materials/1.4.0-beta.2/sources/` to produce the application archive,

@@ -28,6 +28,24 @@ def flag_icon(background=None):
     return QIcon(pixmap)
 
 
+def reset_icon():
+    """Two white circular arrows with small gaps between their heads and tails."""
+    pixmap = QPixmap(48, 48)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(QPen(QColor('white'), 3, Qt.PenStyle.SolidLine,
+                        Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+    painter.drawArc(10, 10, 28, 28, 0, 160 * 16)
+    painter.drawArc(10, 10, 28, 28, 180 * 16, 160 * 16)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QColor('white'))
+    painter.drawPolygon(QPolygonF([QPointF(38, 24), QPointF(32, 17), QPointF(44, 17)]))
+    painter.drawPolygon(QPolygonF([QPointF(10, 24), QPointF(16, 31), QPointF(4, 31)]))
+    painter.end()
+    return QIcon(pixmap)
+
+
 def engine_icon(enabled, color):
     """A microchip crossed out when the engine is off."""
     pixmap = QPixmap(48, 48)

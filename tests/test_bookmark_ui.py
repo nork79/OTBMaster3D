@@ -224,6 +224,43 @@ class BookmarkUITests(unittest.TestCase):
             time.sleep(.01)
         self.assertIsNone(self.window.bookmark_pending)
 
+    def test_reset_icon_starts_initial_game_without_bookmark(self):
+        w, g = self.window, self.game
+        row = w.game_actions_row.layout()
+        self.assertEqual(row.indexOf(w.reset_board_button), row.indexOf(w.engine_enabled_button) - 1)
+        self.assertFalse(w.reset_board_button.icon().isNull())
+        g.board.push_uci("e2e4")
+        g.white_time, g.black_time = 12, 34
+        with patch.object(w, "confirm", return_value=True):
+            w.reset_board_button.click()
+        self.assertEqual(g.board.fen(), rules.Board().fen())
+        initial = g.selected_time_control().initial_seconds
+        self.assertEqual((g.white_time, g.black_time), (initial, initial))
+
+    def test_reset_returns_to_latest_opened_bookmark_and_resets_clocks(self):
+        w, g = self.window, self.game
+        actions = BookmarkActions(BookmarkStore(Path(self.folder.name) / "reset-bookmarks.json"))
+        first = actions.create_bookmark(g)
+        w.open_bookmark(actions.collection.get(first))
+        self.wait_restore()
+        g.board.push_uci("e2e4")
+        second = actions.create_bookmark(g)
+        node = actions.collection.get(second)
+        expected = g.board.fen()
+        w.open_bookmark(node)
+        self.wait_restore()
+        g.board.push_uci("e7e5")
+        g.white_time, g.black_time = 12, 34
+        w.reset_board_button.click()
+        self.wait_restore()
+        self.assertEqual(g.board.fen(), expected)
+        initial = g.selected_time_control().initial_seconds
+        self.assertEqual((g.white_time, g.black_time), (initial, initial))
+        self.assertEqual(g.active_clock_color, rules.BLACK)
+        self.assertTrue(g.clock_paused)
+        self.assertTrue(g.game_started)
+        self.assertEqual(g.clock_history, [])
+
     def test_panel_geometry_inline_workflow_hide_reopen_and_delete_confirmation(self):
         width = self.widget.width()
         panel = self.panel()

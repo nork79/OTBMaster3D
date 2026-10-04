@@ -10,9 +10,9 @@ sources, notices and practical replacement instructions are retained. Mesa
 11.2.2/LLVM 3.6.2 remain included under their permissive licences. GLFW 3.4 is
 rebuilt from retained source. The frozen Windows runtime uses CPython 3.13.12;
 `build-info.json`, when present, identifies the installed build. Supported engines
-are Stockfish, Fairy-Stockfish and optional Rodent IV personality opponents.
-The frozen build includes Stockfish and Fairy-Stockfish; Rodent IV is installed
-separately in the source workspace. Original per-component grants remain in effect.
+are Stockfish, Fairy-Stockfish and Rodent IV personality opponents.
+The 1.6.4 frozen build includes all three engines with their source and notices.
+Original per-component grants remain in effect.
 
 This software is based in part on the work of the Independent JPEG Group.
 It uses the FreeType Project (https://freetype.org/), copyright its authors and
@@ -66,7 +66,7 @@ contains `fairy-stockfish-14.zip` with corresponding upstream source and build
 scripts. The selected standard-chess configuration disables NNUE and uses no
 external model files. See [component evidence](docs/licensing/FAIRY_STOCKFISH.md).
 
-## Rodent IV (optional)
+## Rodent IV
 
 Rodent IV 0.33 is GPL-3.0-or-later. Upstream credits include Pawel Koziol,
 Bernhard C. Maerz and Pablo Vazquez (Sungorus). The installer helper retains

@@ -77,7 +77,7 @@ class DesktopTests(unittest.TestCase):
         w = self.window
         self.assertIs(w.material_row.itemAt(0).widget(), w.captured_black)
         actions = w.game_actions_row.layout()
-        self.assertEqual(actions.indexOf(w.engine_enabled_button),
+        self.assertEqual(actions.indexOf(w.reset_board_button),
                          actions.indexOf(w.clock_actions['switch_sides']) + 1)
         self.assertEqual(w.engine_enabled_button.text(), '')
         self.assertFalse(w.engine_enabled_button.icon().isNull())
@@ -1026,22 +1026,61 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual((g.white_time,g.black_time,g.increment),(125,125,3))
         self.assertEqual(w.white_clock.digits.text(),g.fmt_clock(125))
 
-    def test_clock_settings_preserve_paused_game(self):
+    def test_clock_settings_apply_to_running_and_paused_game(self):
         w,g = self.window,self.game
         g.start_game()
         with patch.object(g,"play_game_sound"):
             g.try_move(chess.E2,chess.E4)
-        g.clock_paused = True
+        fen = g.board.fen()
+        for paused in (False, True):
+            with self.subTest(paused=paused):
+                g.clock_paused = paused
+                g.white_time,g.black_time = 41,52
+                g.awaiting_clock_press = True
+                g.awaiting_clock_color = chess.WHITE
+                def choose():
+                    dialog = QApplication.activeModalWidget()
+                    combos = dialog.findChildren(QComboBox)
+                    combos[0].setCurrentText("Custom")
+                    combos[1].setCurrentText("OTB")
+                    combos[2].setCurrentText("Middle Mouse")
+                    fields = dialog.findChildren(QDoubleSpinBox)
+                    fields[0].setValue(125)
+                    fields[1].setValue(3)
+                    dialog.accept()
+                QTimer.singleShot(0,choose)
+                w.clock_settings()
+                self.assertEqual((g.white_time,g.black_time,g.increment),(125,125,3))
+                self.assertTrue(g.clock_paused)
+                self.assertTrue(g.game_started)
+                self.assertEqual(g.board.fen(),fen)
+                self.assertEqual((g.clock_mode,g.clock_binding),("OTB","Middle Mouse"))
+                self.assertEqual(g.active_clock_color,chess.BLACK)
+                self.assertFalse(g.awaiting_clock_press)
+                self.assertIsNone(g.awaiting_clock_color)
+                self.assertEqual(w.white_clock.digits.text(),g.fmt_clock(125))
+                self.assertEqual(w.black_clock.digits.text(),g.fmt_clock(125))
+                self.assertEqual(w.play_button.text(),"Resume clock")
+                g.last_clock_tick -= 10
+                g.update_clock()
+                self.assertEqual((g.white_time,g.black_time),(125,125))
+
+    def test_clock_settings_cancel_preserves_running_game(self):
+        w,g = self.window,self.game
+        g.start_game()
+        with patch.object(g,"play_game_sound"):
+            g.try_move(chess.E2,chess.E4)
         g.white_time,g.black_time = 41,52
-        original_increment = g.increment
-        def choose():
+        original = (g.time_control_var.get(),g.increment,g.clock_mode)
+        def cancel():
             dialog = QApplication.activeModalWidget()
-            dialog.findChildren(QComboBox)[0].setCurrentText("Custom")
-            dialog.findChildren(QDoubleSpinBox)[0].setValue(125)
-            dialog.accept()
-        QTimer.singleShot(0,choose)
+            dialog.findChildren(QComboBox)[0].setCurrentText("Classical 30+0")
+            dialog.reject()
+        QTimer.singleShot(0,cancel)
         w.clock_settings()
-        self.assertEqual((g.white_time,g.black_time,g.increment),(41,52,original_increment))
+        self.assertFalse(g.clock_paused)
+        self.assertEqual((g.white_time,g.black_time),(41,52))
+        self.assertEqual((g.time_control_var.get(),g.increment,g.clock_mode),original)
 
     def test_new_game_clock_presets_apply_before_first_move(self):
         w,g = self.window,self.game

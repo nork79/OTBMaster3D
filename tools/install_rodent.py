@@ -15,6 +15,30 @@ SOURCE_SHA256 = "5d35c65bfccd58fe74a73b58434ec1542f4aabc45b343163b277870c681f777
 SOURCE_URL = f"https://codeload.github.com/nescitus/rodent-iv/zip/{REVISION}"
 
 
+def verify_installation(target=None):
+    """Reject incomplete or changed engine payloads before building an installer."""
+    target = Path(target) if target is not None else ROOT / "engines/rodent-iv"
+    try:
+        manifest = json.loads((target / "manifest.json").read_text(encoding="utf-8"))
+        if manifest["revision"] != REVISION or manifest["source_sha256"] != SOURCE_SHA256:
+            raise ValueError("Unexpected source revision")
+        files = {name.replace("\\", "/"): digest for name, digest in manifest["files"].items()}
+        required = {"rodent-iv.exe", "rodent-iv-source.zip", "LICENSE", "UPSTREAM-README.md",
+                    "install_rodent.py", "personalities/basic.ini", "books/guide.bin", "books/rodent.bin"}
+        required.update(f"personalities/{key}.txt" for key in
+                        ("tal", "kasparov", "morphy", "karpov", "petrosian", "default"))
+        if not required.issubset(files) or files["rodent-iv-source.zip"] != SOURCE_SHA256:
+            raise ValueError("Incomplete resource manifest")
+        for name, digest in files.items():
+            path = target / name
+            if not path.resolve().is_relative_to(target.resolve()):
+                raise ValueError("Resource path escapes engine directory")
+            if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                raise ValueError("Changed resource: " + name)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise RuntimeError("Missing or changed Rodent IV payload; run tools/install_rodent.py") from error
+
+
 def install(archive=None, compiler=None):
     archive = Path(archive) if archive else ROOT / "release-materials/rodent-iv/source.zip"
     if not archive.exists():
@@ -58,6 +82,7 @@ def install(archive=None, compiler=None):
                 "files": {str(path.relative_to(target)): hashlib.sha256(path.read_bytes()).hexdigest()
                           for path in sorted(target.rglob("*")) if path.is_file() and path.name != "manifest.json"}}
     (target / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    verify_installation(target)
     print(f"Rodent IV ready: {target}")
 
 
@@ -65,5 +90,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path)
     parser.add_argument("--compiler")
+    parser.add_argument("--ensure", action="store_true", help="Reuse a verified installation, otherwise build it")
     args = parser.parse_args()
+    if args.ensure:
+        try:
+            verify_installation()
+        except RuntimeError:
+            pass
+        else:
+            print("Rodent IV payload verified")
+            raise SystemExit(0)
     install(args.archive, args.compiler)
