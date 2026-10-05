@@ -4,20 +4,18 @@ The installer is built with Python 3.13, PyInstaller 6.22.3 and Inno Setup 6.4.3
 The revised packaging includes the application, Python/Qt runtime, assets, Stockfish 19,
 Fairy-Stockfish 14, Rodent IV with its personalities and repertoire books, and all three
 opening books. Users do not need to install Python separately.
-The application and packaging version is 1.6.5, while `main` contains changes
-after the `v1.6.0` tag. Rodent IV is required by the 1.6.5 frozen build specification;
-packaging verifies its executable, resources, source archive and notices. The retained
-[1.6.0 source preparation](releases/1.6.0-source.md) describes a particular local
-installer, not validation of current `main`. Historical installer
-verification is recorded in [native remediation](licensing/NATIVE_RUNTIME_REMEDIATION.md).
+The current release is [1.6.5](releases/1.6.5-source.md), built from commit
+`4e1ba003c85bf10d3c238aa4ef791d081af55209`. Rodent IV is required by the frozen
+build specification; packaging verifies its executable, resources, source archive
+and notices. Historical verification reports describe their named builds only.
 
 Current packaging requires Microsoft Visual C++ x64 Redistributable 14.44.35211.0
 or newer to be installed separately from Microsoft. Setup stops with the official
 download address if it is missing, including during silent setup. No standalone
-Microsoft runtime DLL or redistributable package is included in the planned payload.
+Microsoft runtime DLL or redistributable package is included in the payload.
 For the prerequisite policy and remaining review items, see
 [Microsoft remediation](licensing/MICROSOFT_RUNTIME_REMEDIATION.md).
-Release remains blocked; these are review artifacts.
+Clean Windows installation, upgrade and uninstall validation remain pending.
 
 It installs for the current user under `%LOCALAPPDATA%\Programs\OTBMaster3D`,
 adds a Start menu shortcut, and offers an optional desktop shortcut. Settings,
@@ -66,18 +64,17 @@ does not replace testing on a clean Windows machine.
 
 ## Clean checkout procedure and source pairing
 
-Public source downloads and clean Windows validation remain pending; see
-[source preparation status](releases/1.6.0-source.md). The repository is private
-and the final distribution channel is not selected.
-Local builds are review artifacts. Before a release build, finish review, choose
-one immutable source revision, and set the same version in otb_chess/version.py,
-packaging/windows-installer.iss and packaging/version-info.txt. No version bump is
-made automatically. The current target is 1.6.5 / Windows tuple 1.6.5.0.
+The public [1.6.5 release](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.5)
+provides the installer and matching source bundles. For its exact application
+snapshot, use the application archive or check out `v1.6.5`. Documentation on
+`main` can contain subsequent updates. Keep otb_chess/version.py,
+packaging/windows-installer.iss and packaging/version-info.txt synchronized when
+preparing a new release; version bumps are not automatic.
 
 ```powershell
 git clone https://github.com/nork79/OTBMaster3D.git
 cd OTBMaster3D
-# Select the reviewed release commit, once the maintainer has created it.
+git checkout v1.6.5
 py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m pip install pyinstaller==6.22.3
@@ -109,7 +106,8 @@ but excludes ignored user state. Inspect it before distribution.
 The script also preserves installed python-chess Python source and its GPL text.
 The source ZIP **does not include all dependency Corresponding Source**. Supply the
 separate verified dependency source bundle described in [SOURCE_ACCESS.md](../SOURCE_ACCESS.md).
-The current manifest explicitly marks publication BLOCKED.
+The original build metadata retains its pre-publication status; the version-specific
+release manifest records the published artifact pairing.
 
 For each public version, retain the installer, its SHA-256, build-info.json,
 application ZIP, dependency source bundle, source hashes and a file-level native

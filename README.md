@@ -1,34 +1,57 @@
 # OTBMaster3D
 
-A free and open-source Windows chess application focused on natural over-the-board play,
-engine analysis and organized position study.
+An open-source Windows chess desktop application built with Python, PySide6 and
+OpenGL. OTBMaster3D combines a rendered 3D board, chess-engine integration and
+persistent study tools in a complete, packaged application.
 
-**Version: 1.6.3 | Windows | Local installer and source preparation**
+[Download 1.6.5](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.5) ·
+[Engineering overview](docs/engineering.md) · [User guide](docs/user-guide.md) ·
+[Build from source](#run-and-build-from-source) · [Changelog](CHANGELOG.md)
 
 ![Ruy Lopez on Rounded Oak with the Forest interface and opening name below navigation](docs/images/3d-middlegame.png)
 
-## Source and official installer
+## Engineering highlights
 
-**Source:** application source and build instructions are licensed under GPL-3.0-only
-in [nork79/OTBMaster3D](https://github.com/nork79/OTBMaster3D). The repository is
-currently private; public source downloads remain pending. The current build
-version is 1.6.3. Matching application and dependency source archives have been
-prepared locally; see [1.6.3 source preparation](docs/releases/1.6.3-source.md).
+This is an independent portfolio project by [nork79](https://github.com/nork79),
+with working software, source code, tests and release artifacts available for review.
 
-**Official Windows installer:** the distribution channel has not yet been selected.
-The local 1.6.3 installer passed its packaged application smoke test on retry.
-Its exact source snapshot and all 70 dependency source inputs have been hash-verified.
-Public downloads and clean Windows installation testing remain pending; later
-changes on `main` are not automatically part of that installer.
-There are no licence keys, DRM, activation, application accounts or paid feature unlocks.
-Recipients may modify and redistribute it, including without charge, under GPLv3.
+- **Desktop graphics:** a Qt interface with an OpenGL chessboard, 2D/3D views,
+  piece picking, camera controls, animation and configurable materials.
+- **Engine orchestration:** UCI integration with Stockfish, Fairy-Stockfish and
+  Rodent IV; analysis, strength controls and personality opponents.
+- **State and persistence:** PGN/FEN workflows, atomic session recovery and
+  hierarchical bookmarks that restore positions while preserving play settings.
+- **Architecture and verification:** application services, a chess-backend boundary,
+  an isolated candidate rules adapter and separate headless/live-engine CI jobs.
+- **Windows delivery:** PyInstaller/Inno Setup packaging, bundled engine resources,
+  offline licence notices and hash-paired application/dependency source archives.
+
+Start with the [engineering overview](docs/engineering.md) for a guided code tour,
+design tradeoffs and verification scope. Production rules use python-chess;
+the independent cozy-chess adapter remains an evaluated candidate.
+
+## Download and source
+
+**[Windows x64 installer](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/OTBMaster3D-1.6.5-Setup.exe)** ·
+**[Exact application source](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/OTBMaster3D-1.6.5-application-source.zip)** ·
+**[Dependency sources](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/OTBMaster3D-1.6.5-dependency-sources.zip)** ·
+**[SHA-256 checksums](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/SHA256SUMS.txt)**
+
+Version **1.6.5** includes Rodent IV, bookmark reset and updated clock controls.
+See [release details and validation](docs/releases/1.6.5-source.md). The packaged
+smoke test passed; clean Windows installation, upgrade and uninstall testing
+remain pending. The installer is unsigned.
+
+Source is public under **GPL-3.0-only**. There are no licence keys, activation,
+application accounts or paid feature unlocks. Matching release archives preserve
+the installer source even as `main` develops.
 
 ## Play, analyse and organize
 
 - Interactive 3D board and flat 2D view, with click/drag moves, rotation, zoom and pan.
 - Automatic or over-the-board clocks, configurable time controls, takeback, resign,
   draw and switch sides with clocks paused.
-- Stockfish analysis, Stockfish/Fairy-Stockfish practice levels and optional Rodent IV opponents.
+- Stockfish analysis, Stockfish/Fairy-Stockfish practice levels and Rodent IV opponents.
 - Hierarchical bookmarks for positions: nested folders, drag/drop ordering, a
   floating organizer and matching Bookmarks menu. Opening a bookmark preserves
   current engine and clock settings, restores board facing, and pauses the clocks.
@@ -58,20 +81,13 @@ for the board and theme combinations.
 
 ## Install on Windows
 
-The official installer is not yet cleared for public distribution. Once approved,
-download it from the announced release location, run Setup, and launch OTBMaster3D
-from the Start menu. Python is not required for the installer. The existing packaging
-workflow includes Stockfish 19, Fairy-Stockfish 14 and three opening books. See
-[source preparation status](docs/releases/1.6.3-source.md) for the retained build's scope.
-Fairy-Stockfish presets cover 500–1500; Stockfish presets cover 1600–2500 and full strength.
-Unavailable levels are hidden from both difficulty selectors. No external model
-files are required. See [engine setup](engines/README.md) for the available targets.
-
-Optional Rodent IV personality opponents are built separately for the source
-workspace with MinGW-w64: Tal, Kasparov, Morphy, Karpov, Petrosian and Default.
-Personality and target Elo (800–2800, or full strength) are independent.
-The frozen installer does not include Rodent; see [Rodent setup](engines/README.md#rodent-iv-personality-opponents).
-
+Download the installer above, run Setup, and launch OTBMaster3D from the Start
+menu. Python is not required. The installer includes Stockfish 19, Fairy-Stockfish
+14, Rodent IV personalities and three opening books.
+Fairy-Stockfish presets cover 500–1500; Stockfish presets cover 1600–2500 and full
+strength. Rodent offers Tal, Kasparov, Morphy, Karpov, Petrosian and Default
+personalities with independent target strength. Ratings are approximate.
+See [engine setup](engines/README.md) for details and source-workspace setup.
 
 Requirements: Windows 10 or later, x64-compatible hardware and an OpenGL 2.1-capable
 graphics driver. Source builds require Python 3.13 (64-bit), including Tkinter.
@@ -85,8 +101,8 @@ The pinned cozy-chess-py wheel requires Python 3.13. Disk and RAM minimums beyon
 these requirements have not been measured. Engine ratings are approximate.
 
 Installer signing is not configured. Windows SmartScreen may show an
-unknown-publisher or reputation warning. Any future public installer should be
-accompanied by its SHA-256; no publisher verification is claimed.
+unknown-publisher or reputation warning. Verify the download against the release SHA-256 checksums; no publisher
+verification is claimed.
 
 ## Useful controls
 
@@ -142,7 +158,7 @@ Complete licence texts are available offline in Help > Open Source Licences.
 
 Every public installer must link to its exact application and dependency source
 archives at no additional charge. See [SOURCE_ACCESS.md](SOURCE_ACCESS.md) for the
-installed source snapshot, build manifest and remaining dependency source gaps.
+installed source snapshot, build manifest and matching dependency sources.
 A repository homepage alone is not the matching source distribution.
 
 ## Bugs, contributions and maintenance
@@ -153,5 +169,5 @@ Use [SECURITY.md](SECURITY.md) for private security reports. Read
 [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing.
 
 OTBMaster3D is intended as a substantially finished application. Future features,
-updates and technical support are not guaranteed, including with a purchase.
+updates and technical support are not guaranteed.
 See [the maintenance policy](docs/MAINTENANCE.md). [Changelog](CHANGELOG.md).

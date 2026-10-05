@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.6.5 - 2026-10-05
+
+Public release of the existing 1.6.5 build (source commit `4e1ba00`).
+
+- Add Reset board and clocks: return to the last opened bookmark, or the initial
+  position when unavailable, with both clocks reset and paused.
+- Apply saved clock settings immediately, resetting and pausing both clocks.
+- Bundle Rodent IV, its personalities, repertoire books, matching source and notices.
+- Publish the Windows installer, exact application source, dependency sources,
+  build metadata and SHA-256 checksums together on GitHub Releases.
+- Refresh the project page with an engineering overview and contributor entry points.
+- Packaged smoke test passed; clean Windows install/upgrade/uninstall remains untested.
+
 ## 1.6.3 - 2026-10-04
 
 Local installer and matching source preparation; public downloads and clean Windows

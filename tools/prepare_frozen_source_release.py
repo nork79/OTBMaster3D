@@ -43,6 +43,23 @@ def prepare(frozen, installer, cache, output, repository, tag):
         path = cache / entry['file']
         if path.stat().st_size != entry['bytes'] or sha256(path) != entry['sha256']:
             raise ValueError('Dependency source mismatch: ' + entry['file'])
+    # Rodent is shipped outside the historical dependency cache. Preserve the
+    # source and build recipe from this frozen payload, not the current workspace.
+    rodent = frozen / 'engines/rodent-iv'
+    supplemental = []
+    if rodent.is_dir():
+        rodent_manifest = json.loads((rodent / 'manifest.json').read_text())
+        rodent_source = rodent / 'rodent-iv-source.zip'
+        if sha256(rodent_source) != rodent_manifest['source_sha256']:
+            raise ValueError('Rodent source does not match frozen manifest')
+        for name, expected in rodent_manifest['files'].items():
+            if sha256(rodent / name) != expected:
+                raise ValueError('Rodent payload mismatch: ' + name)
+        supplemental = [p for p in rodent.iterdir() if p.is_file() and p.suffix != '.exe']
+        inventory['supplemental_sources'] = [dict(
+            component='Rodent IV', revision=rodent_manifest['revision'],
+            file='rodent-iv/' + p.name, bytes=p.stat().st_size, sha256=sha256(p))
+            for p in supplemental]
     inventory.update(version=version, status='HASH_VERIFIED_SOURCE_MATERIALS',
                      remaining_issues=['Clean Windows installer validation remains pending.'])
     output.mkdir(parents=True, exist_ok=True)
@@ -53,12 +70,18 @@ def prepare(frozen, installer, cache, output, repository, tag):
         archive.writestr('source-inventory.json', json.dumps(inventory, indent=2))
         for entry in inventory['sources']:
             archive.write(cache / entry['file'], 'sources/' + entry['file'])
+        for path in supplemental:
+            archive.write(path, 'rodent-iv/' + path.name)
         archive.write(release_notes, 'SOURCE_RELEASE.md')
     with zipfile.ZipFile(dependencies) as archive:
         for entry in inventory['sources']:
             with archive.open('sources/' + entry['file']) as stream:
                 if hashlib.file_digest(stream, 'sha256').hexdigest() != entry['sha256']:
                     raise ValueError('Packaged dependency mismatch: ' + entry['file'])
+        for entry in inventory.get('supplemental_sources', []):
+            with archive.open(entry['file']) as stream:
+                if hashlib.file_digest(stream, 'sha256').hexdigest() != entry['sha256']:
+                    raise ValueError('Packaged supplemental source mismatch: ' + entry['file'])
     shutil.copy2(frozen / 'build-info.json', output / 'build-info.json')
     shutil.copy2(frozen / 'source/application-files.sha256.json', output / 'application-files.sha256.json')
     shutil.copy2(release_notes, output / 'README.md')
@@ -68,6 +91,7 @@ def prepare(frozen, installer, cache, output, repository, tag):
                     installer=dict(file=installer.name, sha256=sha256(installer),
                                    bytes=installer.stat().st_size, published=False),
                     dependency_source_count=len(inventory['sources']),
+                    supplemental_sources=inventory.get('supplemental_sources', []),
                     packages=info['packages'], archives={},
                     publication_status='LOCAL_ONLY; public downloads not yet published or verified',
                     public_downloads_verified=False,
@@ -78,7 +102,7 @@ def prepare(frozen, installer, cache, output, repository, tag):
                                              proposed_url=base_url + path.name)
     manifest_path = output / 'source-release-manifest.json'
     manifest_path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
-    files = (app, dependencies, output / 'build-info.json',
+    files = (installer, app, dependencies, output / 'build-info.json',
              output / 'application-files.sha256.json', manifest_path, output / 'README.md')
     (output / 'SHA256SUMS.txt').write_text(
         ''.join(f'{sha256(path)}  {path.name}\n' for path in files), encoding='ascii')

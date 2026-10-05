@@ -1,18 +1,15 @@
 # Maintenance policy
 
-OTBMaster3D is intended as a stable, substantially finished chess application.
-It is feature-complete for its intended release scope, subject to final verification.
-The current build version is 1.6.2; the latest existing release tag is 1.6.0.
-The local build includes subsequent changes. Public distribution
-remains pending; the repository is private and no distribution channel is selected.
+OTBMaster3D is an independent open-source portfolio project and a usable Windows
+chess application. Its primary purpose is to demonstrate desktop application
+engineering through public code, tests, documentation and packaged releases.
+The current public release is [1.6.5](releases/1.6.5-source.md).
 
-Future development is not guaranteed. Bug fixes may be provided at the maintainer's
-discretion; no fixed update schedule or future feature delivery is promised.
-Community contributions may be reviewed but acceptance is not guaranteed.
-Purchasing the official installer does not guarantee future development, updates
-or technical support.
+Maintenance is best effort. There is no fixed update schedule, promised feature
+roadmap or guaranteed technical support. Focused bug reports and contributions
+are welcome; review and acceptance depend on maintainer availability.
 
-Report bugs through GitHub issues and security concerns using [SECURITY.md](../SECURITY.md).
-The source, build instructions, licences and matching release source archives
-should remain accessible even if active development ceases. Release source retention
-obligations continue independently of this maintenance policy.
+Report reproducible bugs through GitHub issues and security concerns using
+[SECURITY.md](../SECURITY.md). See [CONTRIBUTING.md](../CONTRIBUTING.md) for setup
+and testing. Source archives, build instructions and licence notices are retained
+alongside releases independently of ongoing feature development.

@@ -62,13 +62,18 @@ existing `.venv` uses 3.14, create a fresh 3.13 environment rather than reusing 
 unchanged. See the [3.13 compatibility results](python-313-compatibility.md);
 historical 3.14 test results remain recorded in the backend audit.
 
-The repository is private and the installer distribution channel is not selected.
-Retained local builds do not establish public availability or clean Windows validation;
-see [source preparation status](releases/1.6.0-source.md).
+Download the public [1.6.5 installer and matching sources](releases/1.6.5-source.md).
+Clean Windows installation, upgrade and uninstall validation remain pending.
 The app opens one window. The optional Stockfish setup downloads the official
 Windows x64 release, verifies its SHA-256 hash, and preserves its source and licence.
 Unavailable difficulty levels are hidden.
 Skip engine setup to play without an engine.
+
+## Reset a study position
+
+Use **Reset board and clocks** beside the engine toggle to return to the last
+opened bookmark and reset both clocks. If that bookmark is unavailable, the board
+returns to the initial chess position. Clocks remain paused.
 
 ## Board and pieces
 
@@ -162,7 +167,7 @@ from `engines/` or browse for one, choose its side, and Save. Loading runs in th
 background. Leave the engine path empty to unload it. Engine side and opening
 book selections apply to the next game.
 
-Supported engines are Stockfish, Fairy-Stockfish and optional Rodent IV.
+Supported engines are Stockfish, Fairy-Stockfish and Rodent IV, all bundled in 1.6.5.
 Rodent is built separately for the source workspace and offers Tal, Kasparov,
 Morphy, Karpov, Petrosian and Default personalities, independently of target Elo.
 See [engine setup](../engines/README.md#rodent-iv-personality-opponents).
@@ -216,8 +221,8 @@ returns to its latest position automatically. Earlier positions are read-only.
 
 Open **Settings → Time control and clock** to choose a preset from hyperbullet
 through classical, or a custom initial time and increment in seconds. Saved
-settings update idle clocks immediately. During a game (including while paused),
-settings apply to the next game; Reset clock applies the selected time control.
+settings immediately reset both clocks to the selected time control and pause them.
+Resume when ready to continue.
 
 - **Online** clock mode switches clocks automatically after moves. This name
   describes clock behaviour; the app does not provide online multiplayer.
@@ -315,7 +320,7 @@ source-access instructions offline. **Help > About** shows the version, copyrigh
 and repository link. See [THIRD_PARTY_LICENSES.md](../THIRD_PARTY_LICENSES.md).
 The application is GPL-3.0-only; recipients retain redistribution rights.
 Each installer must be paired with its exact source snapshot. Current `main`
-includes changes after the 1.6.0 tag; public distribution remains pending.
+can contain changes after the 1.6.5 release; use the matching release archives.
 See [source access](../SOURCE_ACCESS.md) and
 [CONTRIBUTING.md](../CONTRIBUTING.md).
 

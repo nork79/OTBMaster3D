@@ -1,67 +1,43 @@
 # Corresponding source and your rights
 
-See [1.6.3 source preparation](docs/releases/1.6.3-source.md) for the retained
-local build and proposed archive locations. The repository is private and public
-archive links remain pending. The dated [component assessment](docs/licensing/LICENSING-CLOSURE.md)
-records earlier review evidence, not clearance of current `main`.
+OTBMaster3D source is public under GPL-3.0-only. You may copy, modify and
+redistribute it under the licence, including without charge. The application has
+no licence key, activation or purchase verification.
 
-OTBMaster3D is licensed under GPL-3.0-only. You may copy, modify and redistribute
-it under GPLv3, including redistribution without charge. Each Windows installer
-must be paired with its exact source snapshot; current `main` may contain later
-changes. The application has no licence key, activation or purchase verification.
+## Release 1.6.5
 
-Project repository: https://github.com/nork79/OTBMaster3D
+The [GitHub release](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.5)
+provides the installer and the following free downloads together:
 
-Installer distribution channel: not yet selected.
+- [Exact application source](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/OTBMaster3D-1.6.5-application-source.zip)
+- [Dependency sources](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/OTBMaster3D-1.6.5-dependency-sources.zip)
+- [Checksums](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/SHA256SUMS.txt)
+- [Pairing manifest](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/source-release-manifest.json)
+
+See [version-specific build and validation notes](docs/releases/1.6.5-source.md).
+The application archive alone does not contain all dependency source. Use both
+archives; the dependency bundle includes the retained engine, runtime, library
+and artwork inputs, plus Rodent IV source and its build recipe.
 
 ## Find the source for an installed version
 
-Open Help > About for the version, and Help > Open Source Licences for this
-document and `build-info.json`. The installed `source/OTBMaster3D-source.zip`
-contains the application snapshot, assets, tests and build/installation scripts.
-Extract it and follow README.md and docs/windows-installer.md. The manifest records
-the base Git commit, working-tree status and archive SHA-256; a dirty build is
-identified by the archived bytes, not by the base commit alone.
+Open Help > About for the version and Help > Open Source Licences for offline
+notices and build metadata. The installed `source/OTBMaster3D-source.zip`
+contains the application snapshot, assets, tests and build scripts. Its hash and
+base commit are recorded in `build-info.json`; per-file hashes are stored in
+`source/application-files.sha256.json`. Current `main` may contain later changes.
 
-Public releases must also provide the exact application archive and a matching
-dependency source bundle at no additional charge. The binary download
-page must prominently link those exact archives and their hashes on the public
-GitHub release for the same version, with equivalent downloading facilities.
-Source access must not require purchasing the installer. Keep those sources
-available for as long as the binary is offered and meet any continuing obligations.
+The unchanged 1.6.5 snapshot contains historical private-repository and blocked
+publication notices. Those describe preparation status before publication; use
+the version-specific release notes and release manifest for current download
+locations. Historical reports remain evidence for their named builds only.
 
-## Dependency sources and historical preparation build
+For dependency build and compatible shared-library replacement instructions,
+see [BUILD_AND_REPLACE.md](docs/licensing/BUILD_AND_REPLACE.md). Third-party
+components retain their own terms; see [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+The Microsoft Visual C++ runtime is a separately installed prerequisite.
 
-The commands and beta version below describe the retained 1.4.0-beta.2
-preparation build. For the current installed version, consult `build-info.json`
-and its matching source manifest. The 1.6.4 frozen build includes Rodent IV's
-`rodent-iv-source.zip`, build helper, manifest and notices beside the engine in
-`engines/rodent-iv`; see `docs/licensing/RODENT_IV.md`. Stockfish and
-Fairy-Stockfish remain included.
-
-The application archive alone is **not complete Corresponding Source for the whole
-installer**. Stockfish source is under `engines/stockfish-19/stockfish/src` in the
-installed payload; verify the matching NNUE inputs and build instructions too.
-The separately prepared dependency bundle must include the matching python-chess,
-Qt/PySide/Shiboken sources, necessary submodules, build scripts, patches,
-and other covered dependencies. Engine packaging includes Stockfish, Fairy-Stockfish and Rodent IV.
-
-Run `python tools/prepare_corresponding_source.py` with the inventoried archives
-in `release-materials/1.4.0-beta.2/sources/` to produce the application archive,
-`OTBMaster3D-1.4.0-beta.2-dependency-sources.zip` and `source-release-manifest.json`.
-The manifest identifies the exact bytes. See docs/licensing/source-inventory.json
-and docs/licensing/BUILD_AND_REPLACE.md for source URLs, hashes and build information.
-
-**This preparation build is blocked for public distribution.** Exact dependency
-public source download locations have not yet been established. Clean Windows
-verification remains pending. See the retained build's manifest for its exact
-installer hash. Historical compiler reproduction is optional assurance
-unless a specific licence requirement is identified.
-Do not present the repository homepage or upstream project links as a substitute
-for the matching source bundle. Replace this preparation notice with the verified
-version-specific source URLs before building an approved public release.
-
-The proposed online distribution method is GPLv3 section 6(d); see LICENSE.
-This document adds no restrictions to GPL rights and is not a written source offer
-under section 6(b). Licence texts and acknowledgements are readable offline through
-Help > Open Source Licences, or directly from LICENSE and licenses/.
+Public installers are distributed with matching source downloads at no additional
+charge. Retain those sources while offering the binary and meet continuing source
+retention obligations. This document adds no restrictions to GPL rights and is
+not a written source offer under section 6(b).
