@@ -8,7 +8,8 @@
   rule, stalemate and insufficient material.
 - Keep board square colours stable when flipping the board; remove changing
   square highlights and inherited 3D lighting from textured 2D squares.
-- Prepare a local Windows executable and installer; public release pending.
+- Publish the Windows installer, matching application and dependency sources,
+  build metadata and SHA-256 checksums on GitHub Releases.
 
 ## 1.6.5 - 2026-10-05
 

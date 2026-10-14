@@ -4,8 +4,8 @@ The installer is built with Python 3.13, PyInstaller 6.22.3 and Inno Setup 6.4.3
 The revised packaging includes the application, Python/Qt runtime, assets, Stockfish 19,
 Fairy-Stockfish 14, Rodent IV with its personalities and repertoire books, and all three
 opening books. Users do not need to install Python separately.
-The current release is [1.6.5](releases/1.6.5-source.md), built from commit
-`4e1ba003c85bf10d3c238aa4ef791d081af55209`. Rodent IV is required by the frozen
+The current release is [1.6.6](releases/1.6.6-source.md), built from commit
+`2385b6b54e0e64d42e5b5555af4cc6419a57bbc4`. Rodent IV is required by the frozen
 build specification; packaging verifies its executable, resources, source archive
 and notices. Historical verification reports describe their named builds only.
 
@@ -65,9 +65,9 @@ does not replace testing on a clean Windows machine.
 
 ## Clean checkout procedure and source pairing
 
-The public [1.6.5 release](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.5)
+The public [1.6.6 release](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.6)
 provides the installer and matching source bundles. For its exact application
-snapshot, use the application archive or check out `v1.6.5`. Documentation on
+snapshot, use the application archive or check out `v1.6.6`. Documentation on
 `main` can contain subsequent updates. Keep otb_chess/version.py,
 packaging/windows-installer.iss and packaging/version-info.txt synchronized when
 preparing a new release; version bumps are not automatic.
@@ -75,7 +75,7 @@ preparing a new release; version bumps are not automatic.
 ```powershell
 git clone https://github.com/nork79/OTBMaster3D.git
 cd OTBMaster3D
-git checkout v1.6.5
+git checkout v1.6.6
 py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m pip install pyinstaller==6.22.3

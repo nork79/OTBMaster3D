@@ -4,7 +4,7 @@ An open-source Windows chess desktop application built with Python, PySide6 and
 OpenGL. OTBMaster3D combines a rendered 3D board, chess-engine integration and
 persistent study tools in a complete, packaged application.
 
-[Download 1.6.5](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.5) ·
+[Download 1.6.6](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.6) ·
 [Engineering overview](docs/engineering.md) · [User guide](docs/user-guide.md) ·
 [Build from source](#run-and-build-from-source) · [Changelog](CHANGELOG.md)
 
@@ -32,13 +32,13 @@ the independent cozy-chess adapter remains an evaluated candidate.
 
 ## Download and source
 
-**[Windows x64 installer](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/OTBMaster3D-1.6.5-Setup.exe)** ·
-**[Exact application source](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/OTBMaster3D-1.6.5-application-source.zip)** ·
-**[Dependency sources](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/OTBMaster3D-1.6.5-dependency-sources.zip)** ·
-**[SHA-256 checksums](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/SHA256SUMS.txt)**
+**[Windows x64 installer](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/OTBMaster3D-1.6.6-Setup.exe)** ·
+**[Exact application source](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/OTBMaster3D-1.6.6-application-source.zip)** ·
+**[Dependency sources](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/OTBMaster3D-1.6.6-dependency-sources.zip)** ·
+**[SHA-256 checksums](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/SHA256SUMS.txt)**
 
-Version **1.6.5** includes Rodent IV, bookmark reset and updated clock controls.
-See [release details and validation](docs/releases/1.6.5-source.md). The packaged
+Version **1.6.6** fixes bookmark/setup reset targets, draw reasons and board flip colours.
+See [release details and validation](docs/releases/1.6.6-source.md). The packaged
 smoke test passed; clean Windows installation, upgrade and uninstall testing
 remain pending. The installer is unsigned.
 
