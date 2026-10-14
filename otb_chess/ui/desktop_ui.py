@@ -558,7 +558,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.reset_board_button.setIconSize(QSize(22, 22))
         self.reset_board_button.setIcon(reset_icon())
         self.reset_board_button.setToolTip(
-            "Reset board to the last opened bookmark and reset both clocks.\n"
+            "Reset board to the latest saved/opened bookmark or setup position and reset both clocks.\n"
             "If unavailable, reset to the initial chess position. Clocks stay paused.")
         self.reset_board_button.setAccessibleName("Reset board and clocks")
         self.reset_board_button.clicked.connect(lambda: self.invoke(self.reset_board_and_clocks))
@@ -980,6 +980,11 @@ class MainWindow(DocumentActions, QMainWindow):
                     g.engine_manager.stop_search()
                 g.pending_engine_error = None
                 g.load_document(dialog.board)
+                from otb_chess.bookmarks import capture_position
+                self.last_selected_bookmark = {
+                    "type": "bookmark", "name": "Setup position",
+                    "position": capture_position(g.board), "facing": g.board_facing,
+                }
                 g.move_animation = None
                 g.engine_output = None
                 g.reset_clock()
@@ -1055,8 +1060,9 @@ class MainWindow(DocumentActions, QMainWindow):
             self.switch_sides_action.setEnabled(self.can_switch_sides())
         reason = g.result_text
         if g.game_over:
-            if reason.startswith('Draw -') or g._declared_result == '1/2-1/2':
-                status = 'Game Drawn'
+            if reason.startswith('Draw -') or reason == 'Stalemate' or g._declared_result == '1/2-1/2':
+                detail = reason.removeprefix('Draw -').strip()
+                status = 'Game Drawn' + (f' - {detail}' if detail else '')
             else:
                 status = reason.replace('resigned', 'Resigned').replace('wins on time', 'Wins on Time')
         elif g._review_live is not None:
@@ -1178,7 +1184,7 @@ class MainWindow(DocumentActions, QMainWindow):
         if self.bookmark_pending is not None or self.new_game_pending:
             return
         node = self.last_selected_bookmark
-        if node is not None and self.bookmark_panel is not None:
+        if node is not None and node.get("id") and self.bookmark_panel is not None:
             try:
                 node = self.bookmark_panel.actions.collection.get(node["id"])
             except KeyError:
@@ -1234,7 +1240,7 @@ class MainWindow(DocumentActions, QMainWindow):
                 g.active_clock_color = g.board.turn
                 g.clock_paused = True
                 g.result_text = "Reset to " + pending["node"]["name"] + " — clocks paused"
-            self.last_selected_bookmark = deepcopy(pending["node"]) if pending["node"].get("id") else None
+            self.last_selected_bookmark = deepcopy(pending["node"])
             self.last_fen = self.last_output = self.last_search = None
             self.engine_line.clear()
             self.refresh_moves()

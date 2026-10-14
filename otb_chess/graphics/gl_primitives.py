@@ -152,14 +152,14 @@ def setup_gl(w, h):
     glClearColor(0.055, 0.055, 0.065, 1)
 
 
-def material(rgb, shininess=35):
+def material(rgb, shininess=35, specular=0.32):
     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, (*rgb, 1))
-    glMaterialfv(GL_FRONT, GL_SPECULAR, (0.32, 0.32, 0.32, 1))
+    glMaterialfv(GL_FRONT, GL_SPECULAR, (specular, specular, specular, 1))
     glMaterialf(GL_FRONT, GL_SHININESS, shininess)
 
 
-def draw_box(cx, cy, cz, sx, sy, sz, color):
-    material(color, 18)
+def draw_box(cx, cy, cz, sx, sy, sz, color, *, specular=0.32):
+    material(color, 18, specular=specular)
     x0, x1 = cx - sx / 2, cx + sx / 2
     y0, y1 = cy - sy / 2, cy + sy / 2
     z0, z1 = cz - sz / 2, cz + sz / 2

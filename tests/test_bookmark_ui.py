@@ -261,6 +261,61 @@ class BookmarkUITests(unittest.TestCase):
         self.assertTrue(g.game_started)
         self.assertEqual(g.clock_history, [])
 
+    def test_saved_bookmark_immediately_becomes_reset_target(self):
+        w, g = self.window, self.game
+        panel = self.panel()
+        g.board.push_uci("e2e4")
+        panel.add_bookmark()
+        self.finish_edit(panel, "Latest saved")
+        expected = g.board.fen()
+        g.board.push_uci("e7e5")
+        w.reset_board_button.click()
+        self.wait_restore()
+        self.assertEqual(g.board.fen(), expected)
+        self.assertEqual(len(g.board.move_stack), 1)
+        self.assertIn("Latest saved", g.result_text)
+
+    def test_failed_bookmark_save_keeps_reset_target(self):
+        w, g = self.window, self.game
+        panel = self.panel()
+        panel.add_bookmark()
+        self.finish_edit(panel, "Original")
+        original = deepcopy(w.last_selected_bookmark)
+        g.board.push_uci("e2e4")
+        with patch.object(panel.actions.store, "save", return_value=False), patch.object(panel, "error"):
+            panel.add_bookmark()
+        self.assertEqual(w.last_selected_bookmark, original)
+
+    def test_setup_and_bookmarks_replace_reset_target_in_order(self):
+        w, g = self.window, self.game
+        panel = self.panel()
+        panel.add_bookmark()
+        self.finish_edit(panel, "Initial bookmark")
+        initial = deepcopy(w.last_selected_bookmark)
+        setup = rules.Board('r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1')
+        dialog = Mock(board=setup)
+        dialog.exec.return_value = 1  # QDialog.Accepted
+        with patch('otb_chess.ui.position_setup.PositionSetup', return_value=dialog):
+            w.setup_position()
+        g.board.push_uci('e8g8')
+        w.reset_board_and_clocks()
+        self.wait_restore()
+        self.assertEqual(g.board.fen(), setup.fen())
+        g.board.push_uci('e8g8')
+        panel.add_bookmark()
+        self.finish_edit(panel, "After castling")
+        expected = g.board.fen()
+        g.board.push_uci('e1c1')
+        w.reset_board_and_clocks()
+        self.wait_restore()
+        self.assertEqual(g.board.fen(), expected)
+        w.open_bookmark(initial)
+        self.wait_restore()
+        g.board.push_uci('e2e4')
+        w.reset_board_and_clocks()
+        self.wait_restore()
+        self.assertEqual(g.board.fen(), rules.Board().fen())
+
     def test_panel_geometry_inline_workflow_hide_reopen_and_delete_confirmation(self):
         width = self.widget.width()
         panel = self.panel()

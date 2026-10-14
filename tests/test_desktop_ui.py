@@ -100,6 +100,31 @@ class DesktopTests(unittest.TestCase):
         ratio = self.widget.devicePixelRatioF()
         return QPoint(round(x/ratio),round((self.game.height-y)/ratio))
 
+    def test_flip_preserves_square_colours(self):
+        g, w = self.game, self.window
+        g.show_coordinates = False
+        g.show_move_indicator = False
+        original = (g.light_square, g.dark_square, g.frame_color)
+        # Isolate lighting from texture sampling at rounded screen coordinates.
+        texture = patch.object(g.board_surface_renderer, 'texture', return_value=None)
+        texture.start()
+        self.addCleanup(texture.stop)
+        for mode in ('3D', '2D'):
+            w.mode_actions[mode].trigger()
+            for kind in ('classic', 'marble', 'tournament'):
+                w.set_board_type(kind)
+                samples = []
+                for _ in range(2):
+                    image = self.widget.grabFramebuffer()
+                    point = self.screen(chess.D4)
+                    ratio = self.widget.devicePixelRatioF()
+                    color = image.pixelColor(round(point.x()*ratio), round(point.y()*ratio))
+                    samples.append(color.getRgb()[:3])
+                    w.invoke(g.flip_board)
+                    self.assertEqual((g.light_square, g.dark_square, g.frame_color), original)
+                self.assertLessEqual(max(abs(a-b) for a,b in zip(*samples)), 5,
+                                     (mode, kind, samples))
+
     def test_board_types_render_and_preserve_game_and_colours(self):
         w,g = self.window,self.game
         from otb_chess.graphics.board_types import BOARD_TYPES
@@ -673,6 +698,12 @@ class DesktopTests(unittest.TestCase):
         with patch.object(w,'confirm',return_value=True):
             w.new_game()
         self.assertEqual(g.board.fen(),chess.Board().fen())
+
+        # Reset keeps the accepted setup even after a new game and repeated resets.
+        for _ in range(2):
+            w.reset_board_and_clocks()
+            self.assertEqual(g.board.fen(), expected)
+            g.board.push_uci('e8g8')
 
     def test_setup_after_white_engine_move_preserves_game_until_confirmed(self):
         from otb_chess.ui.position_setup import PositionSetup

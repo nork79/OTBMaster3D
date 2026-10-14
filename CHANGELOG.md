@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.6.6 - 2026-10-14
+
+- Reset board and clocks to the latest saved or opened bookmark, or the latest
+  accepted setup position, whichever was created or opened most recently.
+- Show the draw reason in the game status, including repetition, the fifty-move
+  rule, stalemate and insufficient material.
+- Keep board square colours stable when flipping the board; remove changing
+  square highlights and inherited 3D lighting from textured 2D squares.
+- Prepare a local Windows executable and installer; public release pending.
+
 ## 1.6.5 - 2026-10-05
 
 Public release of the existing 1.6.5 build (source commit `4e1ba00`).

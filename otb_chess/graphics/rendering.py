@@ -133,11 +133,11 @@ class BoardRendering:
                 if sq == self.selected:
                     col = SELECT
                 if self.board_type != "classic":
-                    self.board_surface_renderer.square(self.board_type,3.5-f,r-3.5,col)
+                    self.board_surface_renderer.square(self.board_type,3.5-f,r-3.5,col,flat=flat)
                 elif flat:
                     flat_square(3.5 - f, r - 3.5, 1, 1, col)
                 else:
-                    draw_box(3.5 - f, 0.005, r - 3.5, 0.995, 0.025, 0.995, col)
+                    draw_box(3.5 - f, 0.005, r - 3.5, 0.995, 0.025, 0.995, col, specular=0)
 
         if self.show_move_indicator:
             indicator_x = 4.17 if math.cos(yaw) >= 0 else -4.17

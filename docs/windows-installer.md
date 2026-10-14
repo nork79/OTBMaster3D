@@ -42,7 +42,8 @@ From the repository root:
 .\tools\build_installer.ps1 -Python .\.venv\Scripts\python.exe -Compiler 'C:\path\to\ISCC.exe'
 ```
 
-The result is `installer-output/OTBMaster3D-1.6.5-Setup.exe`.
+The current source builds version 1.6.6. The result is
+`installer-output/OTBMaster3D-1.6.6-Setup.exe`.
 `dist/OTBMaster3D` is the complete standalone application folder; the executable
 needs its neighbouring files. Do not copy just OTBMaster3D.exe.
 

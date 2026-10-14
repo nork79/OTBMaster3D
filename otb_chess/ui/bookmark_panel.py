@@ -276,6 +276,7 @@ class BookmarkPanel(QDialog):
             if self.owner.bookmark_pending is not None:
                 raise ValueError("Wait for the bookmark to finish opening.")
             node_id = self.actions.create_bookmark(self.owner.game, self.selected_id())
+            self.owner.last_selected_bookmark = self.actions.collection.get(node_id)
             self.rebuild(node_id, edit=True)
         except Exception as exc:
             self.error(exc)

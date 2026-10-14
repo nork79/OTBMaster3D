@@ -75,7 +75,7 @@ class ClockFeedbackTests(unittest.TestCase):
             self.assertEqual(g.game_over, index == len(moves) - 1)
         w.refresh_game_actions()
         self.assertEqual(g.result_text, 'Draw - threefold repetition')
-        self.assertEqual(w.game_status.text(), 'Game Drawn')
+        self.assertEqual(w.game_status.text(), 'Game Drawn - threefold repetition')
         self.assertFalse(g.game_started)
         self.assertFalse(g.try_move(chess.E2, chess.E4))
 
@@ -83,8 +83,9 @@ class ClockFeedbackTests(unittest.TestCase):
         g, w = self.game, self.window
         for reason, expected in (('Black resigned', 'Black Resigned'),
                                  ('White resigned', 'White Resigned'),
-                                 ('Draw - fifty-move rule', 'Game Drawn'),
-                                 ('Checkmate', 'Checkmate'), ('Stalemate', 'Stalemate'),
+                                 ('Draw - fifty-move rule', 'Game Drawn - fifty-move rule'),
+                                 ('Draw - insufficient material', 'Game Drawn - insufficient material'),
+                                 ('Checkmate', 'Checkmate'), ('Stalemate', 'Game Drawn - Stalemate'),
                                  ('White wins on time', 'White Wins on Time')):
             g.game_over = True
             g.result_text = reason

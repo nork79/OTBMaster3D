@@ -122,12 +122,16 @@ class BoardSurfaceRenderer:
         finally:
             gl.glPopAttrib()
 
-    def square(self, key, x, z, color):
+    def square(self, key, x, z, color, *, flat=False):
         spec = BOARD_TYPES[key]
         texture = self.texture(spec.texture)
         gl.glPushAttrib(gl.GL_ENABLE_BIT|gl.GL_LIGHTING_BIT|gl.GL_TEXTURE_BIT|gl.GL_CURRENT_BIT)
         try:
-            material(color,spec.gloss)
+            # Keep square colours stable as the viewing direction changes.
+            material(color,spec.gloss,specular=0)
+            if flat:
+                gl.glDisable(gl.GL_LIGHTING)
+                gl.glColor3f(*color)
             if texture:
                 gl.glEnable(gl.GL_TEXTURE_2D)
                 gl.glBindTexture(gl.GL_TEXTURE_2D,texture)
