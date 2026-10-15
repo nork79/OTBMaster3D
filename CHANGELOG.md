@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.6.8 - prepared for release
+## 1.6.8 - 2026-10-15
 
 - Keep the board frame appearance stable when flipping, and correct classic
   board face winding.
@@ -10,8 +10,9 @@
 - Add installer version arguments, terminal progress and error reporting,
   and a dry-run option; accept release labels and generate Windows metadata.
 - Fix case-insensitive Visual Studio environment merging for native GLFW builds.
-- Prepare matching application/dependency source archives and release checksums.
-  Publication and clean Windows install/upgrade/uninstall validation are pending.
+- Publish the Windows installer, matching application/dependency source archives,
+  build metadata and verified SHA-256 checksums on GitHub Releases.
+  Clean Windows install/upgrade/uninstall validation remains pending.
 
 ## 1.6.6 - 2026-10-14
 

@@ -4,28 +4,22 @@ OTBMaster3D source is public under GPL-3.0-only. You may copy, modify and
 redistribute it under the licence, including without charge. The application has
 no licence key, activation or purchase verification.
 
-## Prepared release 1.6.8
+## Release 1.6.8
 
-The 1.6.8 installer and its exact application source, matching dependency sources,
-checksums and pairing manifest are prepared locally. Publication is pending;
-[1.6.8 release notes](docs/releases/1.6.8-source.md) list the intended download
-locations and identify the frozen source snapshot. Until those uploads are
-verified, use the published 1.6.6 links below. Both source archives are needed.
-
-## Release 1.6.6
-
-The [GitHub release](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.6)
+The [GitHub release](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.8)
 provides the installer and the following free downloads together:
 
-- [Exact application source](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/OTBMaster3D-1.6.6-application-source.zip)
+- [Exact application source](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.8/OTBMaster3D-1.6.8-application-source.zip)
 - [Dependency sources](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/OTBMaster3D-1.6.5-dependency-sources.zip)
-- [Checksums](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/SHA256SUMS.txt)
-- [Pairing manifest](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/source-release-manifest.json)
+- [Checksums](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.8/SHA256SUMS.txt)
+- [Pairing manifest](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.8/source-release-manifest.json)
 
-See [version-specific build and validation notes](docs/releases/1.6.6-source.md).
+See [version-specific build and validation notes](docs/releases/1.6.8-source.md).
 The application archive alone does not contain all dependency source. Use both
 archives; the dependency bundle includes the retained engine, runtime, library
 and artwork inputs, plus Rodent IV source and its build recipe.
+The dependency archive is reused from 1.6.5 after verifying all 75 source/build
+files are identical. Its download URL and hash are recorded in the 1.6.8 manifest.
 
 ## Find the source for an installed version
 
@@ -35,7 +29,7 @@ contains the application snapshot, assets, tests and build scripts. Its hash and
 base commit are recorded in `build-info.json`; per-file hashes are stored in
 `source/application-files.sha256.json`. Current `main` may contain later changes.
 
-The unchanged 1.6.6 snapshot contains historical private-repository and blocked
+The unchanged 1.6.8 snapshot contains historical preparation and blocked
 publication notices. Those describe preparation status before publication; use
 the version-specific release notes and release manifest for current download
 locations. Historical reports remain evidence for their named builds only.
