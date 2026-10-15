@@ -4,7 +4,9 @@ The installer is built with Python 3.13, PyInstaller 6.22.3 and Inno Setup 6.4.3
 The revised packaging includes the application, Python/Qt runtime, assets, Stockfish 19,
 Fairy-Stockfish 14, Rodent IV with its personalities and repertoire books, and all three
 opening books. Users do not need to install Python separately.
-The current release is [1.6.6](releases/1.6.6-source.md), built from commit
+Version [1.6.8](releases/1.6.8-source.md) is prepared locally; see its
+[publication checklist](releases/1.6.8-publish.md).
+The currently published release is [1.6.6](releases/1.6.6-source.md), built from commit
 `2385b6b54e0e64d42e5b5555af4cc6419a57bbc4`. Rodent IV is required by the frozen
 build specification; packaging verifies its executable, resources, source archive
 and notices. Historical verification reports describe their named builds only.
@@ -39,11 +41,32 @@ can select different installation locations while preserving the pinned inputs.
 From the repository root:
 
 ```powershell
-.\tools\build_installer.ps1 -Python .\.venv\Scripts\python.exe -Compiler 'C:\path\to\ISCC.exe'
+.\tools\build_installer.ps1 --version 1.7 -Python .\.venv\Scripts\python.exe -Compiler 'C:\path\to\ISCC.exe'
 ```
 
-The current source builds version 1.6.6. The result is
-`installer-output/OTBMaster3D-1.6.6-Setup.exe`.
+`--version` (also `-Version`) accepts arbitrary release labels, such as `1.7`,
+`1.7-beta` or `test-build`. Spaces and characters outside letters, digits,
+periods, underscores, plus and minus signs become hyphens for safe filenames.
+Windows numeric metadata uses the first four numbers from the label, padded
+with zeros and capped at 65535 per component; labels without numbers use
+`0.0.0.0`. The script updates the application version, Windows
+executable metadata and installer version together. Without this argument, it
+uses the version in `otb_chess/version.py`. Version changes remain in the source
+tree if a later build step fails, so a retry uses the same version.
+
+With the default local tool locations, run:
+
+```powershell
+.\tools\build_installer.ps1 --version 1.7
+```
+
+Add `-DryRun` to validate version fields and display the output path without
+modifying files or running build tools. Each build step streams its output to the
+terminal and reports `[OK]` on completion. A failure stops the build, prints
+`[ERROR]` with the failing step and returns exit code 1. Success prints
+`[SUCCESS]` and the installer path, and returns exit code 0.
+
+The example produces `installer-output/OTBMaster3D-1.7-Setup.exe`.
 `dist/OTBMaster3D` is the complete standalone application folder; the executable
 needs its neighbouring files. Do not copy just OTBMaster3D.exe.
 
@@ -68,9 +91,9 @@ does not replace testing on a clean Windows machine.
 The public [1.6.6 release](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.6)
 provides the installer and matching source bundles. For its exact application
 snapshot, use the application archive or check out `v1.6.6`. Documentation on
-`main` can contain subsequent updates. Keep otb_chess/version.py,
-packaging/windows-installer.iss and packaging/version-info.txt synchronized when
-preparing a new release; version bumps are not automatic.
+`main` can contain subsequent updates. Use `build_installer.ps1 --version` when
+preparing a new release to synchronize otb_chess/version.py,
+packaging/windows-installer.iss and packaging/version-info.txt.
 
 ```powershell
 git clone https://github.com/nork79/OTBMaster3D.git

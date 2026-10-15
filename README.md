@@ -32,9 +32,13 @@ the independent cozy-chess adapter remains an evaluated candidate.
 
 ## Download and source
 
+**1.6.8 is prepared for publication.** See the [release notes](docs/releases/1.6.8-source.md)
+and [publication checklist](docs/releases/1.6.8-publish.md). The downloads below
+remain the published 1.6.6 release until 1.6.8 is uploaded and verified.
+
 **[Windows x64 installer](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/OTBMaster3D-1.6.6-Setup.exe)** ·
 **[Exact application source](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/OTBMaster3D-1.6.6-application-source.zip)** ·
-**[Dependency sources](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/OTBMaster3D-1.6.6-dependency-sources.zip)** ·
+**[Dependency sources](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/OTBMaster3D-1.6.5-dependency-sources.zip)** ·
 **[SHA-256 checksums](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/SHA256SUMS.txt)**
 
 Version **1.6.6** fixes bookmark/setup reset targets, draw reasons and board flip colours.

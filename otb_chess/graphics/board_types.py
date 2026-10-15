@@ -71,7 +71,7 @@ class BoardSurfaceRenderer:
 
     def slab(self, half, radius, top, bottom, color, texture, gloss):
         points = outline(half,radius)
-        material(color,gloss)
+        material(color,gloss,specular=0)
         if texture:
             gl.glEnable(gl.GL_TEXTURE_2D)
             gl.glBindTexture(gl.GL_TEXTURE_2D,texture)
@@ -86,7 +86,7 @@ class BoardSurfaceRenderer:
             gl.glVertex3f(x,top,z)
         gl.glEnd()
         gl.glDisable(gl.GL_TEXTURE_2D)
-        material(tuple(c*.72 for c in color),gloss)
+        material(tuple(c*.72 for c in color),gloss,specular=0)
         gl.glBegin(gl.GL_QUADS)
         for (x,z),(xx,zz) in zip(points,points[1:]+points[:1]):
             length = math.hypot(xx-x,zz-z)

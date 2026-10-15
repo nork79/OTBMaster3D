@@ -174,7 +174,8 @@ def draw_box(cx, cy, cz, sx, sy, sz, color, *, specular=0.32):
     glBegin(GL_QUADS)
     for n, vs in faces:
         glNormal3f(*n)
-        for v in vs:
+        # Face winding must point outwards, matching the lighting normal.
+        for v in reversed(vs):
             glVertex3f(*v)
     glEnd()
 

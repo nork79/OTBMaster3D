@@ -1,10 +1,28 @@
 import unittest
 
 from otb_chess.chess_backend import rules as chess
-from otb_chess.ui.material import material_summary
+from otb_chess.ui.material import captured_piece_image, material_summary
 
 
 class MaterialTests(unittest.TestCase):
+    def test_high_dpi_preview_renders_at_native_resolution(self):
+        image = captured_piece_image('\u265f', size=25, device_pixel_ratio=2)
+        self.assertEqual((image.width(), image.height()), (50, 50))
+        self.assertEqual(image.devicePixelRatio(), 2)
+        self.assertEqual(image.pixelColor(25, 17).alpha(), 255)
+
+    def test_pawn_images_have_matching_size_and_correct_fill(self):
+        white = captured_piece_image('\u2659')
+        black = captured_piece_image('\u265f')
+        self.assertEqual(white.size(), black.size())
+        for y in range(white.height()):
+            for x in range(white.width()):
+                self.assertEqual(white.pixelColor(x, y).alpha(), black.pixelColor(x, y).alpha())
+        # Sample the solid centre of the pawn's head.
+        x, y = white.width() // 2, white.height() // 3
+        self.assertGreater(white.pixelColor(x, y).lightness(), 240)
+        self.assertLess(black.pixelColor(x, y).lightness(), 50)
+
     def test_captures_both_sides_and_takeback_without_mutating_board(self):
         board = chess.Board()
         for move in ('e2e4', 'd7d5', 'e4d5'):

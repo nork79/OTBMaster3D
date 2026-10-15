@@ -1,6 +1,9 @@
 """Captured pieces from recorded moves and material on the displayed board."""
 
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
+from functools import lru_cache
+
+from PySide6.QtCore import QRectF
+from PySide6.QtGui import QImage, QPainter
 from PySide6.QtWidgets import QLabel, QSizePolicy
 
 from otb_chess.chess_backend import values as chess
@@ -11,6 +14,24 @@ SYMBOLS = {chess.WHITE: '\u2654\u2655\u2656\u2657\u2658\u2659',
            chess.BLACK: '\u265a\u265b\u265c\u265d\u265e\u265f'}
 
 
+@lru_cache(maxsize=48)
+def captured_piece_image(symbol, size=25, device_pixel_ratio=1):
+    """Classic pieces, resampled once to the actual display pixel size."""
+    from PIL import Image
+    from otb_chess.graphics.board_2d import piece_image
+
+    white = symbol in SYMBOLS[chess.WHITE]
+    kind = 6 - SYMBOLS[white].index(symbol)
+    fill = (1, 1, 1) if white else (.125, .125, .125)
+    source = piece_image(kind, fill, white)
+    pixels = max(1, round(size * device_pixel_ratio))
+    source = source.resize((pixels, pixels), Image.Resampling.LANCZOS)
+    image = QImage(source.tobytes(), pixels, pixels,
+                   QImage.Format.Format_RGBA8888).copy()
+    image.setDevicePixelRatio(device_pixel_ratio)
+    return image
+
+
 class CapturedPieces(QLabel):
     """Tightly spaced symbols that compress to fit the available row width."""
 
@@ -18,26 +39,16 @@ class CapturedPieces(QLabel):
         super().__init__()
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.setFixedHeight(25)
-        self.setStyleSheet("font-family: 'Segoe UI Symbol'; font-size: 19px;")
 
     def paintEvent(self, event):
         if not self.text():
             return
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        metrics = painter.fontMetrics()
-        width = max(metrics.horizontalAdvance(piece) for piece in self.text())
+        width = self.height()
         step = min(width * .68, max(0, self.width()-width) / max(1, len(self.text())-1))
-        baseline = (self.height() + metrics.ascent() - metrics.descent()) // 2
         for index, piece in enumerate(self.text()):
-            white = piece in SYMBOLS[chess.WHITE]
-            # Use a solid silhouette so white pieces have an opaque white body.
-            glyph = SYMBOLS[chess.BLACK][SYMBOLS[chess.WHITE].index(piece)] if white else piece
-            path = QPainterPath()
-            path.addText(round(index * step), baseline, painter.font(), glyph)
-            painter.setPen(QPen(QColor('#202020' if white else '#eeeeee'), .7))
-            painter.setBrush(QColor('#ffffff' if white else '#202020'))
-            painter.drawPath(path)
+            painter.drawImage(QRectF(round(index * step), 0, width, width),
+                              captured_piece_image(piece, width, self.devicePixelRatioF()))
         painter.end()
 
 

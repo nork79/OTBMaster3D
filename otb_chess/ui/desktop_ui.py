@@ -48,7 +48,7 @@ QMenu::item { padding: 7px 26px; }
 QMenu::separator { height: 1px; background: #414b5b; margin: 5px; }
 QWidget#sidebar { background: #1b212b; }
 QLabel#section { color: #a3afc1; font-size: 11px; font-weight: 600; }
-QLabel#hint { color: #a3afc1; font-size: 12px; }
+QLabel#hint, QLabel#gameStatus { color: #a3afc1; font-size: 12px; }
 QPushButton, QToolButton { background: #2b3543; border: 1px solid #3b4759;
     border-radius: 6px; padding: 8px 12px; }
 QPushButton:hover, QToolButton:hover { background: #39475b; }
@@ -513,18 +513,25 @@ class MainWindow(DocumentActions, QMainWindow):
         from otb_chess.ui.material import CapturedPieces
         self.captured_white = CapturedPieces()
         self.captured_black = CapturedPieces()
-        self.captured_white.setToolTip("Captured by White")
-        self.captured_black.setToolTip("Captured by Black")
+        self.captured_white.setToolTip("Black pieces captured by White")
+        self.captured_black.setToolTip("White pieces captured by Black")
         self.material_balance = QLabel()
+        self.material_balance.setFixedWidth(self.material_balance.fontMetrics().horizontalAdvance('-999') + 4)
+        self.material_balance.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.material_row = QHBoxLayout()
         self.material_row.setSpacing(4)
-        self.material_row.addWidget(self.captured_black, 1)
+        self.material_row.addWidget(self.captured_white, 1)
         divider = QLabel("|")
         divider.setObjectName("hint")
         self.material_row.addWidget(divider)
-        self.material_row.addWidget(self.captured_white, 1)
+        self.material_row.addWidget(self.captured_black, 1)
         self.material_row.addWidget(self.material_balance)
-        layout.addLayout(self.material_row)
+        material_container = QHBoxLayout()
+        material_container.setSpacing(0)
+        # Match the score's reserved width on the left so the divider is centered.
+        material_container.addSpacing(self.material_balance.width() + self.material_row.spacing())
+        material_container.addLayout(self.material_row, 1)
+        layout.addLayout(material_container)
         self.material_balance.setToolTip(
             "White minus Black material: pawn 1, knight/bishop 3, rook 5, queen 9.\n"
             "Captured pieces are counted from recorded moves; promotions affect the balance.")
@@ -1741,8 +1748,6 @@ class MainWindow(DocumentActions, QMainWindow):
         captured, balance = material_summary(board)
         self.captured_white.setText(captured[chess.WHITE])
         self.captured_black.setText(captured[chess.BLACK])
-        self.material_row.setStretch(0, max(1, len(captured[chess.BLACK])))
-        self.material_row.setStretch(2, max(1, len(captured[chess.WHITE])))
         self.material_balance.setText(f"{balance:+d}" if balance else "0")
 
     def refresh_opening(self):

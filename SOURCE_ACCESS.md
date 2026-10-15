@@ -4,13 +4,21 @@ OTBMaster3D source is public under GPL-3.0-only. You may copy, modify and
 redistribute it under the licence, including without charge. The application has
 no licence key, activation or purchase verification.
 
+## Prepared release 1.6.8
+
+The 1.6.8 installer and its exact application source, matching dependency sources,
+checksums and pairing manifest are prepared locally. Publication is pending;
+[1.6.8 release notes](docs/releases/1.6.8-source.md) list the intended download
+locations and identify the frozen source snapshot. Until those uploads are
+verified, use the published 1.6.6 links below. Both source archives are needed.
+
 ## Release 1.6.6
 
 The [GitHub release](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.6)
 provides the installer and the following free downloads together:
 
 - [Exact application source](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/OTBMaster3D-1.6.6-application-source.zip)
-- [Dependency sources](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/OTBMaster3D-1.6.6-dependency-sources.zip)
+- [Dependency sources](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/OTBMaster3D-1.6.5-dependency-sources.zip)
 - [Checksums](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/SHA256SUMS.txt)
 - [Pairing manifest](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.6/source-release-manifest.json)
 

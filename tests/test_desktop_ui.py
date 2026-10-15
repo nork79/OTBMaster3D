@@ -75,7 +75,8 @@ class DesktopTests(unittest.TestCase):
 
     def test_sidebar_material_opening_and_engine_icon(self):
         w = self.window
-        self.assertIs(w.material_row.itemAt(0).widget(), w.captured_black)
+        self.assertIs(w.material_row.itemAt(0).widget(), w.captured_white)
+        self.assertIs(w.material_row.itemAt(2).widget(), w.captured_black)
         actions = w.game_actions_row.layout()
         self.assertEqual(actions.indexOf(w.reset_board_button),
                          actions.indexOf(w.clock_actions['switch_sides']) + 1)
@@ -100,8 +101,52 @@ class DesktopTests(unittest.TestCase):
         ratio = self.widget.devicePixelRatioF()
         return QPoint(round(x/ratio),round((self.game.height-y)/ratio))
 
+    def test_single_captured_pawn_for_either_side(self):
+        w, g = self.window, self.game
+        for moves, expected, color in (
+                (('e2e4', 'd7d5', 'e4d5'), '+1', chess.WHITE),
+                (('e2e4', 'd7d5', 'g1f3', 'd5e4'), '-1', chess.BLACK)):
+            g.board.reset()
+            for move in moves:
+                g.board.push_uci(move)
+            w.refresh_material()
+            self.qt.processEvents()
+            label = w.captured_white if color else w.captured_black
+            self.assertEqual(label.text(), '\u265f' if color else '\u2659')
+            self.assertEqual(w.material_balance.text(), expected)
+            image = label.grab().toImage()
+            background = image.pixelColor(image.width()-1, image.height()-1)
+            painted_rows = [y for y in range(image.height())
+                            if any(image.pixelColor(x, y) != background
+                                   for x in range(image.width()))]
+            self.assertGreaterEqual(len(painted_rows), 14)
+
+    def test_captured_material_divider_stays_centered_when_crowded(self):
+        w = self.window
+        black = '\u265b' + '\u265c' * 2 + '\u265d' * 2 + '\u265e' * 2 + '\u265f' * 8
+        white = '\u2655' + '\u2656' * 2 + '\u2657' * 2 + '\u2658' * 2 + '\u2659' * 8
+        divider = w.material_row.itemAt(1).widget()
+        centers = []
+        for left, right, balance in (('', '', 0), (black, '', 39),
+                                     ('', white, -39), (black, white, 0),
+                                     (black, white[:-1], 1)):
+            w._material_position = None
+            with patch('otb_chess.ui.material.material_summary',
+                       return_value=({True: left, False: right}, balance)):
+                w.refresh_material()
+            self.qt.processEvents()
+            centers.append(divider.geometry().center().x())
+            self.assertLessEqual(abs(w.captured_white.width() - w.captured_black.width()), 1)
+            self.assertLessEqual(abs(centers[-1] - w.sidebar.rect().center().x()), 1)
+            self.assertEqual(w.captured_white.text(), left)
+            self.assertEqual(w.captured_black.text(), right)
+            for label in (w.captured_white, w.captured_black):
+                self.assertFalse(label.grab().isNull())
+        self.assertEqual(len(set(centers)), 1)
+
     def test_flip_preserves_square_colours(self):
         g, w = self.game, self.window
+        g.board.clear()  # Keep pieces from occluding the far frame sample.
         g.show_coordinates = False
         g.show_move_indicator = False
         original = (g.light_square, g.dark_square, g.frame_color)
@@ -114,16 +159,22 @@ class DesktopTests(unittest.TestCase):
             for kind in ('classic', 'marble', 'tournament'):
                 w.set_board_type(kind)
                 samples = []
+                frame_samples = []
                 for _ in range(2):
                     image = self.widget.grabFramebuffer()
                     point = self.screen(chess.D4)
                     ratio = self.widget.devicePixelRatioF()
                     color = image.pixelColor(round(point.x()*ratio), round(point.y()*ratio))
                     samples.append(color.getRgb()[:3])
+                    px, pz = g.view_pan()
+                    x, y, _ = gluProject(px, .01, -4.2+pz)
+                    frame_samples.append(image.pixelColor(round(x), round(g.height-y)).getRgb()[:3])
                     w.invoke(g.flip_board)
                     self.assertEqual((g.light_square, g.dark_square, g.frame_color), original)
                 self.assertLessEqual(max(abs(a-b) for a,b in zip(*samples)), 5,
                                      (mode, kind, samples))
+                self.assertLessEqual(max(abs(a-b) for a,b in zip(*frame_samples)), 5,
+                                     (mode, kind, frame_samples))
 
     def test_board_types_render_and_preserve_game_and_colours(self):
         w,g = self.window,self.game

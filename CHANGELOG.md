@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.6.8 - prepared for release
+
+- Keep the board frame appearance stable when flipping, and correct classic
+  board face winding.
+- Improve captured-piece rendering, use matching shapes for both colours,
+  and keep the material divider centered even with many captures.
+- Match game status typography to the time-control and opening descriptions.
+- Add installer version arguments, terminal progress and error reporting,
+  and a dry-run option; accept release labels and generate Windows metadata.
+- Fix case-insensitive Visual Studio environment merging for native GLFW builds.
+- Prepare matching application/dependency source archives and release checksums.
+  Publication and clean Windows install/upgrade/uninstall validation are pending.
+
 ## 1.6.6 - 2026-10-14
 
 - Reset board and clocks to the latest saved or opened bookmark, or the latest

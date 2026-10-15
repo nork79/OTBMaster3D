@@ -119,7 +119,7 @@ class BoardRendering:
         elif flat:
             flat_square(0, 0, 8.72, 8.72, self.frame_color, y=0)
         else:
-            draw_box(0, -0.14, 0, 8.72, 0.28, 8.72, self.frame_color)
+            draw_box(0, -0.14, 0, 8.72, 0.28, 8.72, self.frame_color, specular=0)
         for r in range(8):
             for f in range(8):
                 sq = chess.square(f, r)

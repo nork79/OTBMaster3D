@@ -20,6 +20,27 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def compiler_environment(base, output):
+    """Merge cmd's environment with Windows' case-insensitive key semantics."""
+    env = {key.upper(): value for key, value in base.items()}
+    for line in output.splitlines():
+        if '=' in line and not line.startswith('='):
+            key, value = line.split('=', 1)
+            env[key.upper()] = value
+    return env
+
+
+def resolve_build_tools(env):
+    tools = {name: shutil.which(name, path=env.get('PATH', ''))
+             for name in ('rc.exe', 'cl.exe', 'link.exe')}
+    missing = [name for name, path in tools.items() if path is None]
+    if missing:
+        raise RuntimeError('Visual Studio environment is missing: ' + ', '.join(missing)
+                           + '. Check the Visual Studio C++ tools and Windows SDK installation'
+                           + ' and OTB_VS_ROOT.')
+    return tools
+
+
 def build():
     OUT.mkdir(parents=True, exist_ok=True)
     inventory = json.loads((ROOT / 'docs/licensing/source-inventory.json').read_text())
@@ -34,8 +55,8 @@ def build():
     result = subprocess.run('cmd.exe /d /s /c "' + command + '"', capture_output=True, text=True)
     if result.returncode:
         raise RuntimeError(result.stdout + result.stderr)
-    env = dict(os.environ)
-    env.update(line.split('=', 1) for line in result.stdout.splitlines() if '=' in line and not line.startswith('='))
+    env = compiler_environment(os.environ, result.stdout)
+    tools = resolve_build_tools(env)
     names = ('context init input monitor platform vulkan window egl_context osmesa_context '
              'null_init null_monitor null_window null_joystick win32_module win32_time '
              'win32_thread win32_init win32_joystick win32_monitor win32_window wgl_context').split()
@@ -53,9 +74,13 @@ def build():
     ]
     with (OUT / 'build.log').open('w') as log:
         for args in commands:
-            args[0] = shutil.which(args[0], path=next(v for k,v in env.items() if k.lower() == 'path')) or args[0]
+            args[0] = tools[args[0]]
             log.write(subprocess.list2cmdline(args) + '\n'); log.flush()
-            subprocess.run(args, cwd=OUT, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
+            print('Running ' + args[0], flush=True)
+            try:
+                subprocess.run(args, cwd=OUT, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
+            except subprocess.CalledProcessError as exc:
+                raise RuntimeError(f'{Path(args[0]).name} failed; see {OUT / "build.log"}') from exc
     import pefile
     pe = pefile.PE(str(OUT / 'glfw3.dll'))
     imports = [x.dll.decode() for x in pe.DIRECTORY_ENTRY_IMPORT]
@@ -63,9 +88,9 @@ def build():
     assert 'msvcr120.dll' not in [s.lower() for s in imports]
     assert 'vcruntime140.dll' in [s.lower() for s in imports]
     evidence = {'source':entry, 'source_patches':[], 'environment_command':command,
-                'toolset':env.get('VCToolsVersion'), 'sdk':env.get('WindowsSDKVersion'),
-                'compiler_sha256':digest(Path(env['VCToolsInstallDir']) / 'bin/Hostx64/x64/cl.exe'),
-                'linker_sha256':digest(Path(env['VCToolsInstallDir']) / 'bin/Hostx64/x64/link.exe'),
+                'toolset':env.get('VCTOOLSVERSION'), 'sdk':env.get('WINDOWSSDKVERSION'),
+                'compiler_sha256':digest(Path(tools['cl.exe'])),
+                'linker_sha256':digest(Path(tools['link.exe'])),
                 'commands':commands, 'sha256':digest(OUT / 'glfw3.dll'), 'imports':imports,
                 'architecture':'x64', 'configuration':'Release /O2 /MD; Win32 and null backends'}
     (OUT / 'build.json').write_text(json.dumps(evidence, indent=2))
