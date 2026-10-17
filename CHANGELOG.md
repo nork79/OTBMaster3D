@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.6.9 - 2026-10-18
+
+- Split the analysis popup into retained best-three variations and live analysis,
+  with move previews in both panes and rankings for the side to move. Retain peak
+  scores in the top pane even when later analysis reports a worse evaluation.
+
+- Run a background two-second Stockfish search for each position, independently
+  of the analysis window and opponent engine. Show its score beside the move
+  list and discard results from previous positions. Update the number silently,
+  retaining the last score while searching, and match the move-list heading font.
+
 ## 1.6.8 - 2026-10-15
 
 - Keep the board frame appearance stable when flipping, and correct classic

@@ -1,7 +1,7 @@
 """Non-modal presentation of engine results; no engine lifecycle ownership."""
 from PySide6.QtCore import Qt, Signal, QByteArray
 from PySide6.QtGui import QShortcut, QKeySequence, QTextCursor, QColor
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QPlainTextEdit, QTextEdit, QFormLayout, QSpinBox, QDoubleSpinBox
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QPlainTextEdit, QTextEdit, QFormLayout, QSpinBox, QDoubleSpinBox, QSplitter, QWidget
 from otb_chess.chess_backend.position import ChessPosition
 
 
@@ -29,14 +29,23 @@ class EngineAnalysisWindow(QDialog):
         self.resize(780, 1160)
         self.setMinimumSize(380, 230)
         self.lines = []
+        self.best_lines = []
+        self.candidates = {}
+        self.candidate_position = None
         layout = QVBoxLayout(self)
         self.content_layout = layout
         self.line_view = VariationText()
-        self.line_view.setMinimumHeight(400)
+        self.line_view.setMinimumHeight(150)
         self.line_view.setReadOnly(True)
         self.line_view.viewport().setCursor(Qt.CursorShape.ArrowCursor)
         self.line_view.setPlaceholderText('Engine variations will appear here. Click a move to preview its position.')
         self.line_view.selected_move.connect(self.select_move)
+        self.best_view = VariationText()
+        self.best_view.setMinimumHeight(150)
+        self.best_view.setReadOnly(True)
+        self.best_view.viewport().setCursor(Qt.CursorShape.ArrowCursor)
+        self.best_view.setPlaceholderText('The best three moves found for this position will appear here.')
+        self.best_view.selected_move.connect(lambda index, ply: self.select_move(index, ply, best=True))
         self.selected_variation = None
         self.context = QLabel('Click a variation move to preview its position on the board.')
         self.context.setWordWrap(True)
@@ -58,7 +67,19 @@ class EngineAnalysisWindow(QDialog):
             self.restoreGeometry(QByteArray.fromHex(geometry.encode('ascii', errors='ignore')))
 
     def finish_layout(self):
-        self.content_layout.addWidget(self.line_view, 1)
+        self.analysis_splitter = QSplitter(Qt.Orientation.Vertical)
+        for title, view in (('Best three moves found', self.best_view), ('Live analysis', self.line_view)):
+            pane = QWidget()
+            layout = QVBoxLayout(pane)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.addWidget(QLabel(title))
+            layout.addWidget(view)
+            self.analysis_splitter.addWidget(pane)
+        self.analysis_splitter.setChildrenCollapsible(False)
+        self.analysis_splitter.setSizes([300, 300])
+        self.analysis_splitter.setStretchFactor(0, 1)
+        self.analysis_splitter.setStretchFactor(1, 1)
+        self.content_layout.addWidget(self.analysis_splitter, 1)
         self.content_layout.addWidget(self.context)
         self.content_layout.addLayout(self.navigation)
         form = QFormLayout()
@@ -94,6 +115,42 @@ class EngineAnalysisWindow(QDialog):
         game.persist()
 
     def present(self, source, evaluations, token, prefix=''):
+        self.lines = self.render_lines(self.line_view, source, evaluations, token)
+        if token is not None and token == self.owner.game.analysis_position_token():
+            position_key = (source, token)
+            if position_key != self.candidate_position:
+                self.candidates.clear()
+                self.candidate_position = position_key
+            position = ChessPosition(source)
+            for info in evaluations:
+                if (info.source_fen != source or not info.pv or info.score is None
+                        or (info.score.mate is None and info.score.centipawns is None)):
+                    continue
+                if len(position.variation_positions(info.pv[:1], truncate=True)) < 2:
+                    continue
+                # Retain each move's best score, even when deeper analysis revises it down.
+                move = info.pv[0]
+                key = (move.from_square, move.to_square, move.promotion)
+                previous = self.candidates.get(key)
+                if previous is None or (
+                        self.rank_score(info, position.turn), info.depth or 0) > (
+                        self.rank_score(previous, position.turn), previous.depth or 0):
+                    self.candidates[key] = info
+            best = sorted(self.candidates.values(),
+                          key=lambda info: self.rank_score(info, position.turn), reverse=True)[:3]
+            self.best_lines = self.render_lines(self.best_view, source, best, token)
+        self.refresh_preview()
+
+    @staticmethod
+    def rank_score(info, white_to_move):
+        score = info.score
+        side = 1 if white_to_move else -1
+        if score.mate is not None:
+            mate = side * score.mate
+            return (2, -mate) if mate > 0 else (0, -mate)
+        return (1, side * score.centipawns)
+
+    def render_lines(self, view, source, evaluations, token):
         lines, texts, all_spans = [], [], []
         offset = 0
         for info in evaluations:
@@ -124,24 +181,24 @@ class EngineAnalysisWindow(QDialog):
             all_spans.append(spans)
             offset += len(text) + 1
             lines.append((source, tuple(moves), token))
-        self.lines = lines
-        self.line_view.setPlainText('\n'.join(texts))
-        self.line_view.move_spans = all_spans
-        self.refresh_preview()
+        view.setPlainText('\n'.join(texts))
+        view.move_spans = all_spans
+        return lines
 
-    def select_move(self, index, ply):
-        if self.select_line(index):
+    def select_move(self, index, ply, best=False):
+        if self.select_line(index, best=best):
             self.owner.toggle_analysis(False)
             self.owner.game.step_variation(ply)
             self.refresh_preview()
 
-    def select_line(self, index):
-        if 0 <= index < len(self.lines):
-            source, moves, token = self.lines[index]
+    def select_line(self, index, best=False):
+        lines = self.best_lines if best else self.lines
+        if 0 <= index < len(lines):
+            source, moves, token = lines[index]
             if not self.owner.game.begin_variation(source, moves, token, index+1):
                 self.context.setText('This variation is stale or unavailable. Wait for current analysis.')
                 return False
-            self.selected_variation = self.lines[index]
+            self.selected_variation = lines[index]
             self.refresh_preview()
             return True
         return False
@@ -157,24 +214,30 @@ class EngineAnalysisWindow(QDialog):
     def refresh_preview(self):
         g = self.owner.game
         g.validate_variation()
+        if self.candidate_position is not None and self.candidate_position[1] != g.analysis_position_token():
+            self.candidates.clear()
+            self.candidate_position = None
+            self.best_lines = []
+            self.best_view.clear()
         if any(token is not None and token != g.analysis_position_token() for _, _, token in self.lines):
             self.lines = []
             self.line_view.clear()
         state = g.variation_preview
-        selections = []
-        if state is not None and self.selected_variation in self.lines:
-            line = self.lines.index(self.selected_variation)
-            ply = state['index']
-            if 0 < ply <= len(self.line_view.move_spans[line]):
-                start, end = self.line_view.move_spans[line][ply-1]
-                selection = QTextEdit.ExtraSelection()
-                selection.cursor = QTextCursor(self.line_view.document())
-                selection.cursor.setPosition(start)
-                selection.cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
-                selection.format.setBackground(QColor('#d5944a'))
-                selection.format.setForeground(QColor('#161a20'))
-                selections.append(selection)
-        self.line_view.setExtraSelections(selections)
+        for view, lines in ((self.line_view, self.lines), (self.best_view, self.best_lines)):
+            selections = []
+            if state is not None and self.selected_variation in lines:
+                line = lines.index(self.selected_variation)
+                ply = state['index']
+                if 0 < ply <= len(view.move_spans[line]):
+                    start, end = view.move_spans[line][ply-1]
+                    selection = QTextEdit.ExtraSelection()
+                    selection.cursor = QTextCursor(view.document())
+                    selection.cursor.setPosition(start)
+                    selection.cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+                    selection.format.setBackground(QColor('#d5944a'))
+                    selection.format.setForeground(QColor('#161a20'))
+                    selections.append(selection)
+            view.setExtraSelections(selections)
         self.context.setText(g.preview_description or 'Click a variation move to preview its position on the board.')
         self.previous.setEnabled(state is not None and state['index'] > 0)
         self.next.setEnabled(state is not None and state['index'] < len(state['positions'])-1)

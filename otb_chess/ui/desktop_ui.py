@@ -35,6 +35,7 @@ from otb_chess.ui.licenses_dialog import show_licenses, show_about
 from otb_chess.ui.chess_symbols import promotion_icon, flag_icon, clock_engine_label, engine_icon, reset_icon
 from otb_chess.ui.variation_preview import VariationPreview
 from otb_chess.ui.engine_analysis import EngineAnalysisWindow
+from otb_chess.services.position_evaluation import PositionEvaluator
 
 
 STYLE = """
@@ -47,7 +48,7 @@ QMenu { background: #242c38; border: 1px solid #414b5b; padding: 6px; }
 QMenu::item { padding: 7px 26px; }
 QMenu::separator { height: 1px; background: #414b5b; margin: 5px; }
 QWidget#sidebar { background: #1b212b; }
-QLabel#section { color: #a3afc1; font-size: 11px; font-weight: 600; }
+QLabel#section, QLabel#moveListEvaluation, QLabel#materialBalance { color: #a3afc1; font-size: 11px; font-weight: 600; }
 QLabel#hint, QLabel#gameStatus { color: #a3afc1; font-size: 12px; }
 QPushButton, QToolButton { background: #2b3543; border: 1px solid #3b4759;
     border-radius: 6px; padding: 8px 12px; }
@@ -117,6 +118,7 @@ class DesktopGame(VariationPreview, Chess3D):
         self.analysis_enabled = bool(self.cfg.get("analysis_enabled", False))
         self.analysis_stamp = 0
         self.closed = False
+        self.position_evaluator = PositionEvaluator()
 
     def choose_promotion(self, color, square):
         dialog = QDialog(self.owner)
@@ -516,6 +518,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.captured_white.setToolTip("Black pieces captured by White")
         self.captured_black.setToolTip("White pieces captured by Black")
         self.material_balance = QLabel()
+        self.material_balance.setObjectName("materialBalance")
         self.material_balance.setFixedWidth(self.material_balance.fontMetrics().horizontalAdvance('-999') + 4)
         self.material_balance.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.material_row = QHBoxLayout()
@@ -635,9 +638,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.static_evaluation.setObjectName("staticEvaluation")
         self.static_evaluation.setWordWrap(True)
         self.static_evaluation.setToolTip(
-            "Instant estimate of the displayed board: material, piece placement and pawn structure.\n"
-            "No engine or move search. Values are in pawns.\n"
-            "Tactical threats can make the engine's evaluation different.")
+            "Stockfish searches each new position for two seconds. Positive values favour White.")
         self.move_list_evaluation.setToolTip(self.static_evaluation.toolTip())
         self.engine_toggle = QAction("Engine Analysis", self)
         self.engine_toggle.setCheckable(True)
@@ -656,7 +657,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.analysis_button.setEnabled(True)
         self.analysis_button.setToolTip(
             "Start or stop automatic line calculation. The current short search may finish.\n"
-            "Static evaluation stays active; the engine still plays its turns.")
+            "Background position evaluation stays active; the engine still plays its turns.")
         self.analysis_button.clicked.connect(lambda enabled: self.invoke(self.toggle_analysis, enabled))
         engine_layout.addWidget(self.analysis_button)
         self.engine_metrics = QLabel("Enable analysis from the Engine menu.")
@@ -764,7 +765,7 @@ class MainWindow(DocumentActions, QMainWindow):
                                            checked=g.analysis_enabled)
         self.action(engine,"Open Evaluation Graph",self.open_evaluation_graph)
         self.static_evaluation_action = self.action(
-            engine, "Always show static evaluation", self.toggle_static_evaluation,
+            engine, "Always show position evaluation", self.toggle_static_evaluation,
             checkable=True, checked=bool(g.cfg.get("always_show_static_evaluation", False)))
         settings = self.menuBar().addMenu("Settings")
         self.action(settings,"Time control and clock…",self.clock_settings)
@@ -928,10 +929,48 @@ class MainWindow(DocumentActions, QMainWindow):
         for symbol in (">",">>"):
             self.move_navigation[symbol].setEnabled(allowed and current < end)
 
+    def refresh_position_evaluation(self):
+        token = self.game.analysis_position_token()
+        if token != getattr(self, "_position_evaluation_token", None):
+            self._position_evaluation_token = token
+            self._position_evaluation_error = None
+            self.game.position_evaluator.request(self.game.position.history(), token)
+        cached = getattr(self, "_position_engine_score", None)
+        result = evaluate_position(self.game.board).result
+        if result:
+            text = result
+            tooltip = "Result of the current position."
+        elif cached is not None and cached[0] == token:
+            text = cached[1]
+            self._last_position_score = text
+            tooltip = "Stockfish analysis of the current position. Positive values favour White."
+        else:
+            self._position_engine_score = None
+            text = getattr(self, "_last_position_score", "")
+            tooltip = self._position_evaluation_error or "Stockfish searches each new position for two seconds."
+        self.static_evaluation.setText(text)
+        self.move_list_evaluation.setText(text)
+        self.static_evaluation.setToolTip(tooltip)
+        self.move_list_evaluation.setToolTip(tooltip)
+
+    def poll_position_evaluation(self):
+        token = self.game.analysis_position_token()
+        if token != getattr(self, "_position_evaluation_token", None):
+            self.refresh_position_evaluation()
+        result = self.game.position_evaluator.poll()
+        if result is None or result[0] != token:
+            return
+        _, info, error = result
+        self._position_evaluation_error = error
+        cached = getattr(self, "_position_engine_score", None)
+        if not error and (cached is None or cached[0] != token):
+            score = info.score
+            text = f"Mate {score.mate:+d}" if score.mate is not None else f"{score.centipawns/100:+.2f}"
+            self._position_engine_score = (token, text)
+        self.refresh_position_evaluation()
+
     def refresh_moves(self):
-        evaluation = evaluate_position(self.game.board).text
-        self.static_evaluation.setText(f"Position evaluation: {evaluation}")
-        self.move_list_evaluation.setText(evaluation)
+        self.refresh_position_evaluation()
         self.refresh_navigation()
         history = self.game.history_board()
         board = history.root()
@@ -1715,12 +1754,15 @@ class MainWindow(DocumentActions, QMainWindow):
             return
         info = evaluations[0]
         score = info.score
-        if score is not None:
+        if score is not None and (score.mate is not None or score.centipawns is not None):
             score_text = f"Mate {score.mate:+d}" if score.mate is not None else f"{score.centipawns/100:+.2f}"
         else:
             score_text = "—"
         self.engine_metrics.setText(f"{prefix}Engine evaluation: {score_text}   ·   Depth {info.depth if info.depth is not None else '—'}")
         token = self.game.analysis_position_token() if source == self.game.board.fen() else None
+        if token is not None and info.source_fen == source and score_text != "—":
+            self._position_engine_score = (token, score_text)
+            self.refresh_position_evaluation()
         self.engine_panel.present(source, evaluations, token, prefix)
 
     def show_controls(self):
@@ -1841,6 +1883,7 @@ class MainWindow(DocumentActions, QMainWindow):
                     self.engine_metrics.setText(error)
                 else:
                     self.show_engine_info(source,info)
+        self.poll_position_evaluation()
         self.board_widget.update()
 
     def closeEvent(self, event):
@@ -1856,6 +1899,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.engine_panel.remember_geometry()
         self.engine_panel.hide()
         g.closed = True
+        g.position_evaluator.close()
         g.update_clock()
         self.session.save(g,force=True)
         if self.sidebar.isVisible():

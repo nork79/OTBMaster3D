@@ -4,7 +4,7 @@ An open-source Windows chess desktop application built with Python, PySide6 and
 OpenGL. OTBMaster3D combines a rendered 3D board, chess-engine integration and
 persistent study tools in a complete, packaged application.
 
-[Download 1.6.8](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.8) ·
+[Download 1.6.9](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.9) ·
 [Engineering overview](docs/engineering.md) · [User guide](docs/user-guide.md) ·
 [Build from source](#run-and-build-from-source) · [Changelog](CHANGELOG.md)
 
@@ -32,13 +32,13 @@ the independent cozy-chess adapter remains an evaluated candidate.
 
 ## Download and source
 
-**[Windows x64 installer](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.8/OTBMaster3D-1.6.8-Setup.exe)** ·
-**[Exact application source](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.8/OTBMaster3D-1.6.8-application-source.zip)** ·
+**[Windows x64 installer](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.9/OTBMaster3D-1.6.9-Setup.exe)** ·
+**[Exact application source](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.9/OTBMaster3D-1.6.9-application-source.zip)** ·
 **[Dependency sources](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.5/OTBMaster3D-1.6.5-dependency-sources.zip)** ·
-**[SHA-256 checksums](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.8/SHA256SUMS.txt)**
+**[SHA-256 checksums](https://github.com/nork79/OTBMaster3D/releases/download/v1.6.9/SHA256SUMS.txt)**
 
-Version **1.6.8** improves board rendering, captured pieces and installer tooling.
-See [release details and validation](docs/releases/1.6.8-source.md). The packaged
+Version **1.6.9** adds background Stockfish evaluation and retained best-three analysis.
+See [release details and validation](docs/releases/1.6.9-source.md). The packaged
 smoke test passed; clean Windows installation, upgrade and uninstall testing
 remain pending. The installer is unsigned.
 
@@ -55,7 +55,10 @@ the installer source even as `main` develops.
 - Hierarchical bookmarks for positions: nested folders, drag/drop ordering, a
   floating organizer and matching Bookmarks menu. Opening a bookmark preserves
   current engine and clock settings, restores board facing, and pauses the clocks.
-- PGN/FEN import and export, move review, static evaluation and session recovery.
+- PGN/FEN import and export, move review, background Stockfish evaluation and session recovery.
+  Each new position gets a two-second search even with the analysis window closed;
+  positive scores favour White. Enable **Engine > Always show position evaluation**
+  to keep the score beside the move list.
 - Offline opening recognition below the move navigation controls, with the opening
   name and ECO code following the displayed move history.
 - Pieces captured by White on the left and by Black on the right, plus a compact

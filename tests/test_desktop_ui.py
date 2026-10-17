@@ -52,6 +52,9 @@ class DesktopTests(unittest.TestCase):
         self.config = patch.object(settings,"CONFIG_PATH",Path(self.folder.name)/"config.json")
         self.config.start()
         self.addCleanup(self.config.stop)
+        evaluator = patch('otb_chess.ui.desktop_ui.PositionEvaluator')
+        evaluator.start().return_value.poll.return_value = None
+        self.addCleanup(evaluator.stop)
         for name in ("ENGINE_DIR", "BOOK_DIR"):
             folder_patch = patch.object(settings, name, Path(self.folder.name))
             folder_patch.start()
@@ -1498,10 +1501,10 @@ class DesktopTests(unittest.TestCase):
         self.assertFalse(g.board.move_stack)
         g.analysis_busy = False
 
-    def test_static_evaluation_follows_review_without_engine(self):
+    def test_position_evaluation_follows_review_without_playing_engine(self):
         w, g = self.window, self.game
         self.assertIsNone(g.engine_manager.engine)
-        self.assertIn("+0.00", w.static_evaluation.text())
+        self.assertEqual(w.static_evaluation.text(), "")
         self.assertNotIn("White", w.static_evaluation.text())
         self.assertNotIn("Black", w.static_evaluation.text())
         self.assertFalse(w.static_evaluation.isVisible())
@@ -1516,18 +1519,18 @@ class DesktopTests(unittest.TestCase):
         live_score = w.static_evaluation.text()
         self.assertNotIn("+0.00", live_score)
         self.assertTrue(g.navigate_to_ply(0))
-        self.assertIn("+0.00", w.static_evaluation.text())
+        self.assertEqual(w.static_evaluation.text(), "")
         self.assertTrue(g.navigate_to_ply(1))
-        self.assertNotEqual(w.static_evaluation.text(), live_score)
+        self.assertEqual(w.static_evaluation.text(), "")
         g.return_to_live()
         self.assertEqual(w.static_evaluation.text(), live_score)
         g.load_document(chess.Board("7k/6Q1/6K1/8/8/8/8/8 b - - 0 1"))
         self.assertIn("White wins", w.static_evaluation.text())
         g.reset_board()
-        self.assertIn("+0.00", w.static_evaluation.text())
+        self.assertEqual(w.static_evaluation.text(), "")
         w.static_evaluation_action.trigger()
         self.assertTrue(w.move_list_evaluation.isVisible())
-        self.assertEqual(w.move_list_evaluation.text(), "+0.00")
+        self.assertEqual(w.move_list_evaluation.text(), "")
         self.assertFalse(w.static_evaluation.isVisible())
         self.assertTrue(settings.load_config()["always_show_static_evaluation"])
         g.board.push_uci("e2e4")

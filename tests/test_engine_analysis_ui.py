@@ -3,6 +3,7 @@ import json
 import threading
 import time
 import unittest
+from dataclasses import replace
 from unittest.mock import Mock, patch
 
 import chess
@@ -37,6 +38,116 @@ class EngineAnalysisTests(unittest.TestCase):
         return (capture_position(g.board), g.export_pgn(), g.white_time, g.black_time,
                 g.active_clock_color, g.game_started, g.game_over, g.result_text,
                 tuple(g.clock_history), g.awaiting_clock_press, g.awaiting_clock_color)
+
+    def test_best_three_persist_rerank_and_replace_without_changing_live_lines(self):
+        panel = self.window.engine_panel
+        fen, token = self.game.board.fen(), self.game.analysis_position_token()
+        initial = [self.line((move,), score) for move, score in
+                   (('e2e4', 40), ('d2d4', 30), ('c2c4', 20))]
+        panel.present(fen, initial, token)
+        self.assertEqual(len(panel.best_lines), 3)
+        newcomer = self.line(('g1f3',), 50)
+        panel.present(fen, (newcomer,), token)
+        self.assertEqual([chess.square_name(line[1][0].from_square) + chess.square_name(line[1][0].to_square) for line in panel.best_lines], ['g1f3', 'e2e4', 'd2d4'])
+        self.assertEqual(len(panel.lines), 1)
+        # A deeper but worse score changes only the live pane.
+        panel.present(fen, (replace(newcomer, score=EngineScore(centipawns=10), depth=20),), token)
+        self.assertIn('+0.50', panel.best_view.toPlainText())
+        self.assertIn('+0.10', panel.line_view.toPlainText())
+        panel.present(fen, (newcomer,), token)
+        self.assertEqual(panel.best_lines[0][1][0], newcomer.pv[0])
+        panel.select_move(2, 1, best=True)
+        self.assertEqual(self.game.preview_board.peek().uci(), 'd2d4')
+        selections = panel.best_view.extraSelections()
+        self.assertEqual(selections[0].cursor.selectedText(), 'd4')
+        panel.return_to_current()
+        self.game.load_document(chess.Board())
+        panel.refresh_preview()
+        self.assertEqual(panel.best_lines, [])
+        self.assertEqual(panel.best_view.toPlainText(), '')
+        self.assertEqual(panel.candidates, {})
+
+    def test_retained_score_only_improves_for_side_to_move(self):
+        for black in (False, True):
+            self.game.load_document(chess.Board())
+            if black:
+                self.game.board.push_uci('e2e4')
+            panel = self.window.engine_panel
+            fen, token = self.game.board.fen(), self.game.analysis_position_token()
+            sign = -1 if black else 1
+            move = 'e7e5' if black else 'e2e4'
+            peak = self.line((move,), sign * 60)
+            panel.present(fen, (peak,), token)
+            worse = replace(peak, score=EngineScore(centipawns=sign * 50), depth=25)
+            panel.present(fen, (worse,), token)
+            self.assertIn(f'{sign * .6:+.2f}', panel.best_view.toPlainText())
+            self.assertIn(f'{sign * .5:+.2f}', panel.line_view.toPlainText())
+            better = replace(peak, score=EngineScore(centipawns=sign * 70), depth=12)
+            panel.present(fen, (better,), token)
+            self.assertIn(f'{sign * .7:+.2f}', panel.best_view.toPlainText())
+
+    def test_best_three_ranks_black_and_mating_lines(self):
+        self.game.board.push_uci('e2e4')
+        panel = self.window.engine_panel
+        lines = [self.line((move,), score) for move, score in
+                 (('e7e5', 50), ('c7c5', -30), ('e7e6', 10))]
+        panel.present(self.game.board.fen(), lines, self.game.analysis_position_token())
+        self.assertEqual([chess.square_name(line[1][0].from_square) + chess.square_name(line[1][0].to_square) for line in panel.best_lines], ['c7c5', 'e7e6', 'e7e5'])
+        ranked = [replace(lines[0], score=EngineScore(mate=mate)) for mate in (-2, -5, 5, 2)]
+        ordered = sorted(ranked + [lines[1]], key=lambda info: panel.rank_score(info, False), reverse=True)
+        self.assertEqual([info.score.mate for info in ordered], [-2, -5, None, 5, 2])
+
+    def test_move_list_prefers_current_analysis_score(self):
+        fen = 'r1b4r/ppp1kppp/5n2/b7/2B5/Q1P5/P4PPP/RN4K1 b - - 1 13'
+        self.game.load_document(chess.Board(fen))
+        self.assertEqual(self.window.move_list_evaluation.text(), '')
+        info = self.line(moves=(), score=842)
+        self.window.show_engine_info(fen, (info, self.line(moves=(), score=700)))
+        self.assertEqual(self.window.move_list_evaluation.text(), '+8.42')
+        self.assertEqual(self.window.static_evaluation.text(), '+8.42')
+        self.window.refresh_moves()
+        self.assertEqual(self.window.move_list_evaluation.text(), '+8.42')
+        self.game.load_document(chess.Board())
+        self.window.show_engine_info(fen, info)
+        self.assertEqual(self.window.move_list_evaluation.text(), '+8.42')
+        self.game.load_document(chess.Board(fen))
+        self.assertEqual(self.window.move_list_evaluation.text(), '+8.42')
+
+    def test_background_score_updates_with_analysis_disabled_and_rejects_stale_results(self):
+        w, g = self.window, self.game
+        self.assertFalse(g.analysis_enabled)
+        self.assertFalse(w.engine_panel.isVisible())
+        token = g.analysis_position_token()
+        g.position_evaluator.poll.return_value = (token, self.line(score=842), None)
+        w.poll_position_evaluation()
+        self.assertEqual(w.move_list_evaluation.text(), '+8.42')
+        g.board.push_uci('e2e4')
+        w.refresh_moves()
+        w.poll_position_evaluation()
+        self.assertEqual(w.move_list_evaluation.text(), '+8.42')
+        self.assertEqual(g.position_evaluator.request.call_args.args[0].final_fen, g.board.fen())
+        g.position_evaluator.poll.return_value = (g.analysis_position_token(), None, 'Stockfish missing')
+        w.poll_position_evaluation()
+        self.assertEqual(w.move_list_evaluation.text(), '+8.42')
+        self.assertEqual(w.move_list_evaluation.toolTip(), 'Stockfish missing')
+
+    def test_move_list_engine_mate_and_missing_scores(self):
+        fen = self.game.board.fen()
+        for score, expected in ((EngineScore(mate=-3), 'Mate -3'),
+                                (EngineScore(centipawns=-82), '-0.82')):
+            self.window.show_engine_info(fen, EngineEvaluation(fen, score))
+            self.assertEqual(self.window.move_list_evaluation.text(), expected)
+            for missing in (None, EngineScore()):
+                self.window.show_engine_info(fen, EngineEvaluation(fen, missing))
+                self.assertEqual(self.window.move_list_evaluation.text(), expected)
+
+    def test_mismatched_engine_result_cannot_replace_move_list_score(self):
+        info = EngineEvaluation(chess.Board().fen(), EngineScore(centipawns=842))
+        self.game.board.push_uci('e2e4')
+        self.window.refresh_moves()
+        expected = self.window.move_list_evaluation.text()
+        self.window.show_engine_info(self.game.board.fen(), info)
+        self.assertEqual(self.window.move_list_evaluation.text(), expected)
 
     def test_option_arrows_receive_clicks_and_save_values(self):
         panel = self.present()
