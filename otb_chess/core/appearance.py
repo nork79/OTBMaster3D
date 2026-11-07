@@ -3,6 +3,7 @@
 from PIL import Image
 from PIL import ImageOps
 from pathlib import Path
+from dataclasses import replace
 from tkinter import messagebox
 from otb_chess.services.settings import default_config, save_config
 from otb_chess.graphics.board_colors import BOARD_COLOR_THEMES
@@ -52,6 +53,9 @@ class AppearanceSettings:
         return "#" + "".join(f"{max(0,min(255,round(c*255))):02x}" for c in rgb)
 
     def color_value(self, which):
+        if which in ("white_piece", "black_piece"):
+            spec = self.piece_sets[self.piece_set]
+            return tuple(self.cfg.get(which + "_color") or getattr(spec, which.split('_')[0]))
         return {
             "light": self.light_square,
             "dark": self.dark_square,
@@ -60,7 +64,11 @@ class AppearanceSettings:
         }[which]
 
     def set_color_value(self, which, color):
-        if which == "light":
+        if which in ("white_piece", "black_piece"):
+            self.cfg[which + "_color"] = list(color) if color is not None else None
+            self.make_context_current()
+            self.flat_piece_renderer.close()
+        elif which == "light":
             self.light_square = color
         elif which == "dark":
             self.dark_square = color
@@ -68,6 +76,10 @@ class AppearanceSettings:
             self.frame_color = color
         else:
             self.background_color = color
+
+    def colored_piece_set(self):
+        return replace(self.piece_sets[self.piece_set],
+                       white=self.color_value("white_piece"), black=self.color_value("black_piece"))
 
     def delete_background_texture(self):
         if self.background_texture is not None:
@@ -138,7 +150,7 @@ class AppearanceSettings:
             {
                 "player_name": self.cfg.get("player_name", ""),
                 **{key: self.cfg.get(key, default_config()[key]) for key in
-                   ("window_size", "bookmark_panel_geometry", "sidebar_width", "sidebar_visible", "focus_mode", "engine_panel_open", "analysis_enabled", "analysis_options", "always_show_static_evaluation", "interface_theme", "engine_elo", "engine_rating", "engine_style", "engine_defaults_applied", "engine_difficulty", "engine_personality", "engine_book_mode")},
+                   ("lichess_url", "lichess_client_id", "lichess_username", "lichess_challenge_mode", "lichess_time_control", "lichess_custom_minutes", "lichess_custom_increment", "lichess_color", "lichess_rated", "lichess_ai_level", "lichess_opponent", "window_size", "bookmark_panel_geometry", "sidebar_width", "sidebar_visible", "focus_mode", "engine_panel_open", "analysis_enabled", "analysis_options", "always_show_static_evaluation", "interface_theme", "engine_elo", "engine_rating", "engine_style", "engine_min_thinking_seconds", "engine_defaults_applied", "engine_difficulty", "engine_personality", "engine_book_mode")},
                 "light_square": list(self.light_square),
                 "dark_square": list(self.dark_square),
                 "frame_color": list(self.frame_color),
@@ -146,6 +158,8 @@ class AppearanceSettings:
                 "background_image": self.background_image_path,
                 "background_style": self.background_style,
                 "piece_set": self.piece_set,
+                "white_piece_color": self.cfg.get("white_piece_color"),
+                "black_piece_color": self.cfg.get("black_piece_color"),
                 "flat_piece_set": self.flat_piece_set,
                 "move_animation_ms": self.move_animation_ms,
                 "board_mode": self.board_mode,
@@ -159,6 +173,7 @@ class AppearanceSettings:
                 "two_d_pan_z": self.two_d_pan_z,
                 "show_coordinates": self.show_coordinates,
                 "show_move_indicator": self.show_move_indicator,
+                "show_energetic_overlay": self.show_energetic_overlay,
                 "sound_enabled": self.sound_enabled,
                 "sound_profile": self.sound_profile,
                 "time_control": (

@@ -1233,7 +1233,7 @@ class DesktopTests(unittest.TestCase):
 
     def test_live_colour_preview_accept_and_cancel(self):
         w,g = self.window,self.game
-        for which in ("light","background"):
+        for which in ("light","background","white_piece","black_piece"):
             for accept in (False,True):
                 original = g.color_value(which)
                 observed = []
@@ -1250,6 +1250,57 @@ class DesktopTests(unittest.TestCase):
                 self.assertEqual(observed,[expected,which == "background"])
                 self.assertEqual(g.color_value(which),expected if accept else original)
                 self.assertFalse(g.preview_background_color)
+
+    def test_piece_colours_persist_across_sets_and_reset(self):
+        g, w = self.game, self.window
+        original = g.piece_sets[g.piece_set]
+        g.set_color_value('white_piece', (.8, .2, .3))
+        g.set_color_value('black_piece', (.1, .4, .8))
+        g.persist()
+        saved = settings.load_config()
+        self.assertEqual(saved['white_piece_color'], [.8, .2, .3])
+        self.assertEqual(saved['black_piece_color'], [.1, .4, .8])
+        self.assertEqual(g.piece_sets[g.piece_set], original)
+        g.choose_set('club')
+        self.assertEqual(g.colored_piece_set().white, (.8, .2, .3))
+        self.assertEqual(g.colored_piece_set().black, (.1, .4, .8))
+        for mode in ('2D', '3D'):
+            w.set_mode(mode)
+            self.assertFalse(self.widget.grabFramebuffer().isNull())
+            self.assertEqual(glGetError(), GL_NO_ERROR)
+        w.reset_piece_colors()
+        self.assertEqual(g.colored_piece_set(), g.piece_sets[g.piece_set])
+        self.assertIsNone(settings.load_config()['white_piece_color'])
+        self.assertIsNone(settings.load_config()['black_piece_color'])
+
+    def test_energetic_overlay_menu_persistence_and_both_views(self):
+        w, g = self.window, self.game
+        action = w.energetic_overlay_action
+        view = next(a.menu() for a in w.menuBar().actions() if a.text() == 'View')
+        actions = view.actions()
+        self.assertEqual(actions[actions.index(action) - 1].text(), 'Move indicator')
+        self.assertFalse(g.show_energetic_overlay)
+        action.trigger()
+        self.assertTrue(g.show_energetic_overlay)
+        self.assertTrue(settings.load_config()['show_energetic_overlay'])
+        for mode in ('2D', '3D'):
+            w.set_mode(mode)
+            for board_type in ('classic', 'marble'):
+                w.set_board_type(board_type)
+                self.assertFalse(self.widget.grabFramebuffer().isNull())
+                self.assertEqual(glGetError(), GL_NO_ERROR)
+        action.trigger()
+        self.assertFalse(settings.load_config()['show_energetic_overlay'])
+
+    def test_custom_2d_colours_preserve_piece_shapes_and_transparency(self):
+        from otb_chess.graphics.board_2d import FLAT_SETS, flat_piece_image
+        for style in FLAT_SETS:
+            for white in (False, True):
+                original = flat_piece_image(style, chess.KNIGHT, (.8, .8, .8), white)
+                colored = flat_piece_image(style, chess.KNIGHT, (.8, .1, .2), white, tint=True)
+                self.assertEqual(original.size, colored.size)
+                self.assertEqual(original.getchannel('A').tobytes(), colored.getchannel('A').tobytes())
+                self.assertNotEqual(original.tobytes(), colored.tobytes())
 
     def test_analysis_uses_worker_and_rejects_stale_positions(self):
         w,g = self.window,self.game

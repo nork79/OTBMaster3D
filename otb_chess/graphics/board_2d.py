@@ -3,7 +3,7 @@
 from otb_chess.chess_backend import values as chess
 
 import math
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 from OpenGL import GL as gl
 from otb_chess.services.settings import APP_DIR
 
@@ -13,12 +13,19 @@ FLAT_SETS = {"classic":"Classic (match 3D colours)", "textbook":"Textbook (Cburn
              "celtic":"Celtic", "spatial":"Spatial", "skulls":"Skulls", "eyes":"Eyes"}
 
 
-def flat_piece_image(style, piece_type, color, white):
+def flat_piece_image(style, piece_type, color, white, tint=False):
     if style == "classic":
         return piece_image(piece_type,color,white)
     filename = ('w' if white else 'b') + ' pnbrqk'[piece_type] + '.png'
     with Image.open(APP_DIR/'assets'/'pieces_2d'/style/filename) as source:
-        return source.convert('RGBA')
+        image = source.convert('RGBA')
+    if tint:
+        chosen = tuple(round(c * 255) for c in color)
+        dark, light = ((38, 34, 30), chosen) if white else (chosen, (221, 216, 203))
+        recolored = ImageOps.colorize(image.convert('L'), dark, light).convert('RGBA')
+        recolored.putalpha(image.getchannel('A'))
+        return recolored
+    return image
 
 
 def piece_image(piece_type, fill, white):
@@ -102,11 +109,15 @@ def piece_image(piece_type, fill, white):
     return image.resize((256,256),Image.Resampling.LANCZOS)
 
 
-def flat_square(x, z, size_x, size_z, color, y=0.02):
-    gl.glPushAttrib(gl.GL_ENABLE_BIT | gl.GL_CURRENT_BIT)
+def flat_square(x, z, size_x, size_z, color, y=0.02, opacity=1.0):
+    gl.glPushAttrib(gl.GL_ENABLE_BIT | gl.GL_CURRENT_BIT | gl.GL_COLOR_BUFFER_BIT)
     gl.glDisable(gl.GL_LIGHTING)
     gl.glDisable(gl.GL_CULL_FACE)
-    gl.glColor3f(*color)
+    if opacity < 1.0:
+        gl.glDisable(gl.GL_TEXTURE_2D)
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+    gl.glColor4f(*color, opacity)
     gl.glBegin(gl.GL_QUADS)
     for a,b in ((-1,-1),(1,-1),(1,1),(-1,1)):
         gl.glVertex3f(x+a*size_x/2,y,z+b*size_z/2)
@@ -118,11 +129,11 @@ class FlatPieceRenderer:
     def __init__(self):
         self.textures = {}
 
-    def draw(self, spec, piece, x, z, yaw, lifted=False, style="classic"):
+    def draw(self, spec, piece, x, z, yaw, lifted=False, style="classic", tint=False):
         color = spec.white if piece.color else spec.black
-        key = (style,color if style == "classic" else None,piece.color,piece.piece_type)
+        key = (style,color if style == "classic" or tint else None,piece.color,piece.piece_type)
         if key not in self.textures:
-            image = flat_piece_image(style,piece.piece_type,color,piece.color)
+            image = flat_piece_image(style,piece.piece_type,color,piece.color,tint=tint)
             texture = gl.glGenTextures(1)
             gl.glBindTexture(gl.GL_TEXTURE_2D,texture)
             gl.glTexParameteri(gl.GL_TEXTURE_2D,gl.GL_TEXTURE_MIN_FILTER,gl.GL_LINEAR)

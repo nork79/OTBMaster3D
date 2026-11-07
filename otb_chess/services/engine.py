@@ -8,6 +8,7 @@ from pathlib import Path
 from copy import deepcopy
 import logging
 import threading
+import time
 
 
 class EngineManager:
@@ -163,6 +164,9 @@ class EngineManager:
         self.thinking = True
         generation = self.search_generation
         position = ChessPosition.from_board(self.app.board).history()
+        started_at = time.perf_counter()
+        min_think = max(0.0, float(self.app.cfg.get("engine_min_thinking_seconds", 0.0) or 0.0))
+        search_seconds = max(0.12, min_think) if min_think > 0 else 0.12
 
         def worker():
             try:
@@ -171,10 +175,15 @@ class EngineManager:
                         return
                     self.engine.configure_strength(self.app.cfg.get("engine_elo"))
                     rodent = (self.loaded_configuration or {}).get("engine_id") == "rodent"
-                    result = self.engine.play(position, style="Balanced" if rodent else self.app.cfg.get("engine_style", "Balanced"))
+                    result = self.engine.play(
+                        position,
+                        seconds=search_seconds,
+                        style="Balanced" if rodent else self.app.cfg.get("engine_style", "Balanced"),
+                    )
                 if generation != self.search_generation:
                     return
                 self.app.pending_engine_generation = generation
+                self.app.pending_engine_ready_at = started_at + min_think
                 self.app.last_engine_search = (position.final_fen, result.info)
                 self.app.pending_engine_position = position.final_fen
                 self.app.pending_engine_move = result.move

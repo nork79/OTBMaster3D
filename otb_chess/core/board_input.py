@@ -45,7 +45,7 @@ class BoardInput:
     def _mouse(w, b, a, m):
         s = BoardInput._s(w)
         p = glfw.get_cursor_pos(w)
-        if b == glfw.MOUSE_BUTTON_RIGHT and a == glfw.PRESS and s.selected is not None:
+        if b == glfw.MOUSE_BUTTON_RIGHT and a == glfw.PRESS and (s.selected is not None or getattr(s, "premove", None) is not None):
             s.cancel_selection()
             return
         if a == glfw.PRESS and s.clock_mode == "OTB":
@@ -126,6 +126,7 @@ class BoardInput:
 
     def cancel_selection(self):
         self.selected = self.drag_piece = self.drag_world = self.left_down_pos = None
+        self.premove = None
         self.board_pan_drag = self.right_drag = self.ctrl_left_rotate = self.was_drag = False
         self.pan_start_world = None
 
@@ -142,13 +143,37 @@ class BoardInput:
             if self.try_move(self.selected, sq):
                 self.selected = None
                 return
+        if (
+            self.human_can_premove()
+            and self.selected is not None
+            and sq in self.premove_targets(self.selected)
+        ):
+            if self.set_premove(self.selected, sq):
+                self.selected = None
+                return
         p = self.board.piece_at(sq) if sq is not None else None
+        if self.human_can_premove() and getattr(self, "premove", None) is not None and sq == self.premove[1] and self.selected is None:
+            origin_sq = self.premove[0]
+            origin_piece = self.board.piece_at(origin_sq)
+            if origin_piece and origin_piece.color == self.human_premove_color():
+                self.premove = None
+                self.selected = origin_sq
+                self.drag_piece = origin_sq
+                self.drag_world = self.ray_to_board(*pos)
+                self.board_pan_drag = False
+                return
         if self.human_can_move() and p and p.color == self.board.turn:
             self.selected = sq
             self.drag_piece = sq
             self.drag_world = self.ray_to_board(*pos)
             self.board_pan_drag = False
+        elif self.human_can_premove() and p and p.color == self.human_premove_color():
+            self.selected = sq
+            self.drag_piece = sq
+            self.drag_world = self.ray_to_board(*pos)
+            self.board_pan_drag = False
         else:
+            self.selected = None
             self.board_pan_drag = True
             self.pan_start_world = self.ray_to_board(*pos)
             self.pan_start_offset = self.view_pan()
@@ -185,7 +210,10 @@ class BoardInput:
             src = self.drag_piece
             dst = self.square_at_mouse(pos)
             if self.was_drag:
-                moved = self.try_move(src, dst)
+                if self.human_can_premove():
+                    moved = self.set_premove(src, dst)
+                else:
+                    moved = self.try_move(src, dst)
                 self.selected = None if moved else src
         elif self.board_pan_drag and self.was_drag:
             self.mark_camera_dirty()

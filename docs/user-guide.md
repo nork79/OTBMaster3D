@@ -111,7 +111,22 @@ Light/dark squares, frame colour, background colour and background images are
 shared between views. Board presets include Wood, Tournament Green, Blue and Grey.
 The previous Original option has been removed; saved selections migrate automatically.
 
+**Settings → Colours → White pieces / Black pieces** changes each side's colour
+in both 2D and 3D, with live preview. Accept saves the choice; Cancel restores
+the previous appearance. Custom colours remain when switching piece sets.
+**Reset piece colours** restores the selected sets' original colours.
+
 ## Controls
+
+**View → Energetic overlay**, directly below Move indicator, colours squares
+with translucent yellow for White influence, green for Black influence, and red
+for both. Yellow and green use 35% opacity; shared-influence red uses 60% to
+stand out while preserving the underlying texture.
+Each piece is evaluated in isolation: sliding rays ignore all blockers,
+pawns influence their capture diagonals, and kings influence adjacent squares.
+A piece does not influence its own square, though another piece may influence
+that square. The overlay follows the displayed position in 2D and 3D, including
+review and variation previews, and the setting is remembered.
 
 Sessions are recovered automatically on reopening, including the full game or
 loaded position, move-review position and remaining clock times. Clocks always

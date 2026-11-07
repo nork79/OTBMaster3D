@@ -10,6 +10,7 @@ import threading
 import time
 from copy import deepcopy
 from pathlib import Path
+import queue
 
 from PySide6.QtCore import Qt, QTimer, QSize
 from PySide6.QtGui import QAction, QActionGroup, QColor, QIcon, QKeySequence, QSurfaceFormat, QShortcut
@@ -75,7 +76,7 @@ QSplitter::handle { background: #303a49; width: 4px; }
 QStatusBar { background: #1e242e; color: #a3afc1; }
 QComboBox, QLineEdit, QDoubleSpinBox, QSpinBox, QPlainTextEdit {
     background: #111720; border: 1px solid #414b5b; border-radius: 4px; padding: 7px; }
-QSpinBox#analysisOption, QDoubleSpinBox#analysisOption, QSpinBox#engineRating { padding-right: 60px; }
+QSpinBox, QDoubleSpinBox, QSpinBox#analysisOption, QDoubleSpinBox#analysisOption, QSpinBox#engineRating, QDoubleSpinBox#engineMinThinkingTime { padding-right: 60px; }
 QComboBox QAbstractItemView { background: #242c38; selection-background-color: #414b5b; }
 QScrollBar:vertical { background: #1b212b; width: 10px; }
 QScrollBar::handle:vertical { background: #4a5668; min-height: 24px; border-radius: 4px; }
@@ -152,9 +153,11 @@ class DesktopGame(VariationPreview, Chess3D):
         self.was_drag = False
         return selected if dialog.exec() == QDialog.DialogCode.Accepted else None
 
-    def try_move(self, fr, to, is_engine=False, promotion=None):
-        moved = super().try_move(fr,to,is_engine,promotion=promotion)
+    def try_move(self, fr, to, is_engine=False, promotion=None, is_remote=False, silent_illegal=False):
+        moved = super().try_move(fr, to, is_engine, promotion=promotion, is_remote=is_remote, silent_illegal=silent_illegal)
         if moved:
+            if not is_engine and not is_remote and self.online_session is not None and self.online_session.active:
+                self.owner.submit_lichess_move(self.last_local_uci_move)
             self.owner.sync_engine_output()
             self.owner.session.save(self,force=True)
         return moved
@@ -186,6 +189,7 @@ class DesktopGame(VariationPreview, Chess3D):
 
     def request_analysis(self):
         if (self.closed or not self.analysis_enabled or self.analysis_busy
+                or (self.online_session is not None and self.online_session.active)
                 or self.owner.new_game_pending or self.owner.pending_difficulty is not None):
             return
         board = self.position.history()
@@ -292,17 +296,20 @@ class BoardWidget(QOpenGLWidget):
         event.accept()
 
     def mousePressEvent(self, event):
+        g = self.game
+        if event.button() == Qt.MouseButton.RightButton and (g.selected is not None or g.premove is not None):
+            g.cancel_selection()
+            self.update()
+            event.accept()
+            return
         if not self.ready:
             return
         self.setFocus()
         self.makeCurrent()
-        g = self.game
         pos = (event.position().x(), event.position().y())
         bindings = {Qt.MouseButton.RightButton: "Right Mouse", Qt.MouseButton.MiddleButton: "Middle Mouse", Qt.MouseButton.BackButton: "Mouse Button 4",
                     Qt.MouseButton.ForwardButton: "Mouse Button 5"}
-        if event.button() == Qt.MouseButton.RightButton and g.selected is not None:
-            g.cancel_selection()
-        elif g.clock_mode == "OTB" and bindings.get(event.button()) == g.clock_binding:
+        if g.clock_mode == "OTB" and bindings.get(event.button()) == g.clock_binding:
             g.hit_clock()
         elif event.button() == Qt.MouseButton.RightButton or (
                 event.button() == Qt.MouseButton.LeftButton and event.modifiers() & Qt.KeyboardModifier.ControlModifier):
@@ -411,7 +418,7 @@ class ClockCard(QPushButton):
         active = not game.clocks_disabled and game.game_started and not game.game_over and game.active_clock_color == self.color
         waiting = active and game.awaiting_clock_press
         editable = game.clocks_editable()
-        first_move = game.game_started and not game.game_over and not game.board.move_stack
+        first_move = game.clocks_waiting_for_first_move()
         self.state.setText("CLICK TO EDIT" if editable else "WAITING FOR MOVE" if first_move else "PRESS CLOCK" if waiting else "RUNNING" if active else "")
         if game.clocks_disabled:
             self.state.setText('CLOCKS DISABLED')
@@ -425,7 +432,7 @@ class ClockCard(QPushButton):
 
 
 class MainWindow(DocumentActions, QMainWindow):
-    def __init__(self):
+    def __init__(self, lichess_params=None):
         super().__init__()
         self.setWindowTitle(f"OTBMaster3D v{__version__}")
         self.setMinimumSize(760,560)
@@ -436,6 +443,17 @@ class MainWindow(DocumentActions, QMainWindow):
         self.session = SessionStore()
         self.session.restore(self.game)
         cfg = self.game.cfg
+        from otb_chess.services.lichess import LichessClient
+        self.lichess = LichessClient(
+            server_url=cfg.get("lichess_url"),
+            client_id=cfg.get("lichess_client_id"),
+        )
+        self.lichess.restore_saved_session()
+        self.lichess_verify_result = None
+        self.lichess_verifying = False
+        self.lichess_active_game_id = None
+        self.lichess_events = queue.Queue()
+        self._pre_lichess_state = None
         self.interface_theme = cfg.get("interface_theme","Dark")
         if self.interface_theme not in THEMES:
             self.interface_theme = "Dark"
@@ -485,6 +503,8 @@ class MainWindow(DocumentActions, QMainWindow):
         self.bookmark_panel = None
         self.bookmark_pending = None
         self.last_selected_bookmark = None
+        if lichess_params is not None:
+            self.apply_lichess_login_parameters(lichess_params)
         remembered = self.game.engine_var.get()
         if remembered and Path(remembered).is_file():
             QTimer.singleShot(0,lambda: self.game.load_engine_path(remembered))
@@ -734,6 +754,11 @@ class MainWindow(DocumentActions, QMainWindow):
         self.action(view,"Reset view",g.reset_view,"Ctrl+R")
         self.action(view,"Coordinates",lambda v:self.set_option("show_coordinates",v),checkable=True,checked=g.show_coordinates)
         self.action(view,"Move indicator",lambda v:self.set_option("show_move_indicator",v),checkable=True,checked=g.show_move_indicator)
+        self.energetic_overlay_action = self.action(
+            view, "Energetic overlay", lambda v: self.set_option("show_energetic_overlay", v),
+            checkable=True, checked=g.show_energetic_overlay)
+        self.energetic_overlay_action.setToolTip(
+            "Piece influence ignoring blockers: White yellow, Black green, both red.")
         view.addSeparator()
         self.sidebar_action = self.action(view,"Show sidebar",lambda _:self.apply_visibility(),"Ctrl+B",True,True)
         self.focus_action = self.action(view,"Focus mode (board and clocks)",lambda _:self.apply_visibility(),"Ctrl+Shift+F",True)
@@ -790,8 +815,10 @@ class MainWindow(DocumentActions, QMainWindow):
         for name in BOARD_COLOR_THEMES:
             self.action(themes,name,lambda n=name:g.apply_preset(n))
         colors = settings.addMenu("Colours")
-        for name,key in (("Light squares","light"),("Dark squares","dark"),("Board frame","frame"),("Background","background")):
+        for name,key in (("Light squares","light"),("Dark squares","dark"),("White pieces","white_piece"),
+                         ("Black pieces","black_piece"),("Board frame","frame"),("Background","background")):
             self.action(colors,name+"…",lambda k=key:self.choose_color(k))
+        self.action(colors,"Reset piece colours",self.reset_piece_colors)
         from otb_chess.graphics.backgrounds import BACKGROUNDS
         background = settings.addMenu("Background")
         background_group = QActionGroup(self)
@@ -817,6 +844,9 @@ class MainWindow(DocumentActions, QMainWindow):
             sound_group.addAction(action)
             self.sound_profile_actions[key] = action
         self.menuBar().addMenu(self.bookmarks_menu)
+        from otb_chess.ui.lichess_dialog import LichessMenu
+        self.lichess_menu = LichessMenu(self)
+        self.menuBar().addMenu(self.lichess_menu)
         help_menu = self.menuBar().addMenu("Help")
         self.action(help_menu,"Open Source Licences",lambda:show_licenses(self))
         self.action(help_menu,"Controls",self.show_controls)
@@ -903,6 +933,9 @@ class MainWindow(DocumentActions, QMainWindow):
             super().keyPressEvent(event)
 
     def open_evaluation_graph(self):
+        if self.game.online_session is not None and self.game.online_session.active:
+            self.game.result_text = "Evaluation graph is disabled during an active Lichess game."
+            return
         from otb_chess.ui.evaluation_graph import EvaluationGraph
         if not hasattr(self, "evaluation_graph"):
             self.evaluation_graph = EvaluationGraph(self)
@@ -930,6 +963,12 @@ class MainWindow(DocumentActions, QMainWindow):
             self.move_navigation[symbol].setEnabled(allowed and current < end)
 
     def refresh_position_evaluation(self):
+        if self.game.online_session is not None and self.game.online_session.active:
+            self.static_evaluation.setText("")
+            self.move_list_evaluation.setText("")
+            self.static_evaluation.setToolTip("Engine evaluation is disabled during live Lichess games.")
+            self.move_list_evaluation.setToolTip("Engine evaluation is disabled during live Lichess games.")
+            return
         token = self.game.analysis_position_token()
         if token != getattr(self, "_position_evaluation_token", None):
             self._position_evaluation_token = token
@@ -954,6 +993,8 @@ class MainWindow(DocumentActions, QMainWindow):
         self.move_list_evaluation.setToolTip(tooltip)
 
     def poll_position_evaluation(self):
+        if self.game.online_session is not None and self.game.online_session.active:
+            return
         token = self.game.analysis_position_token()
         if token != getattr(self, "_position_evaluation_token", None):
             self.refresh_position_evaluation()
@@ -1050,7 +1091,11 @@ class MainWindow(DocumentActions, QMainWindow):
         g = self.game
         if self.new_game_pending:
             return
-        if g.board.move_stack and not self.confirm("New game","Start a new game? The current moves will be cleared."):
+        if g.online_session is not None and g.online_session.active:
+            if not self.confirm("Active Lichess Game", "Leave the active Lichess game view and start a local game?"):
+                return
+            self.leave_lichess_game()
+        elif g.board.move_stack and not self.confirm("New game","Start a new game? The current moves will be cleared."):
             return
         self.new_game_pending = True
         self.pending_start_fen = starting_fen
@@ -1065,6 +1110,7 @@ class MainWindow(DocumentActions, QMainWindow):
             g.result_text = "Starting a new game when the engine is ready…"
             return
         self.new_game_pending = False
+        self.leave_lichess_game()
         g.pending_engine_move = None
         g.pending_engine_position = None
         g.pending_engine_error = None
@@ -1087,23 +1133,44 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def human_player_color(self):
         g = self.game
+        if g.online_session is not None and g.online_session.my_color is not None:
+            return g.online_session.my_color
         engine_side = g.engine_side if g.engine_enabled and g.engine_manager.engine is not None else None
         return not engine_side if engine_side is not None else g.board.turn
 
     def refresh_game_actions(self):
         g = self.game
+        online = g.online_session
+        online_active = online is not None and online.active
         side = "White" if self.human_player_color() else "Black"
-        for key, label in (("resign", f"Resign {side}"), ("draw", f"Offer draw as {side}"),
-                           ("takeback", "Take back one move"), ("switch_sides", "Switch sides and pause")):
+        draw_label = (
+            f"Accept draw offer as {side}" if online_active and online.opponent_offered_draw
+            else f"Offer draw as {side}"
+        )
+        takeback_label = (
+            "Accept takeback request" if online_active and online.opponent_proposed_takeback
+            else "Request takeback on Lichess" if online_active
+            else "Take back one move"
+        )
+        resign_label = (
+            f"Abort or resign Lichess game ({side})" if online_active and len(g.history_board().move_stack) < 2
+            else f"Resign {side}"
+        )
+        for key, label in (("resign", resign_label), ("draw", draw_label),
+                           ("takeback", takeback_label), ("switch_sides", "Switch sides and pause")):
             button = self.clock_actions[key]
             button.setToolTip(label)
             button.setAccessibleName(label)
             button.setEnabled(self.can_switch_sides() if key == "switch_sides"
-                              else bool(g.history_board().move_stack) if key == "takeback"
+                              else bool(g.history_board().move_stack) and (not online_active or not g.game_over) if key == "takeback"
                               else g.game_started and not g.game_over)
 
         if hasattr(self, "switch_sides_action"):
             self.switch_sides_action.setEnabled(self.can_switch_sides())
+        if hasattr(self, "reset_board_button"):
+            self.reset_board_button.setEnabled(not online_active)
+        if hasattr(self, "engine_enabled_button"):
+            self.engine_enabled_button.setEnabled(not online_active)
         reason = g.result_text
         if g.game_over:
             if reason.startswith('Draw -') or reason == 'Stalemate' or g._declared_result == '1/2-1/2':
@@ -1113,10 +1180,16 @@ class MainWindow(DocumentActions, QMainWindow):
                 status = reason.replace('resigned', 'Resigned').replace('wins on time', 'Wins on Time')
         elif g._review_live is not None:
             status = 'Reviewing'
+        elif online_active and online.opponent_offered_draw:
+            status = 'Opponent Offered Draw'
+        elif online_active and online.opponent_proposed_takeback:
+            status = 'Takeback Requested'
         elif reason == 'Draw offered':
             status = 'Draw Offered'
         elif g.position.is_check():
             status = 'Check'
+        elif online_active:
+            status = 'Lichess Live'
         elif g.game_started:
             status = 'Paused' if g.clock_paused else 'Playing'
         else:
@@ -1126,6 +1199,8 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def can_switch_sides(self):
         g = self.game
+        if g.online_session is not None and g.online_session.active:
+            return False
         return (g.engine_enabled and g.engine_side is not None and g.engine_manager.engine is not None
                 and not g.game_over and not g.engine_loading
                 and not getattr(self, "new_game_pending", False)
@@ -1133,6 +1208,11 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def human_game_action(self, action):
         g = self.game
+        online = g.online_session
+        if online is not None and online.active:
+            self.lichess_game_action(action)
+            self.refresh_game_actions()
+            return
         if action == "switch_sides":
             if self.can_switch_sides():
                 g.switch_sides()
@@ -1148,14 +1228,23 @@ class MainWindow(DocumentActions, QMainWindow):
 
 
     def resign(self):
+        g = self.game
+        if g.online_session is not None and g.online_session.active:
+            if self.confirm("Resign Lichess game", "Resign or abort the current Lichess game?"):
+                self.lichess_game_action("resign", confirmed=True)
+            return
         if self.game.game_started and self.confirm("Resign","Resign the current game?"):
             self.game.resign()
 
     def reset_board(self):
+        if self.game.online_session is not None and self.game.online_session.active:
+            self.game.result_text = "Cannot reset the board during an active Lichess game."
+            return
         if self.game.engine_manager.thinking or self.game.engine_loading:
             self.game.result_text = "Wait for the current engine operation to finish."
             return
         if not self.game.board.move_stack or self.confirm("Reset board","Clear the current moves and reset the board?"):
+            self.leave_lichess_game()
             self.game.pending_engine_move = None
             self.game.last_engine_search = None
             self.game.engine_output = None
@@ -1226,6 +1315,482 @@ class MainWindow(DocumentActions, QMainWindow):
         elif self.bookmark_panel is not None:
             self.bookmark_panel.hide()
 
+    def open_lichess_login(self):
+        from otb_chess.ui.lichess_dialog import LichessLoginDialog
+        dialog = LichessLoginDialog(self)
+        dialog.exec()
+        dialog.deleteLater()
+        self.lichess_menu.refresh()
+
+    def open_lichess_challenge(self):
+        if not (self.lichess.is_authenticated or self.lichess.token):
+            self.open_lichess_login()
+            if not (self.lichess.is_authenticated or self.lichess.token):
+                return
+        from otb_chess.ui.lichess_dialog import LichessChallengeDialog
+        dialog = LichessChallengeDialog(self)
+        dialog.exec()
+        dialog.deleteLater()
+        self.lichess_menu.refresh()
+
+    def on_lichess_game_matched(self, game_id: str, options, message: str = ""):
+        self.lichess_active_game_id = game_id
+        g = self.game
+        if options is not None:
+            if options.preset in TIME_CONTROLS:
+                g.time_control_var.set(options.preset)
+            else:
+                limit_sec, inc_sec = options.resolve_clock()
+                g.time_control_var.set("Custom")
+                g.custom_initial_var.set(float(limit_sec))
+                g.custom_increment_var.set(float(inc_sec))
+            g.persist()
+        if message:
+            g.result_text = message
+            self.statusBar().showMessage(message)
+        self.start_lichess_game_stream(game_id)
+
+    def start_lichess_game_stream(self, game_id: str):
+        gid = (game_id or "").strip()
+        if not gid:
+            return
+        self.lichess_active_game_id = gid
+
+        def worker():
+            try:
+                for event in self.lichess.iter_game_stream(gid):
+                    self.lichess_events.put(("stream_event", gid, event))
+            except Exception as exc:
+                self.lichess_events.put(("stream_error", gid, str(exc)))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def submit_lichess_move(self, uci_move: str | None):
+        g = self.game
+        online = g.online_session
+        if online is None or not online.active or not uci_move:
+            return
+        game_id = online.game_id
+        online.move_in_flight = True
+
+        def worker():
+            try:
+                self.lichess.send_move(game_id, uci_move)
+                self.lichess_events.put(("move_sent", game_id, uci_move))
+            except Exception as exc:
+                self.lichess_events.put(("move_failed", game_id, str(exc)))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def lichess_game_action(self, action: str, *, confirmed: bool = False):
+        g = self.game
+        online = g.online_session
+        if online is None or not online.active:
+            return
+        gid = online.game_id
+        if action == "resign":
+            is_abort = len(g.history_board().move_stack) < 2
+            label = "Abort" if is_abort else "Resign"
+            if not confirmed and not self.confirm(f"{label} Lichess game", f"{label} the current Lichess game?"):
+                return
+
+            def worker():
+                try:
+                    if is_abort:
+                        self.lichess.abort_game(gid)
+                    else:
+                        self.lichess.resign_game(gid)
+                except Exception as exc:
+                    self.lichess_events.put(("action_error", gid, str(exc)))
+
+            threading.Thread(target=worker, daemon=True).start()
+        elif action == "draw":
+            accepting = online.opponent_offered_draw
+            g.result_text = "Accepting draw…" if accepting else "Draw offered"
+
+            def worker():
+                try:
+                    self.lichess.handle_draw_offer(gid, True)
+                except Exception as exc:
+                    self.lichess_events.put(("action_error", gid, str(exc)))
+
+            threading.Thread(target=worker, daemon=True).start()
+        elif action == "takeback":
+            accepting = online.opponent_proposed_takeback
+            g.result_text = "Accepting takeback…" if accepting else "Takeback requested on Lichess"
+
+            def worker():
+                try:
+                    self.lichess.handle_takeback_offer(gid, True)
+                except Exception as exc:
+                    self.lichess_events.put(("action_error", gid, str(exc)))
+
+            threading.Thread(target=worker, daemon=True).start()
+
+    def _enforce_lichess_fair_play_lock(self):
+        g = self.game
+        if self._pre_lichess_state is None:
+            self._pre_lichess_state = {
+                "engine_enabled": g.engine_enabled,
+                "analysis_enabled": g.analysis_enabled,
+                "engine_panel_open": self.engine_toggle.isChecked(),
+            }
+        g.engine_enabled = False
+        g.engine_manager.search_generation += 1
+        if g.engine_manager.thinking:
+            g.engine_manager.stop_search()
+        g.pending_engine_move = g.pending_engine_position = g.pending_engine_error = None
+        if g.analysis_enabled:
+            g.analysis_enabled = False
+            g.analysis_revision += 1
+            if g.analysis_engine is not None:
+                g.analysis_engine.stop_search()
+        self.analysis_action.setChecked(False)
+        self.analysis_action.setEnabled(False)
+        self.analysis_button.setChecked(False)
+        self.analysis_button.setEnabled(False)
+        self.analysis_button.setText("Disabled (Online)")
+        self.engine_metrics.setText("Engine analysis is disabled during live Lichess play.")
+        self.engine_line.clear()
+        self._position_engine_score = None
+        self._last_position_score = ""
+        self.static_evaluation.setText("")
+        self.move_list_evaluation.setText("")
+        if self.engine_panel.isVisible():
+            self.engine_panel.close()
+        self.engine_toggle.setChecked(False)
+        if hasattr(self, "evaluation_graph") and self.evaluation_graph.isVisible():
+            self.evaluation_graph.close()
+
+    def leave_lichess_game(self):
+        self.lichess.stop_game_stream()
+        self.lichess_active_game_id = None
+        if self.game.online_session is not None:
+            self.game.online_session = None
+        self._release_lichess_fair_play_lock()
+
+    def _release_lichess_fair_play_lock(self):
+        saved = self._pre_lichess_state
+        self._pre_lichess_state = None
+        self.analysis_action.setEnabled(True)
+        self.analysis_button.setEnabled(True)
+        self.analysis_button.setText("Stop analysis" if self.game.analysis_enabled else "Start analysis")
+        if saved is not None:
+            self.game.engine_enabled = bool(saved.get("engine_enabled", True))
+            if saved.get("analysis_enabled"):
+                self.toggle_analysis(True)
+        self.refresh_position_evaluation()
+
+    def refresh_lichess_post_game_ratings(self, game_id: str):
+        gid = (game_id or "").strip()
+        session = self.game.online_session
+        if not gid or session is None:
+            return
+
+        def worker():
+            try:
+                result = self.lichess.fetch_post_game_ratings(gid, session)
+                self.lichess_events.put(("ratings_updated", gid, result))
+            except Exception:
+                pass
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def process_lichess_events(self):
+        while True:
+            try:
+                kind, gid, payload = self.lichess_events.get_nowait()
+            except queue.Empty:
+                break
+            if self.lichess_active_game_id and gid != self.lichess_active_game_id:
+                continue
+            if kind == "stream_event":
+                self._handle_lichess_stream_event(payload)
+            elif kind == "ratings_updated":
+                g = self.game
+                session = g.online_session
+                if session is not None and isinstance(payload, dict):
+                    w_new = payload.get("white_rating")
+                    w_diff = payload.get("white_diff")
+                    b_new = payload.get("black_rating")
+                    b_diff = payload.get("black_diff")
+                    if isinstance(w_new, int):
+                        session.white_rating = w_new
+                    if isinstance(w_diff, int):
+                        session.white_rating_diff = w_diff
+                    if isinstance(b_new, int):
+                        session.black_rating = b_new
+                    if isinstance(b_diff, int):
+                        session.black_rating_diff = b_diff
+                    if g._pgn_document is not None:
+                        from dataclasses import replace
+                        extra_headers = dict(g._pgn_document.headers)
+                        if session.white_rating is not None:
+                            extra_headers["WhiteElo"] = str(session.white_rating)
+                        if session.black_rating is not None:
+                            extra_headers["BlackElo"] = str(session.black_rating)
+                        g._pgn_document = replace(g._pgn_document, headers=extra_headers)
+                    self.white_clock.refresh(g)
+                    self.black_clock.refresh(g)
+                if hasattr(self, "lichess_menu"):
+                    self.lichess_menu.refresh()
+            elif kind == "move_sent":
+                if self.game.online_session is not None:
+                    self.game.online_session.move_in_flight = False
+            elif kind == "move_failed":
+                g = self.game
+                if g.online_session is not None:
+                    g.online_session.move_in_flight = False
+                if g.board.move_stack:
+                    g.position.undo()
+                    if g.clock_history:
+                        g.white_time, g.black_time, g.active_clock_color = g.clock_history.pop()
+                    g.active_clock_color = g.board.turn
+                    g.refresh_move_list()
+                g.result_text = f"Lichess move rejected: {payload}"
+                self.statusBar().showMessage(g.result_text)
+            elif kind in ("stream_error", "action_error"):
+                self.game.result_text = str(payload)
+                self.statusBar().showMessage(self.game.result_text)
+
+    def _handle_lichess_stream_event(self, event: dict):
+        from datetime import date
+        from otb_chess.services.lichess import LichessGameSession, format_lichess_termination
+        g = self.game
+        etype = event.get("type")
+        if etype == "gameFull":
+            my_user = (
+                self.lichess.account.username
+                if self.lichess.account is not None
+                else g.cfg.get("lichess_username", "")
+            )
+            session = LichessGameSession.from_game_full(event, my_username=my_user)
+            g.online_session = session
+            self._enforce_lichess_fair_play_lock()
+
+            g.end_variation(resume=False)
+            g.return_to_live()
+            initial_fen = None if session.initial_fen in ("", "startpos") else session.initial_fen
+            starting_position = ChessPosition(initial_fen) if initial_fen else ChessPosition()
+            g.board = starting_position.legacy_board
+            g._review_live = g._pgn_document = g._declared_result = None
+            g.clock_history.clear()
+            g.selected = g.drag_piece = g.drag_world = None
+            g.premove = None
+            g.move_animation = None
+
+            clock_cfg = event.get("clock") or {}
+            initial_ms = clock_cfg.get("initial")
+            inc_ms = clock_cfg.get("increment")
+            if isinstance(initial_ms, (int, float)):
+                g.white_time = g.black_time = float(initial_ms) / 1000.0
+                g.clocks_disabled = False
+            if isinstance(inc_ms, (int, float)):
+                g.increment = float(inc_ms) / 1000.0
+
+            g.clock_mode = "Online"
+            g.clock_paused = False
+            g.awaiting_clock_press = False
+            g.awaiting_clock_color = None
+            g.active_clock_color = g.board.turn
+            g.last_clock_tick = time.perf_counter()
+            g.game_started = True
+            g.game_over = False
+
+            if session.my_color is not None:
+                g.set_board_facing("white" if session.my_color else "black")
+
+            details = {
+                "Event": f"Lichess {'Rated' if session.rated else 'Casual'} {session.speed.capitalize()}",
+                "Site": f"{self.lichess.server_url}/{session.game_id}",
+                "Date": date.today().strftime("%Y.%m.%d"),
+                "White": session.white_name,
+                "Black": session.black_name,
+                "Round": "?",
+            }
+            g.set_game_details(details)
+            if g._pgn_document is not None:
+                from dataclasses import replace
+                extra_headers = dict(g._pgn_document.headers)
+                if session.white_rating is not None:
+                    extra_headers["WhiteElo"] = str(session.white_rating)
+                if session.black_rating is not None:
+                    extra_headers["BlackElo"] = str(session.black_rating)
+                g._pgn_document = replace(g._pgn_document, headers=extra_headers)
+
+            g.play_game_sound(g.sound_game_start)
+            side_name = "White" if session.my_color else "Black"
+            opponent = session.black_name if session.my_color else session.white_name
+            g.result_text = f"Lichess game vs {opponent} ({side_name})"
+            state = event.get("state")
+            if isinstance(state, dict):
+                self._apply_lichess_game_state(state, initial_sync=True)
+            g.refresh_move_list()
+            self.white_clock.refresh(g)
+            self.black_clock.refresh(g)
+            self.refresh_game_actions()
+        elif etype == "gameState":
+            self._apply_lichess_game_state(event, initial_sync=False)
+        elif etype == "opponentGone":
+            if event.get("gone"):
+                secs = event.get("claimWinInSeconds")
+                suffix = f" (claim win in {secs}s)" if isinstance(secs, int) else ""
+                g.result_text = f"Opponent disconnected from Lichess{suffix}."
+            else:
+                g.result_text = "Opponent reconnected."
+
+    def _apply_lichess_game_state(self, state: dict, *, initial_sync: bool = False):
+        from otb_chess.services.lichess import format_lichess_termination
+        g = self.game
+        session = g.online_session
+        if session is None:
+            return
+        was_over = g.game_over
+        g.return_to_live()
+        moves_str = str(state.get("moves") or "").strip()
+        server_moves = moves_str.split() if moves_str else []
+        local_moves = [g.position.uci(m) for m in g.position.moves]
+
+        # Reconcile takebacks or divergence if server moves do not start with local moves
+        while local_moves and (
+            len(local_moves) > len(server_moves)
+            or server_moves[: len(local_moves)] != local_moves
+        ):
+            g.position.undo()
+            local_moves.pop()
+            g._declared_result = None
+
+        # Apply any new moves from server
+        new_moves = server_moves[len(local_moves):]
+        for idx, uci_text in enumerate(new_moves):
+            try:
+                mv = g.position.parse_uci(uci_text)
+            except Exception:
+                break
+            animate_this = not initial_sync and idx == len(new_moves) - 1
+            saved_anim = g.move_animation_ms
+            if not animate_this:
+                g.move_animation_ms = 0
+            try:
+                g.try_move(mv.from_square, mv.to_square, is_engine=False, promotion=mv.promotion, is_remote=True)
+            finally:
+                g.move_animation_ms = saved_anim
+
+        session.move_in_flight = False
+        wtime = state.get("wtime")
+        btime = state.get("btime")
+        winc = state.get("winc")
+        binc = state.get("binc")
+        if isinstance(wtime, (int, float)):
+            g.white_time = max(0.0, float(wtime) / 1000.0)
+        if isinstance(btime, (int, float)):
+            g.black_time = max(0.0, float(btime) / 1000.0)
+        if isinstance(winc, (int, float)):
+            g.increment = float(winc) / 1000.0
+        elif isinstance(binc, (int, float)):
+            g.increment = float(binc) / 1000.0
+        g.active_clock_color = g.board.turn
+        g.last_clock_tick = time.perf_counter()
+
+        session.wdraw = bool(state.get("wdraw", False))
+        session.bdraw = bool(state.get("bdraw", False))
+        session.wtakeback = bool(state.get("wtakeback", False))
+        session.btakeback = bool(state.get("btakeback", False))
+        session.status = str(state.get("status") or "started")
+        session.winner = state.get("winner")
+
+        if session.opponent_offered_draw and session.active:
+            g.result_text = "Opponent offered a draw — click '=' to accept."
+        elif session.opponent_proposed_takeback and session.active:
+            g.result_text = "Opponent requested a takeback — click '−' to accept."
+
+        if not session.active:
+            g.premove = None
+            g.game_started = False
+            g.game_over = True
+            g.awaiting_clock_press = False
+            g.awaiting_clock_color = None
+            reason, pgn_result = format_lichess_termination(session.status, session.winner)
+            g.result_text = reason
+            g._declared_result = None if pgn_result == "*" else pgn_result
+            if not was_over:
+                g.play_game_sound(g.sound_game_end)
+            if session.rated and session.status != "aborted" and not session.ratings_refreshed:
+                session.ratings_refreshed = True
+                self.refresh_lichess_post_game_ratings(session.game_id)
+            self._release_lichess_fair_play_lock()
+            self.session.save(g, force=True)
+            if hasattr(self, "lichess_menu"):
+                self.lichess_menu.refresh()
+        elif g.premove is not None and g.human_can_move():
+            g.try_apply_premove()
+
+        g.refresh_move_list()
+        self.white_clock.refresh(g)
+        self.black_clock.refresh(g)
+        self.refresh_game_actions()
+
+    def on_lichess_auth_changed(self, message=""):
+        if message:
+            self.game.result_text = message
+            self.statusBar().showMessage(message)
+        if hasattr(self, "lichess_menu"):
+            self.lichess_menu.refresh()
+
+    def apply_lichess_login_parameters(self, params):
+        try:
+            url = params.normalized_url()
+            cid = params.normalized_client_id()
+        except ValueError as exc:
+            self.game.result_text = str(exc)
+            return False
+        self.lichess.server_url = url
+        self.lichess.client_id = cid
+        self.game.cfg["lichess_url"] = url
+        self.game.cfg["lichess_client_id"] = cid
+        if params.username.strip():
+            self.game.cfg["lichess_username"] = params.username.strip()
+        if params.normalized_token():
+            self.lichess.token = params.normalized_token()
+            self.lichess.account = None
+            from otb_chess.services.lichess import save_stored_auth
+            save_stored_auth(self.lichess.token, None, url, cid)
+            self.verify_lichess_session(expected_username=params.username.strip())
+        self.game.persist()
+        if hasattr(self, "lichess_menu"):
+            self.lichess_menu.refresh()
+        return True
+
+    def verify_lichess_session(self, expected_username=""):
+        if self.lichess_verifying or not self.lichess.token:
+            return
+        self.lichess_verifying = True
+        self.game.result_text = "Verifying Lichess connection…"
+        from otb_chess.services.lichess import LichessLoginParameters
+        params = LichessLoginParameters(
+            server_url=self.lichess.server_url,
+            client_id=self.lichess.client_id,
+            token=self.lichess.token,
+            username=expected_username or self.game.cfg.get("lichess_username", ""),
+        )
+
+        def worker():
+            try:
+                account = self.lichess.login_with_parameters(params, persist=True)
+                self.lichess_verify_result = (True, f"Signed in to Lichess as {account.display_name}.")
+            except Exception as exc:
+                self.lichess_verify_result = (False, str(exc))
+            finally:
+                self.lichess_verifying = False
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def logout_lichess(self):
+        self.lichess.logout()
+        self.game.cfg["lichess_username"] = ""
+        self.game.persist()
+        self.on_lichess_auth_changed("Logged out of Lichess.")
+
     def reset_board_and_clocks(self):
         if self.bookmark_pending is not None or self.new_game_pending:
             return
@@ -1239,9 +1804,10 @@ class MainWindow(DocumentActions, QMainWindow):
             from otb_chess.bookmarks import capture_position
             node = {"type": "bookmark", "name": "Initial position",
                     "position": capture_position(chess.Board()), "facing": self.game.board_facing}
-        self.open_bookmark(node, reset_clocks=True)
+        self.open_bookmark(node, reset_clocks=True,
+                           facing_override=self.game.board_facing)
 
-    def open_bookmark(self, node, *, reset_clocks=False):
+    def open_bookmark(self, node, *, reset_clocks=False, facing_override=None):
         from otb_chess.services.bookmark_actions import validate_restore
         try:
             validate_restore(node)
@@ -1256,7 +1822,8 @@ class MainWindow(DocumentActions, QMainWindow):
         self.new_game_pending = False
         self.pending_difficulty = None
         self.bookmark_pending = {"node": deepcopy(node), "analysis": g.analysis_enabled,
-                                 "stage": "waiting", "reset_clocks": reset_clocks}
+                                 "stage": "waiting", "reset_clocks": reset_clocks,
+                                 "facing_override": facing_override}
         g.analysis_enabled = False
         g.result_text = "Opening bookmark — clocks paused"
         self.board_widget.setEnabled(False)
@@ -1280,7 +1847,10 @@ class MainWindow(DocumentActions, QMainWindow):
         try:
             from otb_chess.services.bookmark_actions import restore_bookmark
             self.board_widget.makeCurrent()
-            restore_bookmark(g, pending["node"])
+            restore_node = deepcopy(pending["node"])
+            if pending["facing_override"] is not None:
+                restore_node["facing"] = pending["facing_override"]
+            restore_bookmark(g, restore_node)
             if pending.get("reset_clocks"):
                 g.reset_clock()
                 g.active_clock_color = g.board.turn
@@ -1465,6 +2035,15 @@ class MainWindow(DocumentActions, QMainWindow):
             row.addWidget(button)
             form.addRow(label,row)
         form.addRow("Engine plays",side)
+        min_thinking = QDoubleSpinBox()
+        min_thinking.setObjectName("engineMinThinkingTime")
+        min_thinking.setRange(0.0, 300.0)
+        min_thinking.setDecimals(1)
+        min_thinking.setSingleStep(0.5)
+        min_thinking.setSuffix(" sec")
+        min_thinking.setValue(float(g.cfg.get("engine_min_thinking_seconds", 0.0) or 0.0))
+        min_thinking.setKeyboardTracking(False)
+        form.addRow("Minimum thinking time", min_thinking)
         from otb_chess.services import personalities
         personality = QComboBox()
         personality.setObjectName("enginePersonality")
@@ -1604,7 +2183,10 @@ class MainWindow(DocumentActions, QMainWindow):
         form.addRow(buttons)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             previous_difficulty = g.cfg.get("engine_difficulty","custom")
+            min_thinking.interpretText()
+            g.cfg["engine_min_thinking_seconds"] = float(min_thinking.value())
             g.engine_side_var.set(side.currentText())
+            g.persist()
             if presets.currentData() == "personality":
                 rating.interpretText()
                 self.pending_difficulty = None
@@ -1646,6 +2228,8 @@ class MainWindow(DocumentActions, QMainWindow):
     def choose_color(self, which):
         g = self.game
         original = g.color_value(which)
+        piece_color = which in ("white_piece", "black_piece")
+        original_override = g.cfg.get(which + "_color") if piece_color else None
         dialog = QColorDialog(QColor.fromRgbF(*original),self)
         dialog.setWindowTitle("Choose colour")
         dialog.setOption(QColorDialog.ColorDialogOption.DontUseNativeDialog,True)
@@ -1666,12 +2250,18 @@ class MainWindow(DocumentActions, QMainWindow):
                     g.background_image_path = ""
                     g.background_style = "solid"
             else:
-                g.set_color_value(which,original)
+                g.set_color_value(which,original_override if piece_color else original)
         finally:
             g.preview_background_color = False
             self.board_widget.update()
             g.persist()
             dialog.deleteLater()
+
+    def reset_piece_colors(self):
+        for side in ("white_piece", "black_piece"):
+            self.game.set_color_value(side, None)
+        self.game.persist()
+        self.board_widget.update()
 
     def refresh_background_actions(self):
         for key,action in self.background_actions.items():
@@ -1715,6 +2305,11 @@ class MainWindow(DocumentActions, QMainWindow):
         g.persist()
 
     def toggle_analysis(self, enabled):
+        if enabled and self.game.online_session is not None and self.game.online_session.active:
+            self.analysis_action.setChecked(False)
+            self.analysis_button.setChecked(False)
+            self.game.result_text = "Engine analysis is disabled during live Lichess play."
+            return
         self.game.analysis_enabled = enabled
         self.game.analysis_revision += 1
         if not enabled and self.game.analysis_engine is not None:
@@ -1730,12 +2325,20 @@ class MainWindow(DocumentActions, QMainWindow):
             self.engine_metrics.setText("Analysis paused")
 
     def open_engine_analysis(self):
+        if self.game.online_session is not None and self.game.online_session.active:
+            self.engine_toggle.setChecked(False)
+            self.game.result_text = "Engine analysis is disabled during live Lichess play."
+            return
         self.engine_toggle.setChecked(True)
         self.engine_panel.show()
         self.engine_panel.raise_()
         self.engine_panel.activateWindow()
 
     def set_analysis_window_visible(self, visible):
+        if visible and self.game.online_session is not None and self.game.online_session.active:
+            self.engine_toggle.setChecked(False)
+            self.game.result_text = "Engine analysis is disabled during live Lichess play."
+            return
         if visible:
             self.engine_panel.show()
             self.engine_panel.raise_()
@@ -1818,7 +2421,9 @@ class MainWindow(DocumentActions, QMainWindow):
         if self.bookmark_pending is not None:
             self.advance_bookmark_restore()
             return
+        self.process_lichess_events()
         g = self.game
+        online_active = g.online_session is not None and g.online_session.active
         self.engine_panel.refresh_preview()
         g.update_clock()
         self.engine_enabled_button.blockSignals(True)
@@ -1826,10 +2431,10 @@ class MainWindow(DocumentActions, QMainWindow):
         self.refresh_engine_toggle()
         self.engine_enabled_button.blockSignals(False)
         if (getattr(g, '_engine_resume_pending', False) and not g.engine_manager.thinking
-                and not self.new_game_pending and self.pending_difficulty is None):
+                and not self.new_game_pending and self.pending_difficulty is None and not online_active):
             g._engine_resume_pending = False
             g.maybe_request_engine_move()
-        if not self.new_game_pending and self.pending_difficulty is None:
+        if not self.new_game_pending and self.pending_difficulty is None and not online_active:
             g.apply_pending_engine_move()
         self.session.save(g)
         g.maybe_persist_camera()
@@ -1841,8 +2446,17 @@ class MainWindow(DocumentActions, QMainWindow):
             if not path or not ok:
                 g.engine_side = None
             g.persist()
-            if ok and path and self.pending_difficulty is None and not self.new_game_pending:
+            if ok and path and self.pending_difficulty is None and not self.new_game_pending and not online_active:
                 g.maybe_request_engine_move()
+        if self.lichess_verify_result is not None:
+            ok, message = self.lichess_verify_result
+            self.lichess_verify_result = None
+            if ok and self.lichess.account is not None:
+                g.cfg["lichess_username"] = self.lichess.account.username
+                if not g.cfg.get("player_name"):
+                    g.cfg["player_name"] = self.lichess.account.username
+                g.persist()
+            self.on_lichess_auth_changed(message)
         if self.pending_difficulty is not None:
             self.select_difficulty(self.pending_difficulty)
         self.start_pending_game()
@@ -1851,33 +2465,40 @@ class MainWindow(DocumentActions, QMainWindow):
         self.refresh_material()
         self.refresh_opening()
         self.refresh_game_actions()
-        self.play_button.setText("Starting game…" if self.new_game_pending else "Start game" if not g.game_started or g.game_over else "Resume clock" if g.clock_paused else "Pause clock")
-        if g.clocks_disabled and g.game_started and not g.game_over and not self.new_game_pending:
-            self.play_button.setText('Resume game' if g.clock_paused else 'Pause game')
-        self.play_button.setEnabled(not self.new_game_pending and
-                                    (not g.game_started or g.game_over or
-                                     not (g.engine_loading or g.engine_manager.thinking)))
+        if online_active:
+            self.play_button.setText("Online game active")
+            self.play_button.setEnabled(False)
+        else:
+            self.play_button.setText("Starting game…" if self.new_game_pending else "Start game" if not g.game_started or g.game_over else "Resume clock" if g.clock_paused else "Pause clock")
+            if g.clocks_disabled and g.game_started and not g.game_over and not self.new_game_pending:
+                self.play_button.setText('Resume game' if g.clock_paused else 'Pause game')
+            self.play_button.setEnabled(not self.new_game_pending and
+                                        (not g.game_started or g.game_over or
+                                         not (g.engine_loading or g.engine_manager.thinking)))
         self.refresh_navigation()
-        self.clock_summary.setText(f"{g.time_control_var.get()}  ·  {'Manual clock' if g.clock_mode == 'OTB' else 'Automatic clock'}")
-        if g.clocks_disabled:
+        if g.online_session is not None:
+            self.clock_summary.setText(f"Lichess  ·  {g.online_session.white_name} vs {g.online_session.black_name}")
+        elif g.clocks_disabled:
             self.clock_summary.setText('Infinite time · Clocks disabled')
+        else:
+            self.clock_summary.setText(f"{g.time_control_var.get()}  ·  {'Manual clock' if g.clock_mode == 'OTB' else 'Automatic clock'}")
         self.statusBar().showMessage(g.preview_description or self.session.error or g.result_text)
         self.board_status.setText(g.preview_description or f"{g.board_mode}  ·  {g.piece_sets[g.piece_set].name}")
         self.engine_name.setText("Stockfish - Full strength")
-        self.analysis_button.setEnabled(True)
+        self.analysis_button.setEnabled(not online_active)
         fen = g.board.fen()
         if fen != self.last_fen:
             self.refresh_moves()
             self.engine_line.clear()
-            self.engine_metrics.setText("Analysing…" if g.analysis_enabled else "Enable analysis from the Engine menu.")
+            self.engine_metrics.setText("Engine analysis is disabled during live Lichess play." if online_active else "Analysing…" if g.analysis_enabled else "Enable analysis from the Engine menu.")
             self.last_fen = fen
-        if g.analysis_enabled and time.perf_counter()-g.analysis_stamp > .75:
+        if g.analysis_enabled and not online_active and time.perf_counter()-g.analysis_stamp > .75:
             g.request_analysis()
         output = g.engine_output
         if output is not None and output is not self.last_output:
             self.last_output = output
             source,info,error = output
-            if (source == fen and g.analysis_enabled
+            if (source == fen and g.analysis_enabled and not online_active
                     and getattr(g, 'engine_output_token', g.analysis_position_token()) == g.analysis_position_token()):
                 if error:
                     self.engine_metrics.setText(error)
@@ -1895,6 +2516,10 @@ class MainWindow(DocumentActions, QMainWindow):
             return
         self.closing = True
         self.timer.stop()
+        self.lichess.cancel_oauth()
+        self.lichess.cancel_seek()
+        self.lichess.stop_event_stream()
+        self.lichess.stop_game_stream()
         g.end_variation(resume=False)
         self.engine_panel.remember_geometry()
         self.engine_panel.hide()
@@ -1932,14 +2557,16 @@ def configure_graphics():
     QSurfaceFormat.setDefaultFormat(fmt)
 
 
-def run():
+def run(argv=None):
+    from otb_chess.services.lichess import parse_cli_login_args
+    lichess_params, remaining = parse_cli_login_args(sys.argv[1:] if argv is None else argv)
     configure_graphics()
-    app = QApplication.instance() or QApplication(sys.argv)
+    app = QApplication.instance() or QApplication([sys.argv[0], *remaining])
     app.setApplicationName("OTBMaster3D")
     app.setWindowIcon(QIcon(str(APP_DIR / "assets" / "app-icon.ico")))
     if sys.platform == "win32":
         import ctypes
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("OTBMaster3D.Desktop")
-    window = MainWindow()
+    window = MainWindow(lichess_params=lichess_params)
     window.show()
     sys.exit(app.exec())

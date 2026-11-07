@@ -103,6 +103,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.background_texture_size = None
         self.show_coordinates = bool(self.cfg["show_coordinates"])
         self.show_move_indicator = bool(self.cfg.get("show_move_indicator", True))
+        self.show_energetic_overlay = bool(self.cfg.get("show_energetic_overlay", False))
         self.sound_enabled = bool(self.cfg.get("sound_enabled", True))
         self.sound_profile = self.cfg.get("sound_profile", DEFAULT_SOUND_PROFILE)
         if self.sound_profile not in SOUND_PROFILES:
@@ -155,9 +156,13 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.engine_manager = EngineManager(self)
         self.pending_engine_move = None
         self.pending_engine_position = None
+        self.pending_engine_ready_at = 0.0
         self.last_engine_search = None
         self.pending_engine_error = None
         self.book_path = self.cfg.get("book_path", "")
+        self.online_session = None
+        self.last_local_uci_move = None
+        self.premove = None
         self.ui = None
         if render_widget is None:
             glfw.set_window_user_pointer(self.window, self)
@@ -170,28 +175,125 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
     def legal_targets(self):
         if self.selected is None:
             return set()
+        if self.human_can_premove():
+            return self.premove_targets(self.selected)
         return self.position.legal_targets(self.selected)
 
-    def human_can_move(self):
-        if self._review_live is not None:
+    def human_premove_color(self):
+        if self._review_live is not None or self.game_over:
+            return None
+        if self.online_session is not None and self.online_session.active:
+            if self.online_session.my_color is None:
+                return None
+            if self.board.turn != self.online_session.my_color or self.online_session.move_in_flight:
+                return self.online_session.my_color
+            return None
+        if (
+            self.engine_enabled and self.game_started
+            and self.engine_manager.engine is not None
+            and self.engine_side is not None
+        ):
+            if self.board.turn == self.engine_side or self.awaiting_clock_press:
+                return not self.engine_side
+        return None
+
+    def human_can_premove(self):
+        return self.human_premove_color() is not None and not self.human_can_move()
+
+    def premove_targets(self, sq=None):
+        if sq is None:
+            sq = self.selected
+        if sq is None:
+            return set()
+        my_color = self.human_premove_color()
+        if my_color is None:
+            return set()
+        p = self.position.piece_at(sq)
+        if not p or p.color != my_color:
+            return set()
+        f0, r0 = chess.square_file(sq), chess.square_rank(sq)
+        targets = set()
+        pt = p.piece_type
+        for dst in range(64):
+            if dst == sq:
+                continue
+            f1, r1 = chess.square_file(dst), chess.square_rank(dst)
+            df, dr = f1 - f0, r1 - r0
+            adf, adr = abs(df), abs(dr)
+            if pt == chess.KNIGHT:
+                if (adf, adr) in ((1, 2), (2, 1)):
+                    targets.add(dst)
+            elif pt == chess.BISHOP:
+                if adf == adr:
+                    targets.add(dst)
+            elif pt == chess.ROOK:
+                if df == 0 or dr == 0:
+                    targets.add(dst)
+            elif pt == chess.QUEEN:
+                if df == 0 or dr == 0 or adf == adr:
+                    targets.add(dst)
+            elif pt == chess.KING:
+                if max(adf, adr) == 1:
+                    targets.add(dst)
+                elif adr == 0 and adf == 2 and f0 == 4 and r0 == (0 if my_color == chess.WHITE else 7):
+                    targets.add(dst)
+            elif pt == chess.PAWN:
+                step = 1 if my_color == chess.WHITE else -1
+                start_rank = 1 if my_color == chess.WHITE else 6
+                if dr == step and adf <= 1:
+                    targets.add(dst)
+                elif dr == 2 * step and df == 0 and r0 == start_rank:
+                    targets.add(dst)
+        return targets
+
+    def set_premove(self, fr, to, promotion=None):
+        if fr is None or to is None or fr == to or not self.human_can_premove():
             return False
+        if to not in self.premove_targets(fr):
+            return False
+        p = self.position.piece_at(fr)
+        if not p:
+            return False
+        if p.piece_type == chess.PAWN and chess.square_rank(to) in (0, 7) and promotion is None:
+            promotion = chess.QUEEN
+        self.premove = (fr, to, promotion)
+        self.selected = None
+        return True
+
+    def clear_premove(self):
+        self.premove = None
+
+    def try_apply_premove(self):
+        if self.premove is None or not self.human_can_move():
+            return False
+        fr, to, promo = self.premove
+        self.premove = None
+        return self.try_move(fr, to, is_engine=False, promotion=promo, is_remote=False, silent_illegal=True)
+
+    def human_can_move(self):
+        if self._review_live is not None or self.game_over:
+            return False
+        if self.online_session is not None and self.online_session.active:
+            if self.online_session.my_color is None or self.online_session.move_in_flight:
+                return False
+            return self.board.turn == self.online_session.my_color
         engine_has_turn = (
             self.engine_enabled and self.game_started
             and self.engine_manager.engine is not None
             and self.engine_side == self.board.turn
         )
         return (
-            not self.game_over and not (self.engine_enabled and self.awaiting_clock_press) and not engine_has_turn
+            not (self.engine_enabled and self.awaiting_clock_press) and not engine_has_turn
         )
 
-    def try_move(self, fr, to, is_engine=False, promotion=None):
-        if is_engine and not self.engine_enabled:
+    def try_move(self, fr, to, is_engine=False, promotion=None, is_remote=False, silent_illegal=False):
+        if is_engine and (not self.engine_enabled or (self.online_session is not None and self.online_session.active)):
             return False
         if self.game_over:
             return False
         if fr is None or to is None or fr == to:
             return False
-        if not is_engine and not self.human_can_move():
+        if not is_engine and not is_remote and not self.human_can_move():
             return False
         p = self.position.piece_at(fr)
         if not p:
@@ -199,9 +301,10 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         if p.piece_type == chess.PAWN and chess.square_rank(to) in (0, 7):
             choices = self.position.promotion_choices(fr, to)
             if not choices:
-                self.play_game_sound(self.sound_illegal)
+                if not silent_illegal:
+                    self.play_game_sound(self.sound_illegal)
                 return False
-            if promotion is None and not is_engine:
+            if promotion is None and not is_engine and not is_remote:
                 position = self.board.fen()
                 promotion = self.choose_promotion(p.color, to)
                 # A modal chooser runs the UI timer: the clock can expire meanwhile.
@@ -212,11 +315,11 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         try:
             mv = Move(fr, to, promotion=promotion)
         except ValueError:
-            if not is_engine:
+            if not is_engine and not is_remote and not silent_illegal:
                 self.play_game_sound(self.sound_illegal)
             return False
         if not self.position.is_legal(mv):
-            if not is_engine:
+            if not is_engine and not is_remote and not silent_illegal:
                 self.play_game_sound(self.sound_illegal)
             return False
         mover = self.board.turn
@@ -228,12 +331,16 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             )
         origins = dict(details.origins)
         self.position.apply(mv)
+        if not is_engine and not is_remote:
+            self.last_local_uci_move = self.position.uci(mv)
         self.move_animation = (self.board, self.board.fen(),time.perf_counter(),
                                self.move_animation_ms / 1000,origins) if self.move_animation_ms else None
+        online_active = self.online_session is not None and self.online_session.active
         if self.game_started:
             if len(self.board.move_stack) == 1:
                 self.last_clock_tick = time.perf_counter()
-            if self.clock_mode == "OTB" and not self.clocks_disabled and not is_engine and self.engine_enabled:
+            if (self.clock_mode == "OTB" and not online_active and not self.clocks_disabled
+                    and not is_engine and not is_remote and self.engine_enabled):
                 self.awaiting_clock_press = True
                 self.awaiting_clock_color = mover
                 self.active_clock_color = mover
@@ -242,10 +349,11 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
                     f"{mover_name} moved - hit clock ({self.clock_binding})"
                 )
             else:
-                if mover == chess.WHITE:
-                    self.white_time += self.increment
-                else:
-                    self.black_time += self.increment
+                if not online_active or len(self.board.move_stack) > 2:
+                    if mover == chess.WHITE:
+                        self.white_time += self.increment
+                    else:
+                        self.black_time += self.increment
                 self.active_clock_color = self.board.turn
                 self.last_clock_tick = time.perf_counter()
         self.refresh_move_list()
@@ -255,7 +363,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
                      else self.sound_check if self.position.is_check()
                      else self.sound_capture if capture else self.sound_move)
             self.play_game_sound(sound)
-        if self.game_started and not self.game_over and not self.awaiting_clock_press:
+        if self.game_started and not self.game_over and not self.awaiting_clock_press and not online_active:
             self.maybe_request_engine_move()
         return True
 
@@ -265,6 +373,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         if ending is not None:
             self.game_over = True
             self.game_started = False
+            self.premove = None
             self.awaiting_clock_press = False
             self.awaiting_clock_color = None
             self.result_text = ending.reason
@@ -323,6 +432,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.active_clock_color = self.board.turn
         self.game_started = True
         self.selected = None
+        self.premove = None
         self.game_over = False
         self.awaiting_clock_press = False
         self.awaiting_clock_color = None
@@ -333,11 +443,13 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.update_game_end()
 
     def reset_board(self):
+        self.online_session = None
         self._declared_result = None
         self._review_live = self._pgn_document = None
         self.position.reset()
         self.clock_history.clear()
         self.selected = None
+        self.premove = None
         self.game_started = False
         self.game_over = False
         self.clock_paused = False
@@ -347,6 +459,8 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.refresh_move_list()
 
     def start_game(self, starting_fen=None):
+        self.online_session = None
+        self.premove = None
         setup_details = (self.game_details() if self._pgn_document is not None
                          and not self.game_started and not self.game_over and not self.board.move_stack else None)
         starting_position = ChessPosition(starting_fen) if starting_fen is not None else ChessPosition()
@@ -418,6 +532,8 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
 
 
     def pick_book_move(self):
+        if self.online_session is not None and self.online_session.active:
+            return None
         if (self.engine_manager.loaded_configuration or {}).get("engine_id") == "rodent":
             if self.cfg.get("engine_book_mode", "personality") != "custom":
                 return None
@@ -438,6 +554,8 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             return None
 
     def set_engine_enabled(self, enabled):
+        if self.online_session is not None and self.online_session.active and enabled:
+            return
         enabled = bool(enabled)
         if enabled == self.engine_enabled:
             return
@@ -461,7 +579,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             self.maybe_request_engine_move()
 
     def maybe_request_engine_move(self):
-        if not self.engine_enabled:
+        if not self.engine_enabled or (self.online_session is not None and self.online_session.active):
             return
         if self.clock_paused or self._review_live is not None or self.pending_engine_move is not None:
             return
@@ -472,12 +590,15 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             and self.board.turn == self.engine_side
         ):
             return
+        min_think = max(0.0, float(self.cfg.get("engine_min_thinking_seconds", 0.0) or 0.0))
         bm = self.pick_book_move()
         if bm:
             self.pending_engine_generation = self.engine_manager.search_generation
             self.pending_engine_position = self.board.fen()
+            self.pending_engine_ready_at = time.perf_counter() + min_think
             self.pending_engine_move = bm
         elif self.engine_manager.engine:
+            self.pending_engine_ready_at = time.perf_counter() + min_think
             self.engine_manager.request_move()
 
     def apply_pending_engine_move(self):
@@ -492,6 +613,12 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         mv = self.pending_engine_move
         if mv is None:
             return
+        if self.game_over:
+            self.pending_engine_move = self.pending_engine_position = None
+            return
+        min_think = max(0.0, float(self.cfg.get("engine_min_thinking_seconds", 0.0) or 0.0))
+        if min_think > 0 and time.perf_counter() < getattr(self, "pending_engine_ready_at", 0.0):
+            return
         self.pending_engine_move = None
         generation = getattr(self, "pending_engine_generation", self.engine_manager.search_generation)
         if generation != self.engine_manager.search_generation:
@@ -503,4 +630,5 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             return
         if self.position.is_legal(mv):
             self.try_move(mv.from_square, mv.to_square, True, promotion=mv.promotion)
+            self.try_apply_premove()
 

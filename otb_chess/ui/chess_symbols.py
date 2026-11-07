@@ -6,9 +6,10 @@ from otb_chess.graphics.board_2d import flat_piece_image
 
 def promotion_icon(game, piece_type, color):
     style = game.flat_piece_set if game.board_mode == "2D" else "textbook"
-    spec = game.piece_sets[game.piece_set]
+    spec = game.colored_piece_set()
     material = spec.white if color else spec.black
-    image = flat_piece_image(style, piece_type, material, color)
+    tint = game.cfg.get("white_piece_color" if color else "black_piece_color") is not None
+    image = flat_piece_image(style, piece_type, material, color, tint=tint)
     rgba = QImage(image.tobytes(), image.width, image.height, QImage.Format.Format_RGBA8888).copy()
     return QIcon(QPixmap.fromImage(rgba))
 
@@ -69,6 +70,9 @@ def engine_icon(enabled, color):
 
 
 def clock_engine_label(game, color):
+    online = getattr(game, "online_session", None)
+    if online is not None:
+        return online.clock_label(bool(color))
     manager = game.engine_manager
     if not getattr(game, "engine_enabled", True) or manager.engine is None or game.engine_side_var.get() != ("White" if color else "Black"):
         return ""

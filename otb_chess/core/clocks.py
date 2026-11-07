@@ -18,9 +18,15 @@ class ClockControls:
     clocks_disabled = False
 
     def clocks_editable(self):
+        online = getattr(self, "online_session", None)
+        if online is not None and online.active:
+            return False
         return not self.clocks_disabled and not self.game_over and (self.clock_paused or self.clocks_waiting_for_first_move())
 
     def clocks_waiting_for_first_move(self):
+        online = getattr(self, "online_session", None)
+        if online is not None and online.active:
+            return not self.game_over and len(self.board.move_stack) < 2 and self._review_live is None
         return not self.game_over and not self.board.move_stack and self._review_live is None
 
     def hit_clock(self):
@@ -48,6 +54,9 @@ class ClockControls:
         self.maybe_request_engine_move()
 
     def stop_clock(self):
+        online = getattr(self, "online_session", None)
+        if online is not None and online.active:
+            return
         if not self.game_started or self.game_over:
             return
         self.return_to_live()
@@ -100,14 +109,18 @@ class ClockControls:
 
     def update_clock(self):
         now = time.perf_counter()
-        if self.clocks_disabled or not self.game_started or self.game_over or self.clock_paused or not self.board.move_stack:
+        online = getattr(self, "online_session", None)
+        online_active = online is not None and online.active
+        min_moves = 2 if online_active else 1
+        if (self.clocks_disabled or not self.game_started or self.game_over
+                or self.clock_paused or len(self.board.move_stack) < min_moves):
             self.last_clock_tick = now
             return
         e = now - self.last_clock_tick
         self.last_clock_tick = now
         if self.active_clock_color == chess.WHITE:
             self.white_time = max(0, self.white_time - e)
-            if self.white_time <= 0:
+            if self.white_time <= 0 and not online_active:
                 self.game_started = False
                 self.game_over = True
                 ending = ChessPosition.from_board(self.board).loss_outcome(chess.WHITE, on_time=True)
@@ -115,7 +128,7 @@ class ClockControls:
                 self.play_game_sound(self.sound_game_end)
         else:
             self.black_time = max(0, self.black_time - e)
-            if self.black_time <= 0:
+            if self.black_time <= 0 and not online_active:
                 self.game_started = False
                 self.game_over = True
                 ending = ChessPosition.from_board(self.board).loss_outcome(chess.BLACK, on_time=True)

@@ -13,6 +13,8 @@ installer-output/
 # User-specific application state
 config.json
 config.json.*.tmp
+lichess_auth.json
+lichess_auth.json.*.tmp
 session.json
 session.backup.json
 session.tmp

@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.7.2 - 2026-11-07
+
+- Add Lichess integration (`Lichess` menu) with OAuth2 PKCE browser sign-in,
+  Personal Access Token authentication, and CLI login parameter support.
+- Add Lichess challenge and lobby seek dialog supporting AI challenges, direct
+  player challenges, and Quick Pairing seeks across common time controls.
+- Add live Lichess Board API gameplay with real-time NDJSON stream sync, clock
+  synchronization, draw/takeback/resign/abort controls, automatic post-game
+  rating updates on the clocks and menu, and mandatory Fair Play engine/analysis
+  locking during active online play.
+- Add 1-move premoves with red square highlights, visual outcome preview on the
+  board, and right-click cancellation.
+- Add Minimum thinking time setting in Engine and opening book options.
+- Add an Energetic overlay beneath Move indicator: isolated White influence is
+  yellow, Black influence green, and shared influence red in both board views.
+- Add independent White and Black piece colours with live preview, saved settings
+  and reset to set defaults, for both 2D and 3D pieces.
+
 ## 1.6.9 - 2026-10-18
 
 - Split the analysis popup into retained best-three variations and live analysis,

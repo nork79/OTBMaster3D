@@ -16,6 +16,9 @@ APP_DIR = Path(sys.executable).resolve().parent if getattr(sys,"frozen",False) e
 USER_DATA_DIR = (Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / "OTBMaster3D"
                  if getattr(sys, "frozen", False) else APP_DIR)
 CONFIG_PATH = USER_DATA_DIR / "config.json"
+LICHESS_AUTH_PATH = USER_DATA_DIR / "lichess_auth.json"
+DEFAULT_LICHESS_URL = "https://lichess.org"
+DEFAULT_LICHESS_CLIENT_ID = "otbmaster3d-desktop"
 
 
 ENGINE_DIR = APP_DIR / "engines"
@@ -49,6 +52,9 @@ DEFAULT_BACKGROUND = (0.055, 0.055, 0.065)
 
 
 SELECT = (0.25, 0.63, 0.92)
+
+
+PREMOVE = (0.86, 0.22, 0.22)
 
 
 LEGAL = (0.24, 0.78, 0.38)
@@ -97,6 +103,17 @@ TIME_CONTROLS = {
 def default_config():
     return {
         "player_name": "",
+        "lichess_url": DEFAULT_LICHESS_URL,
+        "lichess_client_id": DEFAULT_LICHESS_CLIENT_ID,
+        "lichess_username": "",
+        "lichess_challenge_mode": "ai",
+        "lichess_time_control": "Rapid 10+0",
+        "lichess_custom_minutes": 10,
+        "lichess_custom_increment": 0,
+        "lichess_color": "random",
+        "lichess_rated": False,
+        "lichess_ai_level": 3,
+        "lichess_opponent": "",
         "light_square": list(DEFAULT_LIGHT),
         "dark_square": list(DEFAULT_DARK),
         "frame_color": list(DEFAULT_FRAME),
@@ -106,6 +123,8 @@ def default_config():
         "flat_piece_set": "textbook",
         "move_animation_ms": 0,
         "piece_set": "tournament",
+        "white_piece_color": None,
+        "black_piece_color": None,
         "board_mode": "3D",
         "board_type": "tournament",
         "two_d_flipped": False,
@@ -126,6 +145,7 @@ def default_config():
         "interface_theme": "Dark",
         "show_coordinates": True,
         "show_move_indicator": True,
+        "show_energetic_overlay": False,
         "sound_enabled": True,
         "sound_profile": "01_Soft_Lichess_Like",
         "time_control": "Bullet 2+1",
@@ -137,6 +157,7 @@ def default_config():
         "engine_difficulty": "custom",
         "engine_rating": 1500,
         "engine_style": "Balanced",
+        "engine_min_thinking_seconds": 0.0,
         "engine_personality": "tal",
         "engine_book_mode": "personality",
         "engine_defaults_applied": False,

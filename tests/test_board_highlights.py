@@ -61,6 +61,31 @@ class BoardHighlightTests(unittest.TestCase):
         self.assertEqual({(call.args[0], call.args[2]) for call in draw.call_args_list},
                          {(-0.5, -1.5), (-0.5, -0.5)})
 
+    def test_energetic_overlay_uses_displayed_position_and_overrides_square_highlights(self):
+        state = self.state()
+        state.show_energetic_overlay = True
+        state.display_board = Board('7r/8/8/8/8/8/P7/R7 w - - 0 1')
+        state.selected = chess.A3
+        colors = self.colors(state)
+        self.assertEqual(colors[chess.A3], (1, 1, 0))
+        self.assertEqual(colors[chess.H7], (0, 1, 0))
+        self.assertEqual(colors[chess.A8], (1, 0, 0))
+        self.assertEqual(colors[chess.A1], state.dark_square)
+        state.show_energetic_overlay = False
+        self.assertEqual(self.colors(state)[chess.A3], SELECT)
+
+    def test_reported_h2_draws_stronger_translucent_red(self):
+        state = self.state()
+        state.show_energetic_overlay = True
+        state.board = Board('r1b1kb1r/ppp1pppp/3q1n2/8/3n4/2NP1N2/PPPBBPPP/R2QK2R w KQkq - 5 8')
+        with patch.object(rendering, 'flat_square') as draw:
+            rendering.BoardRendering.draw_board(state)
+        overlay = [call for call in draw.call_args_list if call.kwargs.get('y') == .025
+                   and call.args[:2] == (-3.5, -2.5)]
+        self.assertEqual(len(overlay), 1)
+        self.assertEqual(overlay[0].args[4], (1, 0, 0))
+        self.assertEqual(overlay[0].kwargs['opacity'], .60)
+
 
 if __name__ == "__main__":
     unittest.main()

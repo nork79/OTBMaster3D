@@ -2,13 +2,14 @@
 
 from otb_chess.chess_backend import values as chess
 from otb_chess.chess_backend.position import ChessPosition
+from otb_chess.core.influence import isolated_influence, INFLUENCE_COLORS
 
 from otb_chess.graphics.board_2d import flat_square
 from otb_chess.graphics.backgrounds import upload_background
 import glfw
 import math
 import time
-from otb_chess.services.settings import BOARD_Y, SELECT, TURN_INDICATOR
+from otb_chess.services.settings import BOARD_Y, PREMOVE, SELECT, TURN_INDICATOR
 from otb_chess.graphics.gl_primitives import draw_box, draw_disc, draw_glyph, draw_check_halo
 from OpenGL.GL import GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST, GL_FALSE, GL_LIGHT0, GL_LIGHT1, GL_LIGHTING, GL_MODELVIEW, GL_MODELVIEW_MATRIX, GL_POSITION, GL_PROJECTION, GL_PROJECTION_MATRIX, GL_QUADS, GL_TEXTURE_2D, GL_TRUE, GL_VIEWPORT, glBegin, glBindTexture, glClear, glClearColor, glColor3f, glDepthMask, glDisable, glEnable, glEnd, glGetDoublev, glGetIntegerv, glLightfv, glLoadIdentity, glMatrixMode, glOrtho, glPopMatrix, glPushMatrix, glTexCoord2f, glTranslatef, glVertex2f
 from OpenGL.GLU import gluLookAt, gluPerspective, gluUnProject
@@ -114,6 +115,11 @@ class BoardRendering:
         if board.move_stack and self.move_animation is None:
             move = board.move_stack[-1]
             last_squares = {move.from_square, move.to_square}
+        premove_squares = set()
+        if getattr(self, "premove", None) is not None and getattr(self, "preview_board", None) is None:
+            premove_squares = {self.premove[0], self.premove[1]}
+        is_premoving = bool(getattr(self, "human_can_premove", lambda: False)())
+        active_select_color = PREMOVE if is_premoving else SELECT
         if self.board_type != "classic":
             self.board_surface_renderer.frame(self.board_type,self.frame_color,flat)
         elif flat:
@@ -127,17 +133,30 @@ class BoardRendering:
                 if sq in last_squares:
                     col = tuple(base * 0.45 + tint * 0.55
                                 for base, tint in zip(col, (0.90, 0.76, 0.25)))
+                if sq in premove_squares:
+                    col = tuple(base * 0.35 + tint * 0.65
+                                for base, tint in zip(col, PREMOVE))
                 if self.selected is not None and sq == getattr(self, "hover_square", None):
                     col = tuple(base * 0.4 + tint * 0.6
-                                for base, tint in zip(col, SELECT))
+                                for base, tint in zip(col, active_select_color))
                 if sq == self.selected:
-                    col = SELECT
+                    col = active_select_color
                 if self.board_type != "classic":
                     self.board_surface_renderer.square(self.board_type,3.5-f,r-3.5,col,flat=flat)
                 elif flat:
                     flat_square(3.5 - f, r - 3.5, 1, 1, col)
                 else:
                     draw_box(3.5 - f, 0.005, r - 3.5, 0.995, 0.025, 0.995, col, specular=0)
+
+        if getattr(self, "show_energetic_overlay", False):
+            pieces = tuple(sorted((sq, piece.piece_type, piece.color)
+                                  for sq, piece in board.piece_map().items()))
+            for sq, influence in enumerate(isolated_influence(pieces)):
+                if influence:
+                    # Keep shared influence prominent while retaining the board texture.
+                    opacity = 0.60 if influence == 3 else 0.35
+                    flat_square(3.5 - chess.square_file(sq), chess.square_rank(sq) - 3.5,
+                                1, 1, INFLUENCE_COLORS[influence], y=0.025, opacity=opacity)
 
         if self.show_move_indicator:
             indicator_x = 4.17 if math.cos(yaw) >= 0 else -4.17
@@ -178,6 +197,44 @@ class BoardRendering:
         preview = getattr(self, 'preview_board', None)
         return preview if preview is not None else self.board
 
+    def rendered_piece_map(self, board=None):
+        """Return the board piece map with any active premove visually applied."""
+        target_board = self.display_board if board is None else board
+        pieces = dict(target_board.piece_map())
+        premove = getattr(self, "premove", None)
+        if premove is None or getattr(self, "preview_board", None) is not None:
+            return pieces
+        src, dst, promo = premove
+        moving_piece = pieces.pop(src, None)
+        if moving_piece is None:
+            return pieces
+        if promo is not None:
+            moving_piece = type(moving_piece)(promo, moving_piece.color)
+        elif (
+            moving_piece.piece_type == chess.KING
+            and abs(chess.square_file(dst) - chess.square_file(src)) == 2
+            and chess.square_rank(dst) == chess.square_rank(src)
+        ):
+            rank = chess.square_rank(src)
+            if chess.square_file(dst) == 6:
+                rook_src, rook_dst = chess.square(7, rank), chess.square(5, rank)
+            else:
+                rook_src, rook_dst = chess.square(0, rank), chess.square(3, rank)
+            rook_piece = pieces.get(rook_src)
+            if rook_piece is not None and rook_piece.color == moving_piece.color and rook_piece.piece_type == chess.ROOK:
+                pieces[rook_dst] = pieces.pop(rook_src)
+        elif (
+            moving_piece.piece_type == chess.PAWN
+            and chess.square_file(dst) != chess.square_file(src)
+            and dst not in pieces
+        ):
+            cap_sq = chess.square(chess.square_file(dst), chess.square_rank(src))
+            cap_piece = pieces.get(cap_sq)
+            if cap_piece is not None and cap_piece.color != moving_piece.color and cap_piece.piece_type == chess.PAWN:
+                pieces.pop(cap_sq, None)
+        pieces[dst] = moving_piece
+        return pieces
+
     def draw(self):
         self.draw_background()
         self.camera()
@@ -191,7 +248,7 @@ class BoardRendering:
         if checked_king is not None:
             x, z = positions.get(checked_king, (3.5-chess.square_file(checked_king), chess.square_rank(checked_king)-3.5))
             draw_check_halo(x, z)
-        for sq, p in board.piece_map().items():
+        for sq, p in self.rendered_piece_map(board).items():
             if self.drag_piece == sq and self.was_drag and self.drag_world:
                 continue
             x,z = positions.get(sq,(3.5-chess.square_file(sq),chess.square_rank(sq)-3.5))
@@ -234,9 +291,10 @@ class BoardRendering:
         glEnable(GL_DEPTH_TEST)
 
     def draw_game_piece(self, piece, x, z, lifted=False):
-        spec = self.piece_sets[self.piece_set]
+        spec = self.colored_piece_set()
         if self.board_mode == "2D":
-            self.flat_piece_renderer.draw(spec, piece, x, z, self.view_yaw(), lifted, self.flat_piece_set)
+            tint = self.cfg.get("white_piece_color" if piece.color else "black_piece_color") is not None
+            self.flat_piece_renderer.draw(spec, piece, x, z, self.view_yaw(), lifted, self.flat_piece_set, tint=tint)
         else:
             self.piece_renderer.draw(spec, piece, x, z, lifted)
 
