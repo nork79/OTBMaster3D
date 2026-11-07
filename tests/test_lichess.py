@@ -25,6 +25,7 @@ from otb_chess.services.lichess import (
     LichessGameSession,
     LichessLoginParameters,
     clear_stored_auth,
+    format_bot_summary,
     format_lichess_termination,
     generate_pkce_pair,
     load_stored_auth,
@@ -187,13 +188,16 @@ class LichessServiceTests(unittest.TestCase):
 
         # All challenge presets map cleanly
         for preset in LICHESS_CHALLENGE_PRESETS:
-            opts = LichessChallengeOptions(mode="ai", preset=preset, ai_level=4, color="white")
+            opts = LichessChallengeOptions(mode="player", preset=preset, opponent_username="maia1", color="white")
             payload = opts.to_challenge_payload()
             tc = settings.TIME_CONTROLS[preset]
             self.assertEqual(payload["clock.limit"], str(int(tc.initial_seconds)))
             self.assertEqual(payload["clock.increment"], str(int(tc.increment_seconds)))
-            self.assertEqual(payload["level"], "4")
             self.assertEqual(payload["color"], "white")
+
+        # Lichess AI mode has been removed
+        with self.assertRaisesRegex(ValueError, "Unknown challenge mode: ai"):
+            LichessChallengeOptions(mode="ai", preset="Rapid 10+0").to_challenge_payload()
 
         # All seek presets map minutes + increment cleanly
         for preset in LICHESS_SEEK_PRESETS:
@@ -231,7 +235,7 @@ class LichessServiceTests(unittest.TestCase):
 
         # Infinite time control is rejected
         with self.assertRaisesRegex(ValueError, "Unsupported time control"):
-            LichessChallengeOptions(mode="ai", preset="Infinite (clocks disabled)").to_challenge_payload()
+            LichessChallengeOptions(mode="player", preset="Infinite (clocks disabled)", opponent_username="maia1").to_challenge_payload()
 
         # Player challenge requires opponent username
         with self.assertRaisesRegex(ValueError, "Enter a Lichess username"):
@@ -260,8 +264,6 @@ class LichessServiceTests(unittest.TestCase):
         def fake_opener(request, timeout=10.0):
             body = request.data.decode("utf-8") if request.data else ""
             requests_log.append((request.get_method(), request.full_url, body))
-            if request.full_url.endswith("/api/challenge/ai"):
-                return _FakeHTTPResponse({"id": "aiGame123", "status": "started"})
             if request.full_url.endswith("/api/challenge/TestFriend"):
                 return _FakeHTTPResponse({"challenge": {"id": "chal987", "status": "created"}})
             if request.full_url.endswith("/api/board/seek"):
@@ -274,15 +276,7 @@ class LichessServiceTests(unittest.TestCase):
             opener=fake_opener,
         )
 
-        # 1. AI Challenge
-        ai_res = client.create_challenge(
-            LichessChallengeOptions(mode="ai", preset="Blitz 5+3", ai_level=5, color="black")
-        )
-        self.assertEqual(ai_res["game_id"], "aiGame123")
-        self.assertIn("clock.limit=300", requests_log[-1][2])
-        self.assertIn("clock.increment=3", requests_log[-1][2])
-
-        # 2. Player Challenge (also rejects self-challenge)
+        # 1. Player Challenge (also rejects self-challenge)
         with self.assertRaisesRegex(ValueError, "cannot challenge your own"):
             client.create_challenge(
                 LichessChallengeOptions(mode="player", preset="Rapid 10+0", opponent_username="Nork79")
@@ -294,7 +288,7 @@ class LichessServiceTests(unittest.TestCase):
         self.assertEqual(player_res["challenge_id"], "chal987")
         self.assertIn("rated=true", requests_log[-1][2])
 
-        # 3. Quick Pairing Seek
+        # 2. Quick Pairing Seek
         seek_game_id = client.start_seek(
             LichessChallengeOptions(mode="seek", preset="Rapid 15+10", rated=False, color="random")
         )
@@ -470,7 +464,7 @@ class LichessUITests(unittest.TestCase):
         dialog.close()
         dialog.deleteLater()
 
-    def test_lichess_challenge_dialog_issues_ai_challenge_with_common_time_controls(self):
+    def test_lichess_challenge_dialog_issues_player_challenge_and_has_no_ai_option(self):
         w = self.window
         w.lichess.token = "lip_mock_ui_token"
         w.lichess.account = LichessAccount(user_id="nork79", username="nork79")
@@ -479,10 +473,27 @@ class LichessUITests(unittest.TestCase):
 
         captured = []
 
+        class _FakeEventStreamResponse:
+            def __iter__(self):
+                return iter([
+                    (json.dumps({"type": "gameStart", "game": {"id": "gameFromDialog777"}}) + "\n").encode("utf-8")
+                ])
+
+            def close(self):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
         def fake_opener(req, timeout=10.0):
-            if "/api/challenge/ai" in req.full_url:
+            if "/api/challenge/maia1" in req.full_url:
                 captured.append((req.full_url, req.data.decode("utf-8") if req.data else ""))
-                return _FakeHTTPResponse({"id": "gameFromDialog777"})
+                return _FakeHTTPResponse({"challenge": {"id": "gameFromDialog777", "status": "created"}})
+            if "/api/stream/event" in req.full_url:
+                return _FakeEventStreamResponse()
             return _FakeHTTPResponse({})
 
         w.lichess._opener = fake_opener
@@ -494,12 +505,16 @@ class LichessUITests(unittest.TestCase):
 
         mode_combo = dialog.findChild(QComboBox, "lichessChallengeMode")
         preset_combo = dialog.findChild(QComboBox, "lichessTimeControlPreset")
-        ai_spin = dialog.findChild(QSpinBox, "lichessAiLevel")
+        opponent_edit = dialog.findChild(QLineEdit, "lichessOpponentEdit")
         color_combo = dialog.findChild(QComboBox, "lichessColorCombo")
 
-        mode_combo.setCurrentIndex(mode_combo.findData("ai"))
+        # Verify Play vs Lichess AI (Stockfish) has been completely removed
+        self.assertEqual(mode_combo.findData("ai"), -1)
+        self.assertIsNone(dialog.findChild(QSpinBox, "lichessAiLevel"))
+
+        mode_combo.setCurrentIndex(mode_combo.findData("player"))
+        opponent_edit.setText("maia1")
         preset_combo.setCurrentText("Rapid 10+5")
-        ai_spin.setValue(4)
         color_combo.setCurrentIndex(color_combo.findData("white"))
         self.qt.processEvents()
 
@@ -516,7 +531,7 @@ class LichessUITests(unittest.TestCase):
         self.assertEqual(w.game.time_control_var.get(), "Rapid 10+5")
         self.assertEqual(w.game.cfg["lichess_time_control"], "Rapid 10+5")
         self.assertEqual(len(captured), 1)
-        self.assertIn("/api/challenge/ai", captured[0][0])
+        self.assertIn("/api/challenge/maia1", captured[0][0])
         self.assertIn("clock.limit=600", captured[0][1])
         self.assertIn("clock.increment=5", captured[0][1])
         dialog.close()
@@ -918,6 +933,158 @@ class LichessUITests(unittest.TestCase):
         self.assertEqual(len(g.board.move_stack), 2)
         self.assertIsNone(g.pending_engine_move)
         g.engine_manager.engine = None
+
+    def test_fetch_online_bots_and_challenge_dialog_bot_dropdown(self):
+        from PySide6.QtCore import QBuffer, QIODevice
+        from PySide6.QtGui import QPixmap, QColor
+        from PySide6.QtWidgets import QFrame, QLabel, QTextBrowser
+
+        w = self.window
+        w.lichess.token = "lip_bot_list_token"
+        w.lichess.account = LichessAccount(user_id="nork79", username="nork79")
+
+        # Create a valid 16x16 PNG in memory to simulate Lichess flair/flag/avatar assets
+        sample_pm = QPixmap(16, 16)
+        sample_pm.fill(QColor("#80bfab"))
+        buf = QBuffer()
+        buf.open(QIODevice.OpenModeFlag.WriteOnly)
+        sample_pm.save(buf, "PNG")
+        sample_png_bytes = bytes(buf.data())
+
+        ndjson_bots = "\n".join([
+            json.dumps({
+                "id": "maia1",
+                "username": "maia1",
+                "title": "BOT",
+                "patron": True,
+                "flair": "smileys.robot",
+                "profile": {
+                    "bio": "Maia 1 is a human-like neural network chess engine trained on 1100-rated Lichess games.",
+                    "realName": "CSSLab / University of Toronto",
+                    "location": "Toronto",
+                    "flag": "CA",
+                    "links": "https://maiachess.com\nhttps://github.com/CSSLab/maia-chess",
+                },
+                "count": {"all": 500000, "win": 250000, "loss": 220000, "draw": 30000},
+                "perfs": {
+                    "bullet": {"rating": 1520, "games": 120000},
+                    "blitz": {"rating": 1480, "games": 210000},
+                    "rapid": {"rating": 1440, "games": 170000},
+                },
+            }),
+            json.dumps({
+                "id": "leelachess",
+                "username": "LeelaChess",
+                "title": "BOT",
+                "flair": "activity.chess-pawn",
+                "profile": {
+                    "bio": "LCZero neural network bot.",
+                    "realName": "LCZero Team",
+                    "country": "US",
+                },
+                "perfs": {
+                    "bullet": {"rating": 2650},
+                    "blitz": {"rating": 2590},
+                    "rapid": {"rating": 2510},
+                    "classical": {"rating": 2430},
+                },
+            }),
+        ])
+
+        class _FakeRawBytesResponse:
+            def __init__(self, data: bytes):
+                self._data = data
+
+            def read(self):
+                return self._data
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        asset_requests = []
+
+        def fake_opener(req, timeout=10.0):
+            if "/api/bot/online" in req.full_url:
+                return _FakeRawBytesResponse(ndjson_bots.encode("utf-8"))
+            if any(ext in req.full_url for ext in (".webp", ".png")):
+                asset_requests.append(req.full_url)
+                return _FakeRawBytesResponse(sample_png_bytes)
+            return _FakeHTTPResponse({})
+
+        w.lichess._opener = fake_opener
+
+        # 1. Verify LichessClient.fetch_online_bots, rich profile parsing, and format_bot_summary
+        bots = w.lichess.fetch_online_bots()
+        self.assertEqual(len(bots), 2)
+        self.assertEqual(bots[0].bio, "Maia 1 is a human-like neural network chess engine trained on 1100-rated Lichess games.")
+        self.assertEqual(bots[0].flair, "smileys.robot")
+        self.assertEqual(bots[0].country, "CA")
+        self.assertIn("flair", bots[0].asset_urls())
+        self.assertIn("flag", bots[0].asset_urls())
+        self.assertIn("avatar", bots[0].asset_urls())
+        self.assertEqual(format_bot_summary(bots[0]), "maia1")
+        self.assertEqual(format_bot_summary(bots[1]), "LeelaChess")
+
+        # 2. Verify LichessChallengeDialog populates Online Bots dropdown and opens the Bot Profile & Assets pane
+        dialog = LichessChallengeDialog(w)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, True)
+        dialog.show()
+        self.qt.processEvents()
+
+        mode_combo = dialog.findChild(QComboBox, "lichessChallengeMode")
+        bot_combo = dialog.findChild(QComboBox, "lichessOnlineBotCombo")
+        opponent_edit = dialog.findChild(QLineEdit, "lichessOpponentEdit")
+        bot_pane = dialog.findChild(QFrame, "lichessBotDetailsPane")
+        bot_title = dialog.findChild(QLabel, "lichessBotTitle")
+        bot_desc = dialog.findChild(QTextBrowser, "lichessBotDescription")
+        bot_avatar = dialog.findChild(QLabel, "lichessBotAvatar")
+        bot_flair = dialog.findChild(QLabel, "lichessBotFlairAsset")
+        bot_flag = dialog.findChild(QLabel, "lichessBotFlagAsset")
+        self.assertIsNotNone(bot_combo)
+        self.assertIsNotNone(bot_pane)
+        self.assertTrue(bot_pane.isVisible())
+
+        deadline = 100
+        while (dialog._loading_bots or bot_combo.count() < 3) and deadline > 0:
+            QTest.qWait(10)
+            self.qt.processEvents()
+            deadline -= 1
+
+        self.assertEqual(bot_combo.count(), 3)
+        self.assertEqual(bot_combo.itemText(1), "maia1")
+        self.assertEqual(bot_combo.itemData(1), "maia1")
+        self.assertEqual(bot_combo.itemText(2), "LeelaChess")
+        self.assertEqual(bot_combo.itemData(2), "LeelaChess")
+
+        # 3. Selecting a bot populates Opponent Username and displays its description & Lichess assets in the pane
+        bot_combo.setCurrentIndex(1)
+        deadline = 100
+        while "maia1" not in dialog._bot_assets_cache and deadline > 0:
+            QTest.qWait(10)
+            self.qt.processEvents()
+            deadline -= 1
+        self.qt.processEvents()
+
+        self.assertEqual(opponent_edit.text(), "maia1")
+        self.assertEqual(dialog.current_options().opponent_username, "maia1")
+        self.assertTrue(bot_pane.isVisible())
+        self.assertIn("BOT maia1", bot_title.text())
+        self.assertIn("Patron", bot_title.text())
+        self.assertIn("human-like neural network chess engine", bot_desc.toPlainText())
+        self.assertIn("maiachess.com", bot_desc.toPlainText())
+        self.assertFalse(bot_avatar.pixmap().isNull())
+        self.assertTrue(bot_flair.isVisible())
+        self.assertFalse(bot_flair.pixmap().isNull())
+        self.assertTrue(bot_flag.isVisible())
+        self.assertFalse(bot_flag.pixmap().isNull())
+        self.assertTrue(any("smileys.robot.webp" in u for u in asset_requests))
+        self.assertTrue(any("CA.png" in u for u in asset_requests))
+
+        dialog.close()
+        dialog.deleteLater()
 
 
 if __name__ == "__main__":

@@ -74,7 +74,7 @@ QHeaderView::section { background: #1b212b; color: #a3afc1; border: none;
     padding: 9px 4px; font-size: 11px; font-weight: 600; }
 QSplitter::handle { background: #303a49; width: 4px; }
 QStatusBar { background: #1e242e; color: #a3afc1; }
-QComboBox, QLineEdit, QDoubleSpinBox, QSpinBox, QPlainTextEdit {
+QComboBox, QLineEdit, QDoubleSpinBox, QSpinBox, QPlainTextEdit, QTextEdit, QTextBrowser {
     background: #111720; border: 1px solid #414b5b; border-radius: 4px; padding: 7px; }
 QSpinBox, QDoubleSpinBox, QSpinBox#analysisOption, QDoubleSpinBox#analysisOption, QSpinBox#engineRating, QDoubleSpinBox#engineMinThinkingTime { padding-right: 60px; }
 QComboBox QAbstractItemView { background: #242c38; selection-background-color: #414b5b; }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.0 - 2026-11-07
+
+- Replace Lichess AI challenges with direct challenges to players and online bots.
+- Add online bot discovery with profile details, ratings, avatars, flair, and flags.
+- Default Lichess challenges to player mode and improve rich text field styling.
+
 ## 1.7.2 - 2026-11-07
 
 - Add Lichess integration (`Lichess` menu) with OAuth2 PKCE browser sign-in,

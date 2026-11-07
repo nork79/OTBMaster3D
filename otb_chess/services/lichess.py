@@ -9,6 +9,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import re
 import secrets
 import tempfile
 import threading
@@ -68,14 +69,13 @@ LICHESS_SEEK_PRESETS = (
 
 @dataclass(frozen=True)
 class LichessChallengeOptions:
-    mode: str = "ai"  # "ai", "player", or "seek"
+    mode: str = "player"  # "player" or "seek"
     preset: str = "Rapid 10+0"  # Preset name from TIME_CONTROLS or "Custom"
     custom_minutes: int = 10
     custom_increment: int = 0
     color: str = "random"  # "random", "white", "black"
     rated: bool = False
     opponent_username: str = ""
-    ai_level: int = 3  # 1..8
 
     def resolve_clock(self) -> tuple[int, int]:
         """Return (limit_seconds, increment_seconds) and validate against Lichess API rules."""
@@ -110,16 +110,6 @@ class LichessChallengeOptions:
     def to_challenge_payload(self) -> dict[str, str]:
         limit_sec, inc_sec = self.resolve_clock()
         color = self.normalized_color()
-        if self.mode == "ai":
-            if not (1 <= int(self.ai_level) <= 8):
-                raise ValueError("Lichess AI level must be between 1 and 8.")
-            return {
-                "level": str(int(self.ai_level)),
-                "clock.limit": str(limit_sec),
-                "clock.increment": str(inc_sec),
-                "color": color,
-                "variant": "standard",
-            }
         if self.mode == "player":
             opponent = (self.opponent_username or "").strip()
             if not opponent:
@@ -278,10 +268,59 @@ class LichessAccount:
     username: str
     title: str = ""
     perfs: dict[str, int] = field(default_factory=dict)
+    perf_games: dict[str, int] = field(default_factory=dict)
+    bio: str = ""
+    real_name: str = ""
+    location: str = ""
+    country: str = ""
+    links: str = ""
+    flair: str = ""
+    patron: bool = False
+    profile_url: str = ""
+    image_url: str = ""
+    total_games: int = 0
+    wins: int = 0
+    losses: int = 0
+    draws: int = 0
 
     @property
     def display_name(self) -> str:
         return f"{self.title} {self.username}".strip() if self.title else self.username
+
+    def asset_urls(self) -> dict[str, str]:
+        """Return candidate Lichess imagery/asset URLs ('avatar', 'flair', 'flag') for this account/bot."""
+        urls: dict[str, str] = {}
+        flair_clean = (self.flair or "").strip()
+        if flair_clean:
+            urls["flair"] = f"https://lichess1.org/assets/flair/img/{flair_clean}.webp"
+        country_clean = (self.country or "").strip()
+        if country_clean:
+            urls["flag"] = f"https://lichess1.org/assets/images/flags/{country_clean}.png"
+        avatar = (self.image_url or "").strip()
+        if not avatar:
+            combined_text = f"{self.bio}\n{self.links}"
+            img_match = re.search(
+                r"https?://[^\s<>\"']+\.(?:png|jpg|jpeg|webp|gif|svg)(?:\?[^\s<>\"']*)?",
+                combined_text,
+                re.IGNORECASE,
+            )
+            if img_match:
+                avatar = img_match.group(0)
+            else:
+                gh_match = re.search(
+                    r"https?://(?:www\.)?github\.com/([A-Za-z0-9_.-]+)",
+                    combined_text,
+                    re.IGNORECASE,
+                )
+                if gh_match:
+                    owner = gh_match.group(1)
+                    if owner.lower() not in ("topics", "features", "orgs", "settings", "marketplace"):
+                        avatar = f"https://github.com/{owner}.png?size=128"
+        if not avatar and "flair" in urls:
+            avatar = urls["flair"]
+        if avatar:
+            urls["avatar"] = avatar
+        return urls
 
     @classmethod
     def from_api(cls, payload: dict) -> "LichessAccount":
@@ -290,13 +329,62 @@ class LichessAccount:
         username = str(payload["username"])
         user_id = str(payload.get("id") or username.lower())
         title = str(payload.get("title") or "")
-        perfs = {}
+        perfs: dict[str, int] = {}
+        perf_games: dict[str, int] = {}
         raw_perfs = payload.get("perfs")
         if isinstance(raw_perfs, dict):
             for key, info in raw_perfs.items():
-                if isinstance(info, dict) and isinstance(info.get("rating"), int):
-                    perfs[str(key)] = int(info["rating"])
-        return cls(user_id=user_id, username=username, title=title, perfs=perfs)
+                if isinstance(info, dict):
+                    if isinstance(info.get("rating"), int):
+                        perfs[str(key)] = int(info["rating"])
+                    if isinstance(info.get("games"), int):
+                        perf_games[str(key)] = int(info["games"])
+        profile = payload.get("profile") if isinstance(payload.get("profile"), dict) else {}
+        bio = str(profile.get("bio") or payload.get("bio") or payload.get("description") or "").strip()
+        real_name = str(profile.get("realName") or "").strip()
+        if not real_name:
+            first_name = str(profile.get("firstName") or "").strip()
+            last_name = str(profile.get("lastName") or "").strip()
+            real_name = f"{first_name} {last_name}".strip()
+        location = str(profile.get("location") or "").strip()
+        country = str(profile.get("flag") or profile.get("country") or "").strip()
+        links = str(profile.get("links") or "").strip()
+        flair = str(payload.get("flair") or "").strip()
+        patron = bool(payload.get("patron") or payload.get("patronColor"))
+        profile_url = str(payload.get("url") or f"https://lichess.org/@/{username}").strip()
+        image_url = str(
+            payload.get("image")
+            or payload.get("avatar")
+            or payload.get("avatarUrl")
+            or profile.get("image")
+            or profile.get("avatar")
+            or ""
+        ).strip()
+        counts = payload.get("count") if isinstance(payload.get("count"), dict) else {}
+        total_games = int(counts["all"]) if isinstance(counts.get("all"), int) else 0
+        wins = int(counts["win"]) if isinstance(counts.get("win"), int) else 0
+        losses = int(counts["loss"]) if isinstance(counts.get("loss"), int) else 0
+        draws = int(counts["draw"]) if isinstance(counts.get("draw"), int) else 0
+        return cls(
+            user_id=user_id,
+            username=username,
+            title=title,
+            perfs=perfs,
+            perf_games=perf_games,
+            bio=bio,
+            real_name=real_name,
+            location=location,
+            country=country,
+            links=links,
+            flair=flair,
+            patron=patron,
+            profile_url=profile_url,
+            image_url=image_url,
+            total_games=total_games,
+            wins=wins,
+            losses=losses,
+            draws=draws,
+        )
 
     def to_dict(self) -> dict:
         return {
@@ -304,6 +392,20 @@ class LichessAccount:
             "username": self.username,
             "title": self.title,
             "perfs": dict(self.perfs),
+            "perf_games": dict(self.perf_games),
+            "bio": self.bio,
+            "real_name": self.real_name,
+            "location": self.location,
+            "country": self.country,
+            "links": self.links,
+            "flair": self.flair,
+            "patron": self.patron,
+            "profile_url": self.profile_url,
+            "image_url": self.image_url,
+            "total_games": self.total_games,
+            "wins": self.wins,
+            "losses": self.losses,
+            "draws": self.draws,
         }
 
     @classmethod
@@ -313,7 +415,36 @@ class LichessAccount:
             username=str(data["username"]),
             title=str(data.get("title") or ""),
             perfs={str(k): int(v) for k, v in (data.get("perfs") or {}).items() if isinstance(v, int)},
+            perf_games={str(k): int(v) for k, v in (data.get("perf_games") or {}).items() if isinstance(v, int)},
+            bio=str(data.get("bio") or ""),
+            real_name=str(data.get("real_name") or ""),
+            location=str(data.get("location") or ""),
+            country=str(data.get("country") or ""),
+            links=str(data.get("links") or ""),
+            flair=str(data.get("flair") or ""),
+            patron=bool(data.get("patron", False)),
+            profile_url=str(data.get("profile_url") or ""),
+            image_url=str(data.get("image_url") or ""),
+            total_games=int(data.get("total_games") or 0),
+            wins=int(data.get("wins") or 0),
+            losses=int(data.get("losses") or 0),
+            draws=int(data.get("draws") or 0),
         )
+
+
+def format_bot_summary(bot: LichessAccount) -> str:
+    """Format a Lichess bot account for the challenge dropdown as 'BotName: Bullet X, Blitz Y, Rapid Z, Classical W'."""
+    parts = []
+    for key, label in (
+        ("bullet", "Bullet"),
+        ("blitz", "Blitz"),
+        ("rapid", "Rapid"),
+        ("classical", "Classical"),
+    ):
+        if key in bot.perfs:
+            parts.append(f"{label} {bot.perfs[key]}")
+    ratings_str = ", ".join(parts) if parts else "Unrated"
+    return f"{bot.username}"
 
 
 @dataclass
@@ -700,14 +831,96 @@ class LichessClient:
         if not self.token:
             raise ValueError("Please log in to Lichess first.")
 
+    def fetch_online_bots(self, nb: int = 50, *, timeout: float = 10.0) -> list[LichessAccount]:
+        """Fetch online Lichess bot accounts and their ratings from GET /api/bot/online."""
+        limit = max(1, min(int(nb), 200))
+        url = f"{self.server_url}/api/bot/online?nb={limit}"
+        headers = {
+            "Accept": "application/x-ndjson",
+            "User-Agent": self.user_agent,
+        }
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        request = urllib.request.Request(url, headers=headers, method="GET")
+        bots: list[LichessAccount] = []
+        my_id = self.account.user_id.lower() if self.account is not None else ""
+        try:
+            with self._opener(request, timeout=timeout) as response:
+                if hasattr(response, "read"):
+                    raw_data = response.read()
+                    text = raw_data.decode("utf-8", errors="replace") if isinstance(raw_data, bytes) else str(raw_data)
+                    raw_lines = text.splitlines()
+                else:
+                    raw_lines = [
+                        line.decode("utf-8", errors="replace") if isinstance(line, bytes) else str(line)
+                        for line in response
+                    ]
+                for raw_line in raw_lines:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    try:
+                        parsed = json.loads(line)
+                    except ValueError:
+                        continue
+                    items = parsed if isinstance(parsed, list) else [parsed]
+                    for item in items:
+                        if not isinstance(item, dict) or not item.get("username"):
+                            continue
+                        try:
+                            bot = LichessAccount.from_api(item)
+                        except ValueError:
+                            continue
+                        if my_id and bot.user_id.lower() == my_id:
+                            continue
+                        bots.append(bot)
+            return bots
+        except urllib.error.HTTPError as exc:
+            raise ValueError(f"Could not fetch online bots ({exc.code}).") from None
+        except urllib.error.URLError as exc:
+            raise ValueError(f"Could not connect to Lichess ({exc.reason}).") from None
+
+    def fetch_bot_details_and_assets(self, bot: LichessAccount, *,
+                                     timeout: float = 6.0) -> tuple[LichessAccount, dict[str, bytes]]:
+        """Enrich a bot's Lichess profile if needed and fetch its Lichess visual assets (avatar, flair, flag)."""
+        enriched = bot
+        if not (bot.bio or bot.flair or bot.country or bot.real_name or bot.total_games):
+            try:
+                user_payload = self._request_json(
+                    "GET",
+                    f"/api/user/{urllib.parse.quote(bot.username, safe='')}",
+                    timeout=timeout,
+                )
+                if isinstance(user_payload, dict) and user_payload.get("username"):
+                    enriched = LichessAccount.from_api(user_payload)
+            except Exception:
+                enriched = bot
+
+        assets: dict[str, bytes] = {}
+        downloaded_by_url: dict[str, bytes] = {}
+        for key, asset_url in enriched.asset_urls().items():
+            if asset_url in downloaded_by_url:
+                assets[key] = downloaded_by_url[asset_url]
+                continue
+            try:
+                request = urllib.request.Request(
+                    asset_url,
+                    headers={"User-Agent": self.user_agent, "Accept": "image/*,*/*;q=0.8"},
+                    method="GET",
+                )
+                with self._opener(request, timeout=timeout) as response:
+                    raw = response.read() if hasattr(response, "read") else b""
+                    if isinstance(raw, bytes) and raw:
+                        downloaded_by_url[asset_url] = raw
+                        assets[key] = raw
+            except Exception:
+                continue
+        return enriched, assets
+
     def create_challenge(self, options: LichessChallengeOptions) -> dict:
-        """Issue an AI challenge or direct player challenge using common time controls."""
+        """Issue a direct player/bot challenge using common time controls."""
         self._require_auth()
         payload = options.to_challenge_payload()
-        if options.mode == "ai":
-            response = self._request_json("POST", "/api/challenge/ai", data=payload)
-            game_id = str(response.get("id") or response.get("challenge", {}).get("id") or "").strip()
-            return {"kind": "game", "game_id": game_id, "raw": response}
         if options.mode == "player":
             opponent = options.opponent_username.strip()
             if self.account and opponent.lower() == self.account.username.lower():

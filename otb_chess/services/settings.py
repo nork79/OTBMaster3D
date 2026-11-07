@@ -106,7 +106,7 @@ def default_config():
         "lichess_url": DEFAULT_LICHESS_URL,
         "lichess_client_id": DEFAULT_LICHESS_CLIENT_ID,
         "lichess_username": "",
-        "lichess_challenge_mode": "ai",
+        "lichess_challenge_mode": "player",
         "lichess_time_control": "Rapid 10+0",
         "lichess_custom_minutes": 10,
         "lichess_custom_increment": 0,
