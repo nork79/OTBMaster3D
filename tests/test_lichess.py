@@ -263,11 +263,16 @@ class LichessServiceTests(unittest.TestCase):
 
         def fake_opener(request, timeout=10.0):
             body = request.data.decode("utf-8") if request.data else ""
-            requests_log.append((request.get_method(), request.full_url, body))
+            requests_log.append((request.get_method(), request.full_url, body, request.get_header("Accept") or ""))
             if request.full_url.endswith("/api/challenge/TestFriend"):
                 return _FakeHTTPResponse({"challenge": {"id": "chal987", "status": "created"}})
             if request.full_url.endswith("/api/board/seek"):
+                accept_hdr = request.get_header("Accept") or ""
+                self.assertIn("text/plain", accept_hdr)
+                self.assertIn("*/*", accept_hdr)
                 return _FakeStreamResponse(["\n", json.dumps({"id": "seekMatch456"}) + "\n"])
+            if request.full_url.endswith("/api/stream/event"):
+                return _FakeStreamResponse([])
             raise AssertionError(f"Unexpected URL: {request.full_url}")
 
         client = LichessClient(
@@ -288,13 +293,31 @@ class LichessServiceTests(unittest.TestCase):
         self.assertEqual(player_res["challenge_id"], "chal987")
         self.assertIn("rated=true", requests_log[-1][2])
 
-        # 2. Quick Pairing Seek
+        # 2. Quick Pairing Seek (direct JSON response)
         seek_game_id = client.start_seek(
             LichessChallengeOptions(mode="seek", preset="Rapid 15+10", rated=False, color="random")
         )
         self.assertEqual(seek_game_id, "seekMatch456")
-        self.assertIn("time=15", requests_log[-1][2])
-        self.assertIn("increment=10", requests_log[-1][2])
+        seek_reqs = [r for r in requests_log if r[1].endswith("/api/board/seek")]
+        self.assertTrue(seek_reqs)
+        self.assertIn("time=15", seek_reqs[-1][2])
+        self.assertIn("increment=10", seek_reqs[-1][2])
+
+        # 3. Quick Pairing Seek (real Lichess flow: empty keepalive on /api/board/seek + gameStart on /api/stream/event)
+        def fake_realtime_seek_opener(request, timeout=10.0):
+            if request.full_url.endswith("/api/board/seek"):
+                return _FakeStreamResponse(["\n", "\n"])
+            if request.full_url.endswith("/api/stream/event"):
+                return _FakeStreamResponse([
+                    json.dumps({"type": "gameStart", "game": {"id": "liveSeekGame789", "gameId": "liveSeekGame789"}}) + "\n"
+                ])
+            raise AssertionError(f"Unexpected URL: {request.full_url}")
+
+        client._opener = fake_realtime_seek_opener
+        realtime_game_id = client.start_seek(
+            LichessChallengeOptions(mode="seek", preset="Rapid 10+0", rated=True, color="random")
+        )
+        self.assertEqual(realtime_game_id, "liveSeekGame789")
 
     def test_game_session_parsing_and_board_api_actions(self):
         game_full = {
@@ -1084,6 +1107,123 @@ class LichessUITests(unittest.TestCase):
         self.assertTrue(any("CA.png" in u for u in asset_requests))
 
         dialog.close()
+        dialog.deleteLater()
+
+    def test_lichess_game_history_fetch_and_load_into_board(self):
+        from PySide6.QtWidgets import QTableWidget
+        from otb_chess.ui.lichess_dialog import LichessHistoryDialog
+
+        w = self.window
+        w.lichess.token = "lip_history_token"
+        w.lichess.account = LichessAccount(user_id="nork79", username="nork79")
+
+        sample_pgn = (
+            '[Event "Rated Rapid game"]\n'
+            '[Site "https://lichess.org/histGame01"]\n'
+            '[White "nork79"]\n'
+            '[Black "OpponentTwo"]\n'
+            '[Result "1-0"]\n'
+            '[WhiteElo "1750"]\n'
+            '[BlackElo "1720"]\n\n'
+            '1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 1-0\n'
+        )
+        ndjson_games = "\n".join([
+            json.dumps({
+                "id": "histGame01",
+                "rated": True,
+                "variant": "standard",
+                "speed": "rapid",
+                "perf": "rapid",
+                "createdAt": 1700000000000,
+                "status": "resign",
+                "winner": "white",
+                "players": {
+                    "white": {"user": {"id": "nork79", "name": "nork79"}, "rating": 1750},
+                    "black": {"user": {"id": "opponenttwo", "name": "OpponentTwo"}, "rating": 1720},
+                },
+                "opening": {"eco": "C70", "name": "Ruy Lopez: Morphy Defense"},
+                "moves": "e4 e5 Nf3 Nc6 Bb5 a6",
+                "pgn": sample_pgn,
+            }),
+            json.dumps({
+                "id": "histGame02",
+                "rated": False,
+                "variant": "standard",
+                "speed": "blitz",
+                "perf": "blitz",
+                "createdAt": 1699990000000,
+                "status": "draw",
+                "players": {
+                    "white": {"user": {"id": "alice", "name": "Alice"}, "rating": 1610},
+                    "black": {"user": {"id": "nork79", "name": "nork79"}, "rating": 1640},
+                },
+                "opening": {"eco": "B20", "name": "Sicilian Defense"},
+                "moves": "e4 c5",
+                "pgn": '[White "Alice"]\n[Black "nork79"]\n[Result "1/2-1/2"]\n\n1. e4 c5 1/2-1/2\n',
+            }),
+        ])
+
+        class _FakeHistoryResponse:
+            def read(self):
+                return ndjson_games.encode("utf-8")
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        requested_urls = []
+
+        def fake_opener(req, timeout=10.0):
+            requested_urls.append(req.full_url)
+            if "/api/games/user/nork79" in req.full_url:
+                return _FakeHistoryResponse()
+            return _FakeHTTPResponse({})
+
+        w.lichess._opener = fake_opener
+
+        # 1. Verify LichessClient.fetch_user_games
+        games = w.lichess.fetch_user_games("nork79", max_games=15, perf_type="rapid", rated=True)
+        self.assertEqual(len(games), 2)
+        self.assertEqual(games[0].game_id, "histGame01")
+        self.assertEqual(games[0].result_label, "1-0")
+        self.assertEqual(games[0].opening_label, "C70 Ruy Lopez: Morphy Defense")
+        self.assertEqual(games[0].side_label(True), "nork79 (1750)")
+        self.assertIn("perfType=rapid", requested_urls[-1])
+        self.assertIn("rated=true", requested_urls[-1])
+        self.assertIn("pgnInJson=true", requested_urls[-1])
+
+        # 2. Verify LichessHistoryDialog populates table and loads selected game onto the board
+        self.assertTrue(w.lichess_menu.history_action.isEnabled())
+        dialog = LichessHistoryDialog(w)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, True)
+        dialog.show()
+        self.qt.processEvents()
+
+        table = dialog.findChild(QTableWidget, "lichessHistoryTable")
+        self.assertIsNotNone(table)
+        deadline = 100
+        while (dialog._busy or table.rowCount() < 2) and deadline > 0:
+            QTest.qWait(10)
+            self.qt.processEvents()
+            deadline -= 1
+
+        self.assertEqual(table.rowCount(), 2)
+        self.assertEqual(table.item(0, 1).text(), "Rapid")
+        self.assertEqual(table.item(0, 2).text(), "nork79 (1750)")
+        self.assertEqual(table.item(0, 3).text(), "OpponentTwo (1720)")
+        self.assertEqual(table.item(0, 4).text(), "1-0")
+        self.assertEqual(table.item(0, 5).text(), "C70 Ruy Lopez: Morphy Defense")
+
+        table.selectRow(0)
+        QTest.mouseClick(dialog.load_button, Qt.MouseButton.LeftButton)
+        self.qt.processEvents()
+
+        self.assertEqual(dialog.loaded_game_id, "histGame01")
+        self.assertEqual([w.game.position.uci(m) for m in w.game.position.moves], ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6"])
+        self.assertEqual(w.game._pgn_document.headers.get("White"), "nork79")
+        self.assertEqual(w.game._pgn_document.headers.get("Black"), "OpponentTwo")
         dialog.deleteLater()
 
 

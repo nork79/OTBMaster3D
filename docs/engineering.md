@@ -1,67 +1,121 @@
 # Engineering overview
 
-OTBMaster3D is an independent desktop engineering portfolio project by nork79.
-It brings together a Python/Qt interface, OpenGL rendering, external chess engines,
-persistent study data and a Windows distribution pipeline. The public repository
-and matching release sources make those implementation choices inspectable.
+This overview describes the current **1.8.0** source tree. OTBMaster3D is a
+Windows desktop chess application built with Python, PySide6, and OpenGL. The
+normal application host is Qt; the retained Tk/GLFW host is used by legacy
+regression coverage, not as the standard launch path.
 
-## Guided code tour
+## Runtime architecture
 
-| Area | Start here | What to inspect |
-| --- | --- | --- |
-| Desktop interface | [desktop_ui.py](../otb_chess/ui/desktop_ui.py) | Qt actions, clocks, bookmark restoration and coordination with the board |
-| Graphics | [graphics](../otb_chess/graphics) | Board and piece rendering, resources and visual configuration |
-| Application services | [services](../otb_chess/services) | Engine difficulty, bookmark actions and document workflows |
-| Production rules boundary | [chess_backend](../otb_chess/chess_backend) | Encapsulation of the existing python-chess rules provider |
-| Candidate rules core | [core README](../otb_chess_core/README.md) | Owned immutable moves, provider isolation and explicit legality/history policies |
-| Regression coverage | [tests](../tests) | Chess rules, notation, persistence, UI contracts and live engine behavior |
-| Distribution | [packaging](../packaging), [tools](../tools) | Frozen payload preparation, native runtime checks and source pairing |
+```text
+main.py or python -m otb_chess
+    -> otb_chess.ui.desktop_ui.run()
+    -> Qt desktop window and DesktopGame controller
+        -> core game, clock, document, and appearance logic
+        -> services for settings, engines, bookmarks, recovery, and Lichess
+        -> graphics for 2D/3D board and piece rendering
+        -> chess_backend adapters -> python-chess
+```
 
-## Design decisions and tradeoffs
+`main.py` handles the normal launch and the packaged `--smoke-test` entry point.
+`otb_chess/__main__.py` calls the same Qt `run()` function for module launches.
+`DesktopGame` connects the UI to the shared `Chess3D` game controller. Focused
+controller behavior is split across core mixins; those classes share the same
+mutable game state rather than maintaining parallel copies.
 
-The Qt desktop interface and OpenGL board need coordinated lifecycle and input
-handling. Engine searches and bookmark restoration also interact with live game
-state: restoring a position preserves engine preferences and pauses clocks;
-resetting a study position explicitly resets both clocks. Regression tests cover
-these user-visible contracts.
+## Packages and responsibilities
 
-Persistent settings and session recovery use atomic writes. Bookmarks organize
-positions into nested folders, while PGN/FEN support provides standard interchange.
-The [notation boundary](pgn-history-boundary.md) documents how transfer objects
-separate notation/history work from provider-owned state.
+| Area | Main responsibilities |
+| --- | --- |
+| `otb_chess/ui/` | Qt desktop window, menus, dialogs, analysis, bookmarks, Lichess, and position setup |
+| `otb_chess/core/` | Game lifecycle, clocks, input, documents, evaluation, and appearance state |
+| `otb_chess/graphics/` | Board and piece rendering, board materials, 2D view, and picking support |
+| `otb_chess/services/` | Engine processes, settings, session recovery, bookmarks, audio, and Lichess API access |
+| `otb_chess/chess_backend/` | Production rules, notation, UCI, opening-book, position, and opening adapters |
+| `otb_chess/bookmarks.py` and `document_state.py` | UI-independent bookmark data and application-owned document/history records |
+| `otb_chess_core/` | Separate experimental cozy-chess-backed rules adapter; not used as the production rules provider |
+| `assets/`, `books/`, `engines/` | Piece/board/audio resources, Polyglot books, and external UCI engine resources |
 
-Production uses python-chess. The separate `otb_chess_core` package evaluates a
-cozy-chess-backed rules adapter with owned data and a narrow provider boundary.
-It is not the production rules engine. See the [architecture notes](chess_core_architecture.md)
-and [migration assessment](production-rules-switch-readiness.md) for the scope and
-remaining work. This distinction keeps experimental architecture claims separate
-from behavior shipped to users.
+Production chess rules, PGN notation, UCI transport, and Polyglot reading still
+use python-chess through `otb_chess/chess_backend`. The boundary reduces direct
+provider access; it does not replace python-chess. The experimental
+`otb_chess_core` package is not a drop-in replacement and has not been wired into
+production play. See [the production boundary notes](chess_core_architecture.md)
+and [migration status](chess-backend-migration.md).
 
-The application integrates existing UCI engines; it does not implement Stockfish,
-Fairy-Stockfish or Rodent's search algorithms. Third-party engines, libraries and
-artwork are attributed in [the notices](../THIRD_PARTY_LICENSES.md).
+## State, persistence, and integrations
 
-## Verification and delivery
+- **Preferences:** `services/settings.py` saves `config.json` atomically. Source
+  runs keep user data beside the checkout. Frozen Windows builds use
+  `%LOCALAPPDATA%\OTBMaster3D` for preferences, Lichess credentials, session
+  recovery, bookmarks, and generated sounds; application resources remain beside
+  the installed program.
+- **Session recovery:** `services/session.py` writes the current PGN/document,
+  review position, and clock state to `session.json` with a backup. Clocks restore
+  paused. This is local recovery, not a saved-game library.
+- **Bookmarks:** `services/bookmarks.py` stores the nested bookmark collection
+  in `bookmarks.json`; `services/bookmark_actions.py` validates and applies
+  transactional UI edits. Opening a bookmark keeps the current engine and clock
+  settings and pauses clocks.
+- **Chess documents:** PGN/FEN parsing and export are routed through
+  `core/documents.py`, `document_state.py`, and the notation adapter. PGN preserves
+  move history and annotations; FEN represents only one position.
+- **UCI engines:** `services/engine.py` starts separate engine processes and
+  coordinates background move and analysis requests. Production presets use
+  Stockfish and Fairy-Stockfish; Rodent IV supplies personality opponents.
+- **Lichess:** `services/lichess.py` handles OAuth2 PKCE or personal access token
+  authentication, online bot data, direct challenges, Quick Pairing seeks, and
+  Board API game streams. `ui/lichess_dialog.py` provides login, challenge, and
+  bot-profile UI; `desktop_ui.py` applies live events to the game controller.
+  A live Lichess game disables local engine play and analysis.
 
-[Windows CI](../.github/workflows) separates tests requiring only Python
-dependencies from integration tests that install and run chess engines. Native
-rendering needs a desktop/OpenGL context. [CONTRIBUTING.md](../CONTRIBUTING.md)
-describes the environments and commands.
+Network work and engine searches run on worker threads. Results are handed back
+to the Qt thread before changing UI state. Rendering calls require a live OpenGL
+context; headless tests avoid those paths or use the configured native test
+environment.
 
-The 1.6.5 build record reports 268 passing tests, followed by all eight piece-set
-tests passing with desktop access after a sandbox Tcl setup error. Its packaged
-smoke test passed. These are recorded build results, not a claim of universal
-hardware compatibility. Clean Windows install, upgrade and uninstall testing
-remain pending; the installer is unsigned.
+## Tests and CI
 
-Release engineering retains the exact application source archive, file hashes,
-dependency sources and build metadata alongside each binary. That supports source
-inspection and modification; it does not establish bit-for-bit reproducibility.
-See [release 1.6.5](releases/1.6.5-source.md) and [Windows packaging](windows-installer.md).
+The test suite covers chess correctness, PGN/FEN handling, persistence,
+bookmarks, engine contracts, Lichess service/UI behavior, settings, assets, and
+desktop interactions. Some UI and rendering tests need a Windows desktop with
+Tk and native OpenGL. Live engine tests additionally need installed Windows
+engine binaries.
 
-## Try it or contribute
+The Windows Actions workflow uses Python 3.13 and has two jobs:
 
-Use the [installer](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.5)
-for a quick demonstration, or follow [source setup](../README.md#run-and-build-from-source).
-Useful contribution areas include clean-machine validation, focused regression
-fixes and documentation improvements. Maintenance is [best effort](MAINTENANCE.md).
+- `test` installs `requirements.txt`, compiles the application and test modules,
+  then runs tests selected to work without a graphics context.
+- `engine-integration` installs Stockfish and Fairy-Stockfish and runs the live
+  UCI integration classes. Rodent tests run when its separately built resources
+  are present.
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for the local test setup. The workflow
+configuration is not a claim that a particular checkout has passed; see a
+version-specific validation record for recorded results.
+
+## Windows build and packaging
+
+`tools/build_installer.ps1` coordinates the Python 3.13 checks and build steps.
+`packaging/windows-folder.spec` defines the PyInstaller onedir application
+folder, including reviewed Qt/OpenGL runtime files, assets, engines, books,
+notices, and staged corresponding source. `packaging/windows-installer.iss`
+builds a per-user installer with Inno Setup. The setup checks for Microsoft
+Visual C++ x64 Redistributable 14.44.35211.0 or newer; that runtime is installed
+separately and is not bundled. The installer is not configured for signing.
+
+Build prerequisites include Python 3.13 with Tkinter, PyInstaller 6.22.3, Inno
+Setup, and the reviewed native build inputs described in
+[the Windows installer instructions](windows-installer.md). The current package
+configuration targets Windows 10 or later on x64. A source build or CI result
+does not establish clean-machine install, upgrade, or uninstall behavior; check
+the matching version's release notes for those results.
+
+## Further reading
+
+- [User guide](user-guide.md)
+- [Bookmark model and storage](bookmarks.md) and [bookmark UI](bookmark-ui.md)
+- [Windows installer build and validation](windows-installer.md)
+- [Current changelog](../CHANGELOG.md)
+- [Version-specific release records](releases/)
+- [Maintenance policy](MAINTENANCE.md)

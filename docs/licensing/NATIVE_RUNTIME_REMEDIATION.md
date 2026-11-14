@@ -5,10 +5,10 @@ installed runtime and excludes standalone Microsoft runtime files. The original
 build below is unchanged. See [Microsoft remediation](MICROSOFT_RUNTIME_REMEDIATION.md)
 for current policy, checks and the remaining embedded-code question.
 
-Current disposition: [LICENSING-CLOSURE.md](LICENSING-CLOSURE.md) and
-[RELEASE-COMPLIANCE.md](RELEASE-COMPLIANCE.md) supersede the blocker assessment
-below. This report remains the historical record for the unchanged installer
-with SHA-256 a785b63b0857743d9dbdf664846032752cc22a298909e4b22d7da410b29ac8fc.
+For current runtime policy, see [Microsoft remediation](MICROSOFT_RUNTIME_REMEDIATION.md)
+and the [Windows installer instructions](../windows-installer.md). This report
+remains the historical record for the unchanged installer with SHA-256
+a785b63b0857743d9dbdf664846032752cc22a298909e4b22d7da410b29ac8fc.
 
 **Release status: BLOCKED.** No publication, push, tag or store change was made.
 This report supersedes earlier native-runtime status statements. Historical

@@ -7,14 +7,16 @@ import webbrowser
 from PySide6.QtCore import QBuffer, QIODevice, QPointF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPalette, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QFrame, QLabel, QLineEdit,
-    QPushButton, QDialogButtonBox, QMenu, QMessageBox, QComboBox, QSpinBox,
+    QAbstractItemView, QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QFrame,
+    QHeaderView, QLabel, QLineEdit, QPushButton, QDialogButtonBox, QMenu,
+    QMessageBox, QComboBox, QSpinBox, QTableWidget, QTableWidgetItem,
     QTextBrowser, QWidget,
 )
 
 from otb_chess.services import settings
 from otb_chess.services.lichess import (
     LichessAccount,
+    LichessGameSummary,
     LichessLoginParameters,
     LichessChallengeOptions,
     LICHESS_SCOPES,
@@ -38,6 +40,9 @@ class LichessMenu(QMenu):
         self.addSeparator()
         self.challenge_action = owner.action(
             self, "New Challenge / Seek…", owner.open_lichess_challenge, "Ctrl+Shift+L"
+        )
+        self.history_action = owner.action(
+            self, "Game History…", owner.open_lichess_history, "Ctrl+Shift+H"
         )
         self.resign_online_action = owner.action(
             self, "Resign / Abort Online Game", lambda: owner.lichess_game_action("resign")
@@ -912,7 +917,15 @@ class LichessChallengeDialog(QDialog):
 
     def set_online_bots(self, bots: list[LichessAccount]):
         """Populate the online bots dropdown with formatted 'bot: ratings' entries."""
-        self._online_bots = list(bots or [])
+        def sort_key(bot: LichessAccount):
+            ratings = [
+                rating for rating in bot.perfs.values()
+                if isinstance(rating, (int, float)) and not isinstance(rating, bool)
+            ]
+            average_rating = sum(ratings) / len(ratings) if ratings else float("inf")
+            return average_rating, bot.username.casefold()
+
+        self._online_bots = sorted(bots or [], key=sort_key)
         self._bot_by_username = {b.username.lower(): b for b in self._online_bots}
         self._bots_loaded_once = True
         current_target = self.opponent_edit.text().strip().lower()
@@ -1153,3 +1166,232 @@ class LichessChallengeDialog(QDialog):
             self._set_busy(False, "Cancelled.")
             return
         super().reject()
+
+
+class LichessHistoryDialog(QDialog):
+    """Browse a Lichess user's recent game history and load any game onto the board."""
+
+    games_loaded = Signal(bool, object, str)
+    pgn_loaded = Signal(bool, object, str)
+
+    def __init__(self, owner):
+        super().__init__(owner)
+        self.owner = owner
+        self.client = owner.lichess
+        self.game = owner.game
+        self._busy = False
+        self._games: list[LichessGameSummary] = []
+        self.loaded_game_id = ""
+        self.setObjectName("lichessHistoryDialog")
+        self.setWindowTitle("Lichess Game History")
+        self.setMinimumSize(860, 520)
+
+        layout = QVBoxLayout(self)
+
+        default_user = (
+            self.client.account.username
+            if self.client.account is not None
+            else self.game.cfg.get("lichess_username", "")
+        )
+        filter_row = QHBoxLayout()
+        filter_row.addWidget(QLabel("Username:"))
+        self.username_edit = QLineEdit(default_user)
+        self.username_edit.setObjectName("lichessHistoryUsername")
+        self.username_edit.setPlaceholderText("Lichess username")
+        self.username_edit.returnPressed.connect(self.fetch_games)
+        filter_row.addWidget(self.username_edit, 2)
+
+        filter_row.addWidget(QLabel("Speed:"))
+        self.perf_combo = QComboBox()
+        self.perf_combo.setObjectName("lichessHistoryPerf")
+        self.perf_combo.addItem("All", "")
+        self.perf_combo.addItem("Bullet", "bullet")
+        self.perf_combo.addItem("Blitz", "blitz")
+        self.perf_combo.addItem("Rapid", "rapid")
+        self.perf_combo.addItem("Classical", "classical")
+        filter_row.addWidget(self.perf_combo)
+
+        filter_row.addWidget(QLabel("Type:"))
+        self.rated_combo = QComboBox()
+        self.rated_combo.setObjectName("lichessHistoryRated")
+        self.rated_combo.addItem("All", None)
+        self.rated_combo.addItem("Rated", True)
+        self.rated_combo.addItem("Casual", False)
+        filter_row.addWidget(self.rated_combo)
+
+        filter_row.addWidget(QLabel("Max:"))
+        self.max_spin = QSpinBox()
+        self.max_spin.setObjectName("lichessHistoryMax")
+        self.max_spin.setRange(5, 100)
+        self.max_spin.setValue(30)
+        filter_row.addWidget(self.max_spin)
+
+        self.fetch_button = QPushButton("Fetch Games")
+        self.fetch_button.setObjectName("primary")
+        self.fetch_button.clicked.connect(self.fetch_games)
+        filter_row.addWidget(self.fetch_button)
+        layout.addLayout(filter_row)
+
+        self.table = QTableWidget(0, 7)
+        self.table.setObjectName("lichessHistoryTable")
+        self.table.setHorizontalHeaderLabels(["Date", "Speed", "White", "Black", "Result", "Opening", "Type"])
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setAlternatingRowColors(True)
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.itemSelectionChanged.connect(self._update_buttons)
+        self.table.itemDoubleClicked.connect(lambda _item: self.load_selected_game())
+        layout.addWidget(self.table, 1)
+
+        self.status_label = QLabel("Enter a Lichess username and click Fetch Games.")
+        self.status_label.setObjectName("lichessHistoryStatus")
+        self.status_label.setWordWrap(True)
+        layout.addWidget(self.status_label)
+
+        button_row = QHBoxLayout()
+        self.open_web_button = QPushButton("View on Lichess…")
+        self.open_web_button.setObjectName("lichessHistoryOpenWeb")
+        self.open_web_button.clicked.connect(self.open_selected_on_lichess)
+
+        self.load_button = QPushButton("Load Game on Board")
+        self.load_button.setObjectName("primary")
+        self.load_button.clicked.connect(self.load_selected_game)
+
+        self.close_button = QPushButton("Close")
+        self.close_button.setObjectName("lichessHistoryClose")
+        self.close_button.clicked.connect(self.reject)
+
+        button_row.addWidget(self.open_web_button)
+        button_row.addStretch()
+        button_row.addWidget(self.load_button)
+        button_row.addWidget(self.close_button)
+        layout.addLayout(button_row)
+
+        self.games_loaded.connect(self._on_games_loaded)
+        self.pgn_loaded.connect(self._on_pgn_loaded)
+        self._update_buttons()
+
+        if default_user.strip():
+            self.fetch_games()
+
+    def _selected_game(self) -> LichessGameSummary | None:
+        row = self.table.currentRow()
+        if 0 <= row < len(self._games):
+            return self._games[row]
+        return None
+
+    def _update_buttons(self):
+        has_sel = self._selected_game() is not None
+        self.load_button.setEnabled(not self._busy and has_sel)
+        self.open_web_button.setEnabled(not self._busy and has_sel)
+        self.fetch_button.setEnabled(not self._busy)
+
+    def _set_busy(self, busy: bool, status_text: str = ""):
+        self._busy = busy
+        for widget in (self.username_edit, self.perf_combo, self.rated_combo, self.max_spin):
+            widget.setEnabled(not busy)
+        self._update_buttons()
+        if status_text:
+            self.status_label.setText(status_text)
+            self.status_label.setStyleSheet("color: #d5944a; font-weight: 600;")
+
+    def fetch_games(self):
+        username = self.username_edit.text().strip()
+        if not username:
+            QMessageBox.warning(self, "Lichess Game History", "Enter a Lichess username first.")
+            return
+        perf = str(self.perf_combo.currentData() or "")
+        rated = self.rated_combo.currentData()
+        max_games = self.max_spin.value()
+        self._set_busy(True, f"Fetching recent games for {username}…")
+
+        def worker():
+            try:
+                games = self.client.fetch_user_games(
+                    username,
+                    max_games=max_games,
+                    perf_type=perf,
+                    rated=rated,
+                )
+                self.games_loaded.emit(True, games, f"Loaded {len(games)} game(s) for {username}.")
+            except Exception as exc:
+                self.games_loaded.emit(False, [], str(exc))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_games_loaded(self, ok: bool, games, message: str):
+        self._set_busy(False)
+        if not ok:
+            self.status_label.setText(message)
+            self.status_label.setStyleSheet("color: #e36d65;")
+            return
+        self._games = list(games or [])
+        self.table.setRowCount(len(self._games))
+        for row, summary in enumerate(self._games):
+            values = (
+                summary.date_label,
+                summary.speed.title(),
+                summary.side_label(True),
+                summary.side_label(False),
+                summary.result_label,
+                summary.opening_label,
+                "Rated" if summary.rated else "Casual",
+            )
+            for col, text in enumerate(values):
+                item = QTableWidgetItem(text)
+                if col in (1, 4, 6):
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.table.setItem(row, col, item)
+        if self._games:
+            self.table.selectRow(0)
+        self.status_label.setText(message)
+        self.status_label.setStyleSheet("color: #80bfab;")
+        self._update_buttons()
+
+    def open_selected_on_lichess(self):
+        summary = self._selected_game()
+        if summary is None:
+            return
+        base = self.client.server_url.rstrip("/")
+        webbrowser.open(f"{base}/{summary.game_id}")
+
+    def load_selected_game(self):
+        summary = self._selected_game()
+        if summary is None:
+            return
+        if summary.pgn:
+            self._finish_load(summary, summary.pgn)
+            return
+        self._set_busy(True, f"Exporting PGN for game {summary.game_id}…")
+
+        def worker():
+            try:
+                pgn_text = self.client.fetch_game_pgn(summary.game_id)
+                self.pgn_loaded.emit(True, (summary, pgn_text), "")
+            except Exception as exc:
+                self.pgn_loaded.emit(False, None, str(exc))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_pgn_loaded(self, ok: bool, payload, error_message: str):
+        self._set_busy(False)
+        if not ok or not payload:
+            self.status_label.setText(error_message or "Could not export game PGN.")
+            self.status_label.setStyleSheet("color: #e36d65;")
+            return
+        summary, pgn_text = payload
+        self._finish_load(summary, pgn_text)
+
+    def _finish_load(self, summary: LichessGameSummary, pgn_text: str):
+        if self.owner.load_lichess_history_game(summary, pgn_text):
+            self.loaded_game_id = summary.game_id
+            self.accept()

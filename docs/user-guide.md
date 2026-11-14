@@ -45,8 +45,9 @@ There is no Claim draw button or menu action.
 
 ## Run on Windows
 
-Install Python 3.13 (64-bit) with Tkinter support and use a graphics driver that supports
-OpenGL 2.1. From the project folder:
+Install 64-bit Python 3.13 and use a graphics driver that supports OpenGL 2.1.
+Tkinter is needed for the full test suite and installer build, not for the normal
+Qt app launch. From the project folder:
 
 ```powershell
 py -3.13 -m venv .venv
@@ -56,18 +57,20 @@ py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe main.py
 ```
 
-Python 3.13 is the active supported runtime and chess-migration target. If your
-existing `.venv` uses 3.14, create a fresh 3.13 environment rather than reusing it
-(use another directory name to retain the old environment). Dependency pins are
-unchanged. See the [3.13 compatibility results](python-313-compatibility.md);
-historical 3.14 test results remain recorded in the backend audit.
+Python 3.13 is the supported source and test runtime. The pinned `cozy-chess-py`
+wheel is built for Python 3.13 on Windows; use a fresh 3.13 environment if your
+existing `.venv` uses another version. See the dated
+[Python 3.13 compatibility baseline](python-313-compatibility.md) for that
+specific test run.
 
-Download the public [1.6.5 installer and matching sources](releases/1.6.5-source.md).
-Clean Windows installation, upgrade and uninstall validation remain pending.
-The app opens one window. The optional Stockfish setup downloads the official
-Windows x64 release, verifies its SHA-256 hash, and preserves its source and licence.
-Unavailable difficulty levels are hidden.
-Skip engine setup to play without an engine.
+For an installed copy, use the [GitHub Releases page](https://github.com/nork79/OTBMaster3D/releases)
+and choose the installer and matching source files for the same version. Check
+the version in **Help > About** against the download. The current source tree is
+version 1.8.0; clean installation, upgrade, and uninstall results must be taken
+from the selected release's own validation record. The app opens one window.
+The optional Stockfish setup downloads the official Windows x64 release,
+verifies its SHA-256 hash, and preserves its source and licence. Unavailable
+difficulty levels are hidden. Skip engine setup to play without an engine.
 
 ## Reset a study position
 
@@ -182,10 +185,11 @@ from `engines/` or browse for one, choose its side, and Save. Loading runs in th
 background. Leave the engine path empty to unload it. Engine side and opening
 book selections apply to the next game.
 
-Supported engines are Stockfish, Fairy-Stockfish and Rodent IV, all bundled in 1.6.5.
-Rodent is built separately for the source workspace and offers Tal, Kasparov,
-Morphy, Karpov, Petrosian and Default personalities, independently of target Elo.
-See [engine setup](../engines/README.md#rodent-iv-personality-opponents).
+The current Windows packaging configuration includes Stockfish, Fairy-Stockfish,
+and Rodent IV. Source workspaces can install the first two with the commands in
+[engine setup](../engines/README.md); Rodent is built separately and offers Tal,
+Kasparov, Morphy, Karpov, Petrosian, and Default personalities, independently of
+target Elo. Engine availability depends on the installation and selected build.
 
 The setup command installs Stockfish 19 for Windows x64 under `engines/stockfish-19/`, with its
 source and GPLv3 licence. It loads automatically on first use and plays Black;
@@ -221,6 +225,88 @@ material, piece placement and pawn structure without searching moves or using
 Stockfish; tactical engine evaluations can differ. Both scores use pawn units,
 with positive values favouring White and negative values favouring Black.
 
+## Lichess online play
+
+Lichess play needs a working internet connection and a Lichess account. Open the
+**Lichess** menu and choose **Login / Account Settings**. Sign in in the browser
+with OAuth (PKCE), or create and paste a Lichess personal access token. The token
+needs these scopes: `board:play`, `challenge:read`, and `challenge:write`. The
+optional username must match the account returned by Lichess. Use **Verify
+Connection** after saving a token if the menu still shows it as unverified.
+
+The app stores the bearer token in `lichess_auth.json` under its user-data
+directory. This file is ordinary JSON and is not encrypted by the app. Keep it
+private. **Logout** removes the local credentials and asks Lichess to revoke the
+token. In a source run, user data is beside the checkout; in a packaged Windows
+run, it is under `%LOCALAPPDATA%\OTBMaster3D`.
+
+### Challenge a player or bot
+
+Choose **Lichess > New Challenge / Seek**. In **Challenge a Player by Username**:
+
+1. Select a listed online bot, or type a Lichess username. Use **Refresh** to
+   fetch the current online bot list. The app shows profile text and available
+   ratings; avatar, flair, and flag images are displayed when Lichess provides
+   usable data or assets.
+2. Online bots are ordered from lower to higher by the average of their available
+   ratings. Bots with no ratings are listed last, alphabetically.
+3. Choose a listed time control or **Custom**, a colour (random, White, or Black),
+   and Casual or Rated. Direct challenges support the listed Hyperbullet through
+   Classical controls; custom initial time is 1-180 minutes with a 0-180 second
+   increment.
+4. Select **Send Challenge**. The dialog waits for the Lichess event stream. It
+   reports when the opponent accepts, declines, or cancels. While waiting, use
+   **Cancel** to cancel the pending outgoing challenge.
+
+Incoming challenges are not presented or accepted in this app. Accept or decline
+them in the Lichess website or another Lichess client. The app only manages the
+outgoing challenge it sends from this dialog.
+
+### Quick Pairing
+
+Select **Quick Pairing (Lobby Seek)** to search the public Lichess lobby. This
+Board API flow supports Rapid and Classical controls with an estimated duration
+of at least eight minutes (for example, 10+0). Choose colour and Casual or Rated,
+then select **Find Opponent (Seek)**. Use **Cancel** to stop searching. When
+Lichess matches the seek, the app opens the live game.
+
+### Live game controls
+
+Moves and clocks synchronize with Lichess. The menu shows the opponent and game
+state and provides **Offer / Accept Draw**, **Request / Accept Takeback**, and
+**Resign / Abort Online Game**. Resigning or aborting requires confirmation.
+Post-game ratings are refreshed for rated games when Lichess makes them
+available. Local engine play and analysis are disabled during live Lichess play
+and restored when that game ends.
+
+### Game history
+
+Select **Lichess > Game History…** (`Ctrl+Shift+H`) to browse your recent
+Lichess games with date, variant/speed, opponent, result, opening, and move
+count. Select any game and click **Load into Board** (or double-click a row) to
+import its PGN into the local 3D board for replay and analysis, or open it on
+Lichess in your browser.
+
+### Troubleshooting and limits
+
+- If browser sign-in does not finish, allow the local `127.0.0.1` callback and
+  return to the app. If that is blocked, use a personal access token instead.
+- If token login or an API action is denied, check that the token is current and
+  includes all three required scopes. **Verify Connection** checks the saved
+  account; **Logout** followed by a new sign-in replaces a stale token.
+- If no bots appear, check the connection and press **Refresh**. A profile image
+  can be missing even when the bot can still be challenged.
+- A listed bot may go offline before a challenge is sent. Lichess can reject a
+  challenge if the user is unavailable or the chosen mode or time control is not
+  accepted.
+- If a live game stream is interrupted, the app reports the connection error
+  but does not automatically restore the stream. The Lichess server remains
+  authoritative; use the Lichess website or client to check and manage that game.
+
+Lichess integration is separate from the local **Online** clock mode described
+below. That clock-mode label means the app switches clocks automatically after
+a move; it does not mean a game is connected to the internet.
+
 ## Clocks
 
 Use **File** to open PGN games or FEN positions, save PGN/FEN, copy either format,
@@ -239,8 +325,8 @@ through classical, or a custom initial time and increment in seconds. Saved
 settings immediately reset both clocks to the selected time control and pause them.
 Resume when ready to continue.
 
-- **Online** clock mode switches clocks automatically after moves. This name
-  describes clock behaviour; the app does not provide online multiplayer.
+- **Online** clock mode switches clocks automatically after moves. It is a local
+  clock setting; Lichess online games are started from the separate **Lichess** menu.
 - **OTB** mode requires the human player to move and then press the configured
   clock input: Spacebar, Right Mouse, middle mouse, Mouse Button 4 or Mouse Button 5.
   With Right Mouse selected, use Ctrl+left-drag to rotate the 3D board.
@@ -257,53 +343,62 @@ Resume when ready to continue.
   colour and keeps any background image; OK saves the new colour.
 
 `config.json` stores preferences, while `session.json` stores automatic game
-recovery. PGN/FEN import and export are supported; a built-in saved-game library
-is not yet implemented.
+recovery. The packaged app stores these files under
+`%LOCALAPPDATA%\OTBMaster3D`; source runs keep them beside the checkout. PGN/FEN
+import and export are supported. A built-in saved-game library is not
+implemented; use [Bookmarks](bookmarks.md) to organize positions and
+[session recovery](bookmarks.md#recovery-and-extensions) to understand saved state.
 
 ## Tests
 
 The Windows CI workflow runs on pushes, pull requests, and manual dispatches.
-It uses Python 3.13, installs the pinned dependencies, checks Python syntax, and
-runs backend, notation, and asset tests without a graphics context. Native
-Qt/GLFW rendering tests remain part of the local full-suite command below.
+It uses Python 3.13, installs the pinned dependencies, checks Python syntax,
+then runs selected tests without a graphics context. A second job installs
+Stockfish and Fairy-Stockfish for engine integration coverage. Other native
+Qt/OpenGL and Tk tests are part of the local suite.
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+powershell -NoProfile -File tools/setup_test_env.ps1 -Python C:\path\to\Python313\python.exe
+.\.venv-test\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-The tests cover assets, complete-set loading, view switching, persistence,
-2D input, zoom/pan, native Qt menus and layout, clock dialogs, clickable OTB clocks,
-and UCI play/analysis through a deterministic subprocess fixture. Rendering tests
-use invisible native OpenGL surfaces and require a working graphics environment.
-The older renderer regression tests use GLFW/Tk; the normal app launch uses Qt.
-Tests never write to the user's configuration.
+The suite includes rules and en-passant/repetition correctness, documents,
+bookmarks, assets, settings, engine contracts, Lichess behavior, UI input and
+clock interactions. Rendering and some desktop tests need a working Windows
+graphics environment. Refer to a dated report before treating any test result as
+evidence for a particular release.
 
 ## Code structure
 
-Chess-library integration is isolated in `otb_chess/chess_backend/`. See the
-[staged replacement plan](chess-backend-migration.md). Python-chess remains
-a runtime dependency; the integration boundary does not change its licence.
+Production chess-library integration lives in `otb_chess/chess_backend/`.
+Python-chess remains a runtime dependency; the separate `otb_chess_core`
+candidate is not used for production rules. See the [engineering overview](engineering.md)
+and [migration status](chess-backend-migration.md).
 
-`main.py` is only the launch entry point. The UI imports the controller directly;
-application modules never import the launcher.
+`main.py` and `otb_chess/__main__.py` both launch the same Qt application.
+The UI imports the controller directly; application modules do not import either
+launcher.
 
 ```text
-main.py                 # Launch with python main.py
+main.py                 # Normal launch: python main.py
 otb_chess/
     __main__.py         # Or python -m otb_chess
     version.py
-    core/               # Game state, clocks, input and appearance controls
+    core/               # Game controller, clocks, documents, input and appearance
     graphics/           # Board rendering and 2D/3D pieces
-    ui/                 # Desktop window, themes and legacy UI
-    services/           # Settings, engines and audio
+    ui/                 # Qt desktop window, feature dialogs, themes, legacy host
+    services/           # Settings, engines, bookmarks, sessions, Lichess and audio
+    chess_backend/      # Production python-chess adapters
+otb_chess_core/         # Experimental, separate chess rules adapter
 assets/                 # Bundled piece models and licences
 tests/                  # Regression tests and UCI fixture
-tools/                  # Asset conversion utilities
+tools/                  # Setup, build, verification and asset tools
 ```
 
-Source runs store settings and recovery files in the project folder. Frozen builds
-use `%LOCALAPPDATA%/OTBMaster3D` for user data; engines and books live beside the
-application. Both launch commands work from the project folder.
+Source runs store settings, auth, bookmarks, and recovery files in the project
+folder. Frozen builds use `%LOCALAPPDATA%/OTBMaster3D` for user data; engines and
+books live beside the application. Both launch commands work from the project
+folder.
 
 | Module | Responsibility |
 | --- | --- |
@@ -311,6 +406,8 @@ application. Both launch commands work from the project folder.
 | `otb_chess/core/game.py` | `Chess3D` controller, game state, legal moves and game lifecycle |
 | `otb_chess/core/clocks.py` | Timing, increments, pauses and manual clock presses |
 | `otb_chess/services/engine.py` | UCI process lifecycle and background move requests |
+| `otb_chess/services/lichess.py` | Lichess auth, challenges, bot data and Board API streams |
+| `otb_chess/services/session.py`, `bookmarks.py` | Session recovery and atomic bookmark persistence |
 | `otb_chess/graphics/rendering.py` | Board drawing, camera projection and picking |
 | `otb_chess/core/board_input.py` | Pointer gestures, camera movement and GLFW callbacks |
 | `otb_chess/core/appearance.py` | Board appearance, texture lifecycle and preference persistence |
@@ -334,9 +431,10 @@ their responsibility rather than adding application logic to `main.py`.
 source-access instructions offline. **Help > About** shows the version, copyright
 and repository link. See [THIRD_PARTY_LICENSES.md](../THIRD_PARTY_LICENSES.md).
 The application is GPL-3.0-only; recipients retain redistribution rights.
-Each installer must be paired with its exact source snapshot. Current `main`
-can contain changes after the 1.6.5 release; use the matching release archives.
-See [source access](../SOURCE_ACCESS.md) and
+Each installer must be paired with its exact source snapshot. Use the release
+archive for the version installed; the current 1.8.0 source branch is not a
+substitute for an older binary's corresponding source. See
+[source access](../SOURCE_ACCESS.md) and
 [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 The bundled Staunton meshes are by

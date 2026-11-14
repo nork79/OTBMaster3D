@@ -1,14 +1,17 @@
-> Historical research only. The current release strategy is GPL-3.0-only source
-> and a Windows installer; its distribution channel is not yet selected.
-> See [release preparation](OPEN_SOURCE_RELEASE_READINESS.md).
-> The proprietary migration and paused-build statements below are superseded.
+> Historical proprietary-distribution research only. The current application is
+> GPL-3.0-only; the current project version is 1.8.0 and Windows installer
+> instructions are maintained in [windows-installer.md](windows-installer.md).
+> Public downloads are listed on [GitHub Releases](https://github.com/nork79/OTBMaster3D/releases).
+> The proprietary migration and paused-build statements below do not describe
+> the current open-source release process.
 
 # Historical proprietary-distribution research
 
-**Superseded for the public beta:** OTBMaster3D 1.0.0 Beta 1 is a free, open-source
+**Historical release note:** OTBMaster3D 1.0.0 Beta 1 was a free, open-source
 GPL-3.0-or-later source release. There is no current proprietary release plan.
-The material below is preserved as historical engineering research; installer
-compilation is paused. See [current release notes](releases/1.0.0-beta.1.md).
+The material below is preserved as historical engineering research. See the
+[current Windows build instructions](windows-installer.md) for the implemented
+installer process.
 
 # Windows commercial distribution preparation
 
@@ -27,8 +30,10 @@ it does not qualify a frozen distribution. Existing notices/BOM runtime versions
 describe the earlier audited environment and must be regenerated and verified
 against the actual 3.13 release build before shipping.
 
-`packaging/windows-folder.spec` is an unbuilt PyInstaller onedir draft, not an
-installer or a validated redistribution configuration. No Qt source or library
+At the time this report was written, `packaging/windows-folder.spec` was an
+unbuilt PyInstaller onedir draft. The current build uses that spec as part of
+the installer pipeline described in [windows-installer.md](windows-installer.md).
+This historical plan is not a current validation record. No Qt source or library
 is statically linked by this plan. PySide6 stays the UI framework. All Qt DLLs,
 plugins and binding extension modules remain ordinary separate deployed files.
 PySide6/shiboken Python support modules are also collected externally, not hidden
@@ -94,10 +99,10 @@ does not by itself satisfy all LGPL obligations.
 3. Complete the exact binary SBOM, native dependency closure and source archives:
    Qt third-party code, Pillow codecs, CPython, Tcl/Tk, GLFW and MSVC runtimes.
    Resolve every “requires verification before release” entry.
-4. Test the onedir draft on a clean Windows VM, including normal startup, assets,
-   GL rendering, clocks, PGN/FEN, engine subprocesses, notice paths, and Qt replacement.
-   The current config/sound path expects a writable portable application folder;
-   a Program Files installer requires a later user-data path design and testing.
+4. Verify the current installer on a clean Windows VM, including normal startup,
+   assets, GL rendering, clocks, PGN/FEN, engine subprocesses, notice paths, and
+   Qt replacement. The earlier portable-folder concern is superseded: frozen
+   builds store user data under `%LOCALAPPDATA%\OTBMaster3D` and install per user.
 5. Supply all notices, texts and covered-source access, and review the EULA and
    installation-information obligations. Retain MIT asset copyright notices and
    CC0 provenance. Do not silently bundle user-supplied engines/books/backgrounds.

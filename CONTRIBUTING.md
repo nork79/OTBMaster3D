@@ -4,9 +4,13 @@ OTBMaster3D is a free, open-source application under GPL-3.0-only.
 Contributions to application code are submitted under the same licence. Keep
 third-party attribution and licence files with imported code or artwork.
 
-Use Python 3.13 on Windows, install requirements.txt in a virtual environment,
-and run `python -m unittest discover -s tests -v`. Rendering tests require native
-OpenGL and Tk. The CI workflow runs tests that do not need a graphics context.
+Use Python 3.13 on Windows. Create the dedicated test environment with
+`tools/setup_test_env.ps1`; it installs `requirements.txt` and verifies the
+interpreter. Run `.\.venv-test\Scripts\python.exe -m unittest discover -s tests -v`
+from that environment.
+The full suite needs Tk and native OpenGL for legacy and rendering tests. The CI
+workflow runs the tests that do not need a graphics context, plus a separate
+job for live engine integration.
 
 Windows CI has two jobs, both using Python 3.13:
 
@@ -22,7 +26,7 @@ Windows CI has two jobs, both using Python 3.13:
 To run the live tests locally on Windows after [installing the engines](engines/README.md):
 
 ```powershell
-python -m unittest -v tests.test_difficulty.DifficultyIntegrationTests tests.test_engine_features.EngineIntegrationTests tests.test_bookmark_ui.BookmarkEngineIntegrationTests tests.test_rodent
+.\.venv-test\Scripts\python.exe -m unittest -v tests.test_difficulty.DifficultyIntegrationTests tests.test_engine_features.EngineIntegrationTests tests.test_bookmark_ui.BookmarkEngineIntegrationTests tests.test_rodent
 ```
 
 These tests check real UCI options, legal moves, strength/style handling and

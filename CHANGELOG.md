@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.4 - 2026-11-15
+
+- Fix HTTP 406 (Not Acceptable) error on Lichess Quick Pairing (`POST /api/board/seek`)
+  and monitor `GET /api/stream/event` concurrently for `gameStart` matches.
+- Add `Lichess > Game History…` (`Ctrl+Shift+H`) to browse, filter, and load past
+  Lichess games onto the 3D/2D board for replay or engine analysis.
+- Improve the Bot Profile & Lichess Assets pane with a pure black description
+  background and graphical speed rating icons.
+
 ## 1.8.0 - 2026-11-07
 
 - Replace Lichess AI challenges with direct challenges to players and online bots.

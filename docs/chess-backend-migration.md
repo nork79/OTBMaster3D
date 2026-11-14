@@ -1,16 +1,19 @@
 # Replacing python-chess
 
-For 1.0.0 Beta 1, the application is GPL-3.0-or-later and continues to use
-python-chess. This document records experimental backend research; replacing
-python-chess is not a requirement for the current free, open-source release.
+This document records experimental backend research. The current application is
+GPL-3.0-only and production still depends on python-chess; replacing that
+provider is not a requirement for the current release.
 
 ## Current state
 
 The active runtime and migration target is **Python 3.13 on Windows x64**.
 The [application baseline](python-313-compatibility.md) and
 [isolated candidate-wheel tests](cozy-chess-isolation-results.md) passed on 3.13.
-Use the published 3.13 wheel for future candidate work; a custom Python 3.14
-Rust binding is not the current plan. No backend migration has begun.
+Use the published 3.13 wheel for candidate work; a custom Python 3.14 Rust
+binding is not the current plan. The application-owned position facade and a
+separate `otb_chess_core` candidate exist, but production still uses
+python-chess. Provider replacement and migration to the candidate are
+incomplete.
 
 Application code imports `otb_chess.chess_backend`, never `chess` directly.
 An architecture test enforces this boundary. This is migration infrastructure,

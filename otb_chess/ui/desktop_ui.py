@@ -1333,6 +1333,38 @@ class MainWindow(DocumentActions, QMainWindow):
         dialog.deleteLater()
         self.lichess_menu.refresh()
 
+    def open_lichess_history(self):
+        if self.game.online_session is not None and self.game.online_session.active:
+            QMessageBox.information(
+                self,
+                "Online Game Active",
+                "Finish or resign the active Lichess game before loading a historical game.",
+            )
+            return
+        from otb_chess.ui.lichess_dialog import LichessHistoryDialog
+        dialog = LichessHistoryDialog(self)
+        dialog.exec()
+        dialog.deleteLater()
+
+    def load_lichess_history_game(self, summary, pgn_text: str) -> bool:
+        if self.game.online_session is not None and self.game.online_session.active:
+            QMessageBox.information(
+                self,
+                "Online Game Active",
+                "Finish or resign the active Lichess game before loading a historical game.",
+            )
+            return False
+        text = (pgn_text or "").strip()
+        if not text:
+            QMessageBox.warning(self, "Lichess Game History", "Selected game has no PGN data available.")
+            return False
+        loaded = self.import_notation(text, "pgn")
+        if loaded:
+            msg = f"Loaded Lichess game: {summary.white_name} vs {summary.black_name} ({summary.result_label})"
+            self.game.result_text = msg
+            self.statusBar().showMessage(msg)
+        return loaded
+
     def on_lichess_game_matched(self, game_id: str, options, message: str = ""):
         self.lichess_active_game_id = game_id
         g = self.game

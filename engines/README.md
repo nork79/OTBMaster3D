@@ -1,8 +1,9 @@
 # Supported engines
 
-OTBMaster3D uses Stockfish 19 and Fairy-Stockfish 14 for its difficulty presets,
-with Rodent IV personality opponents, bundled in Windows installers from 1.6.4.
-Run these commands from the project folder with Python 3.13:
+The current Windows packaging configuration includes Stockfish 19,
+Fairy-Stockfish 14, and Rodent IV with its personality resources. In a source
+workspace, install Stockfish and Fairy-Stockfish from the project folder using
+Python 3.13:
 
 ```powershell
 python tools/install_stockfish.py

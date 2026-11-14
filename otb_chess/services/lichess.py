@@ -3,6 +3,7 @@
 import argparse
 import base64
 from dataclasses import dataclass, field
+from datetime import datetime
 import hashlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
@@ -967,6 +968,7 @@ class LichessClient:
                 resp.close()
             except Exception:
                 pass
+        self.stop_event_stream()
 
     def start_seek(self, options: LichessChallengeOptions, *, timeout: float = 300.0) -> str | None:
         """Open a Board API lobby seek (/api/board/seek) and block until matched or cancelled."""
@@ -977,9 +979,38 @@ class LichessClient:
         self.cancel_seek()
         self._seek_cancelled.clear()
 
+        matched_event = threading.Event()
+        matched_game_id = ""
+
+        def _watch_event_stream():
+            nonlocal matched_game_id
+            try:
+                for event in self.iter_incoming_events(timeout=timeout):
+                    if self._seek_cancelled.is_set() or matched_event.is_set():
+                        return
+                    if event.get("type") == "gameStart":
+                        game_obj = event.get("game") or {}
+                        gid = str(game_obj.get("gameId") or game_obj.get("id") or "").strip()
+                        if gid:
+                            matched_game_id = gid
+                            matched_event.set()
+                            with self._lock:
+                                active_resp = self._active_seek_response
+                            if active_resp is not None:
+                                try:
+                                    active_resp.close()
+                                except Exception:
+                                    pass
+                            return
+            except Exception:
+                return
+
+        watcher = threading.Thread(target=_watch_event_stream, daemon=True)
+        watcher.start()
+
         url = f"{self.server_url}/api/board/seek"
         headers = {
-            "Accept": "application/x-ndjson",
+            "Accept": "text/plain, application/json, application/x-ndjson, */*",
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/x-www-form-urlencoded",
             "User-Agent": self.user_agent,
@@ -993,6 +1024,8 @@ class LichessClient:
                 for raw_line in response:
                     if self._seek_cancelled.is_set():
                         return None
+                    if matched_event.is_set() and matched_game_id:
+                        return matched_game_id
                     line = raw_line.decode("utf-8", errors="replace").strip() if isinstance(raw_line, bytes) else str(raw_line).strip()
                     if not line:
                         continue
@@ -1002,6 +1035,10 @@ class LichessClient:
                         continue
                     if isinstance(event, dict) and event.get("id"):
                         return str(event["id"])
+            if not self._seek_cancelled.is_set():
+                matched_event.wait(timeout=2.0)
+                if matched_game_id:
+                    return matched_game_id
             return None
         except urllib.error.HTTPError as exc:
             detail = ""
@@ -1015,10 +1052,13 @@ class LichessClient:
         except Exception as exc:
             if self._seek_cancelled.is_set():
                 return None
+            if matched_event.is_set() and matched_game_id:
+                return matched_game_id
             raise ValueError(f"Seek connection interrupted ({exc}).") from None
         finally:
             with self._lock:
                 self._active_seek_response = None
+            self.stop_event_stream()
 
     def stop_event_stream(self) -> None:
         with self._lock:
@@ -1242,3 +1282,190 @@ class LichessClient:
             "black_rating": black_new,
             "black_diff": black_diff,
         }
+
+    def fetch_user_games(self, username: str = "", *, max_games: int = 30,
+                         perf_type: str = "", rated: bool | None = None,
+                         timeout: float = 15.0) -> list["LichessGameSummary"]:
+        """Fetch recent games for a Lichess user from GET /api/games/user/{username}."""
+        target = (username or "").strip()
+        if not target and self.account is not None:
+            target = self.account.username
+        if not target:
+            raise ValueError("Enter a Lichess username to load game history.")
+
+        limit = max(1, min(int(max_games), 200))
+        params: dict[str, str] = {
+            "max": str(limit),
+            "pgnInJson": "true",
+            "opening": "true",
+            "clocks": "true",
+            "evals": "false",
+            "moves": "true",
+        }
+        perf_clean = (perf_type or "").strip().lower()
+        if perf_clean:
+            params["perfType"] = perf_clean
+        if rated is not None:
+            params["rated"] = "true" if rated else "false"
+
+        encoded_user = urllib.parse.quote(target, safe="")
+        query = urllib.parse.urlencode(params)
+        url = f"{self.server_url}/api/games/user/{encoded_user}?{query}"
+        headers = {
+            "Accept": "application/x-ndjson",
+            "User-Agent": self.user_agent,
+        }
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        request = urllib.request.Request(url, headers=headers, method="GET")
+        games: list[LichessGameSummary] = []
+        try:
+            with self._opener(request, timeout=timeout) as response:
+                if hasattr(response, "read"):
+                    raw_data = response.read()
+                    text = raw_data.decode("utf-8", errors="replace") if isinstance(raw_data, bytes) else str(raw_data)
+                    raw_lines = text.splitlines()
+                else:
+                    raw_lines = [
+                        line.decode("utf-8", errors="replace") if isinstance(line, bytes) else str(line)
+                        for line in response
+                    ]
+                for raw_line in raw_lines:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    try:
+                        parsed = json.loads(line)
+                    except ValueError:
+                        continue
+                    items = parsed if isinstance(parsed, list) else [parsed]
+                    for item in items:
+                        if not isinstance(item, dict) or not item.get("id"):
+                            continue
+                        games.append(LichessGameSummary.from_api(item))
+            return games
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                raise ValueError(f"Lichess user '{target}' was not found.") from None
+            raise ValueError(f"Could not fetch game history ({exc.code}).") from None
+        except urllib.error.URLError as exc:
+            raise ValueError(f"Could not connect to Lichess ({exc.reason}).") from None
+
+    def fetch_game_pgn(self, game_id: str, *, timeout: float = 10.0) -> str:
+        """Fetch raw PGN for a single Lichess game from GET /game/export/{gameId}."""
+        gid = urllib.parse.quote((game_id or "").strip(), safe="")
+        if not gid:
+            raise ValueError("Game ID is required.")
+        url = f"{self.server_url}/game/export/{gid}?clocks=true&opening=true"
+        headers = {
+            "Accept": "application/x-chess-pgn, text/plain, */*",
+            "User-Agent": self.user_agent,
+        }
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        request = urllib.request.Request(url, headers=headers, method="GET")
+        try:
+            with self._opener(request, timeout=timeout) as response:
+                raw = response.read() if hasattr(response, "read") else b""
+                return raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else str(raw)
+        except urllib.error.HTTPError as exc:
+            raise ValueError(f"Could not export Lichess game ({exc.code}).") from None
+        except urllib.error.URLError as exc:
+            raise ValueError(f"Could not connect to Lichess ({exc.reason}).") from None
+
+
+@dataclass
+class LichessGameSummary:
+    """Summary of a completed or exported Lichess game from /api/games/user/{username}."""
+
+    game_id: str
+    created_at_ms: int = 0
+    speed: str = "rapid"
+    perf: str = "rapid"
+    rated: bool = False
+    status: str = ""
+    winner: str | None = None
+    white_name: str = "White"
+    white_rating: int | None = None
+    black_name: str = "Black"
+    black_rating: int | None = None
+    opening_eco: str = ""
+    opening_name: str = ""
+    moves: str = ""
+    pgn: str = ""
+    variant: str = "standard"
+
+    @property
+    def date_label(self) -> str:
+        if self.created_at_ms <= 0:
+            return "Unknown"
+        try:
+            dt = datetime.fromtimestamp(self.created_at_ms / 1000.0)
+            return dt.strftime("%Y-%m-%d %H:%M")
+        except Exception:
+            return "Unknown"
+
+    @property
+    def result_label(self) -> str:
+        if self.winner == "white":
+            return "1-0"
+        if self.winner == "black":
+            return "0-1"
+        if self.status in ("draw", "stalemate"):
+            return "1/2-1/2"
+        if self.status in ("aborted", "noStart"):
+            return "*"
+        return "1/2-1/2" if self.status else "*"
+
+    @property
+    def opening_label(self) -> str:
+        parts = [p for p in (self.opening_eco, self.opening_name) if p]
+        return " ".join(parts) if parts else "—"
+
+    def side_label(self, color: bool) -> str:
+        name = self.white_name if color else self.black_name
+        rating = self.white_rating if color else self.black_rating
+        return f"{name} ({rating})" if isinstance(rating, int) else name
+
+    @classmethod
+    def from_api(cls, payload: dict) -> "LichessGameSummary":
+        players = payload.get("players") if isinstance(payload.get("players"), dict) else {}
+
+        def _parse_side(side_obj: dict, fallback: str) -> tuple[str, int | None]:
+            if not isinstance(side_obj, dict):
+                return fallback, None
+            if side_obj.get("aiLevel"):
+                return f"Stockfish Level {int(side_obj['aiLevel'])}", None
+            user = side_obj.get("user") if isinstance(side_obj.get("user"), dict) else {}
+            name = str(user.get("name") or user.get("id") or side_obj.get("name") or fallback).strip()
+            title = str(user.get("title") or "").strip()
+            display = f"{title} {name}".strip() if title else name
+            rating = side_obj.get("rating")
+            return display, int(rating) if isinstance(rating, int) else None
+
+        white_name, white_rating = _parse_side(players.get("white") or {}, "White")
+        black_name, black_rating = _parse_side(players.get("black") or {}, "Black")
+        opening = payload.get("opening") if isinstance(payload.get("opening"), dict) else {}
+        variant_raw = payload.get("variant")
+        if isinstance(variant_raw, dict):
+            variant = str(variant_raw.get("key") or "standard")
+        else:
+            variant = str(variant_raw or "standard")
+        return cls(
+            game_id=str(payload.get("id") or "").strip(),
+            created_at_ms=int(payload.get("createdAt") or 0),
+            speed=str(payload.get("speed") or "rapid"),
+            perf=str(payload.get("perf") or payload.get("speed") or "rapid"),
+            rated=bool(payload.get("rated", False)),
+            status=str(payload.get("status") or ""),
+            winner=payload.get("winner"),
+            white_name=white_name,
+            white_rating=white_rating,
+            black_name=black_name,
+            black_rating=black_rating,
+            opening_eco=str(opening.get("eco") or "").strip(),
+            opening_name=str(opening.get("name") or "").strip(),
+            moves=str(payload.get("moves") or "").strip(),
+            pgn=str(payload.get("pgn") or "").strip(),
+            variant=variant,
+        )

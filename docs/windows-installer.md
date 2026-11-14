@@ -4,9 +4,11 @@ The installer is built with Python 3.13, PyInstaller 6.22.3 and Inno Setup 6.4.3
 The revised packaging includes the application, Python/Qt runtime, assets, Stockfish 19,
 Fairy-Stockfish 14, Rodent IV with its personalities and repertoire books, and all three
 opening books. Users do not need to install Python separately.
-The current release is [1.6.9](releases/1.6.9-source.md). Its exact build
-snapshot is the named application source archive; the release tag also
-includes publication documentation. Rodent IV is required by the frozen
+The current source version is **1.8.0**. Version-specific installer assets and
+validation belong to their matching GitHub release; do not infer installer
+availability or clean-machine validation from the source version alone. See the
+[Releases page](https://github.com/nork79/OTBMaster3D/releases) and its matching
+source records. Rodent IV is required by the frozen
 build specification; packaging verifies its executable, resources, source archive
 and notices. Historical verification reports describe their named builds only.
 
@@ -16,7 +18,9 @@ download address if it is missing, including during silent setup. No standalone
 Microsoft runtime DLL or redistributable package is included in the payload.
 For the prerequisite policy and remaining review items, see
 [Microsoft remediation](licensing/MICROSOFT_RUNTIME_REMEDIATION.md).
-Clean Windows installation, upgrade and uninstall validation remain pending.
+This source guide does not contain a clean-machine validation result for the
+1.8.0 installer. Check the matching release's validation record before relying
+on install, upgrade, or uninstall results.
 
 It installs for the current user under `%LOCALAPPDATA%\Programs\OTBMaster3D`,
 adds a Start menu shortcut, and offers an optional desktop shortcut. Settings,
@@ -29,8 +33,16 @@ Use a complete Python 3.13 installation with Tkinter and native desktop access.
 The build checks Tcl initialization before packaging; a restrictive sandbox can
 prevent this even when Tcl files are installed.
 
-Create a Python 3.13 virtual environment, install requirements.txt, then install
-`pyinstaller==6.22.3`. Install Inno Setup separately. Native preparation also
+Create the dedicated Python 3.13 environment, install `pyinstaller==6.22.3`, and
+install Inno Setup separately. The test-environment script installs
+`requirements.txt` and verifies Python 3.13:
+
+```powershell
+powershell -NoProfile -File tools/setup_test_env.ps1 -Python C:\path\to\Python313\python.exe
+.\.venv-test\Scripts\python.exe -m pip install pyinstaller==6.22.3
+```
+
+Native preparation also
 requires MinGW-w64 `g++` on PATH to build Rodent IV on a fresh checkout. An existing
 Rodent installation is reused only after its resource manifest is verified. It also
 requires a licensed VS2022 C++ toolchain/Windows SDK, the retained GLFW 3.4 source
@@ -40,11 +52,11 @@ can select different installation locations while preserving the pinned inputs.
 From the repository root:
 
 ```powershell
-.\tools\build_installer.ps1 --version 1.7 -Python .\.venv\Scripts\python.exe -Compiler 'C:\path\to\ISCC.exe'
+.\tools\build_installer.ps1 -Version 1.8.0 -Python .\.venv-test\Scripts\python.exe -Compiler 'C:\path\to\ISCC.exe'
 ```
 
-`--version` (also `-Version`) accepts arbitrary release labels, such as `1.7`,
-`1.7-beta` or `test-build`. Spaces and characters outside letters, digits,
+`-Version` (or `--version`) accepts arbitrary release labels, such as `1.8.0`,
+`1.8.0-beta` or `test-build`. Spaces and characters outside letters, digits,
 periods, underscores, plus and minus signs become hyphens for safe filenames.
 Windows numeric metadata uses the first four numbers from the label, padded
 with zeros and capped at 65535 per component; labels without numbers use
@@ -56,7 +68,7 @@ tree if a later build step fails, so a retry uses the same version.
 With the default local tool locations, run:
 
 ```powershell
-.\tools\build_installer.ps1 --version 1.7
+.\tools\build_installer.ps1 -Version 1.8.0
 ```
 
 Add `-DryRun` to validate version fields and display the output path without
@@ -65,7 +77,7 @@ terminal and reports `[OK]` on completion. A failure stops the build, prints
 `[ERROR]` with the failing step and returns exit code 1. Success prints
 `[SUCCESS]` and the installer path, and returns exit code 0.
 
-The example produces `installer-output/OTBMaster3D-1.7-Setup.exe`.
+The example produces `installer-output/OTBMaster3D-1.8.0-Setup.exe`.
 `dist/OTBMaster3D` is the complete standalone application folder; the executable
 needs its neighbouring files. Do not copy just OTBMaster3D.exe.
 
@@ -87,23 +99,20 @@ does not replace testing on a clean Windows machine.
 
 ## Clean checkout procedure and source pairing
 
-The public [1.6.9 release](https://github.com/nork79/OTBMaster3D/releases/tag/v1.6.9)
-provides the installer and matching source bundles. For its exact application
-snapshot, use the named application archive. The `v1.6.9` tag includes additional
-release documentation, and `main` can contain subsequent updates. Use `build_installer.ps1 --version` when
-preparing a new release to synchronize otb_chess/version.py,
-packaging/windows-installer.iss and packaging/version-info.txt.
+For a clean build of the current source, clone the repository's default branch.
+Its application version is 1.8.0. A release build should use a reviewed clean
+commit and its version-matched source and dependency archives. Use the version
+from `otb_chess/version.py` unless intentionally preparing a different release;
+the build script synchronizes that value with the installer and Windows metadata.
 
 ```powershell
 git clone https://github.com/nork79/OTBMaster3D.git
 cd OTBMaster3D
-git checkout v1.6.9
-py -3.13 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m pip install pyinstaller==6.22.3
-.\.venv\Scripts\python.exe -m pip check
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_installer.ps1 -Python .\.venv\Scripts\python.exe -Compiler 'C:\path\to\ISCC.exe'
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup_test_env.ps1 -Python C:\path\to\Python313\python.exe
+.\.venv-test\Scripts\python.exe -m pip install pyinstaller==6.22.3
+.\.venv-test\Scripts\python.exe -m pip check
+.\.venv-test\Scripts\python.exe -m unittest discover -s tests -v
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_installer.ps1 -Python .\.venv-test\Scripts\python.exe -Compiler 'C:\path\to\ISCC.exe'
 ```
 
 The process-only execution policy option permits this reviewed local script to

@@ -18,7 +18,9 @@ This is an engineering and licence-text review, not a professional legal opinion
 current source candidate. Desktop-access requests for the final suite and build
 were declined. The existing installer remains the earlier app-local-CRT build;
 the external prerequisite policy and current difficulty/sound fixes have not yet
-been incorporated into a rebuilt installer. See RELEASE-COMPLIANCE.md.
+been incorporated into a rebuilt installer. See the current
+[Microsoft runtime policy](MICROSOFT_RUNTIME_REMEDIATION.md) and
+[Windows installer instructions](../windows-installer.md).
 
 ## Recorded release decisions
 
