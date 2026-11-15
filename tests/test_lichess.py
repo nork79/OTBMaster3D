@@ -2,8 +2,11 @@
 
 import io
 import json
+import logging
 from pathlib import Path
+import sys
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 import urllib.error
@@ -12,18 +15,22 @@ import urllib.request
 
 from PySide6.QtCore import Qt, QTimer, QCoreApplication, QEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QComboBox, QDoubleSpinBox, QLineEdit, QPushButton, QSpinBox, QDialogButtonBox
+from PySide6.QtWidgets import QApplication, QComboBox, QDoubleSpinBox, QLineEdit, QMessageBox, QPushButton, QSpinBox, QDialogButtonBox, QTableWidget
 import shiboken6
 
 from otb_chess.services import settings
 from otb_chess.services.lichess import (
+    CredentialProtectionError,
+    CredentialProtector,
     LICHESS_CHALLENGE_PRESETS,
     LICHESS_SEEK_PRESETS,
     LichessAccount,
     LichessChallengeOptions,
     LichessClient,
     LichessGameSession,
+    LichessGameSummary,
     LichessLoginParameters,
+    WindowsDPAPIProtector,
     clear_stored_auth,
     format_bot_summary,
     format_lichess_termination,
@@ -33,7 +40,7 @@ from otb_chess.services.lichess import (
     save_stored_auth,
 )
 from otb_chess.ui.desktop_ui import MainWindow, configure_graphics
-from otb_chess.ui.lichess_dialog import LichessChallengeDialog, LichessLoginDialog
+from otb_chess.ui.lichess_dialog import LichessChallengeDialog, LichessHistoryDialog, LichessLoginDialog
 
 
 class _FakeHTTPResponse:
@@ -380,6 +387,532 @@ class LichessServiceTests(unittest.TestCase):
                 "/api/board/game/liveGame001/takeback/no",
             ],
         )
+
+    def _make_seek_client(self, opener):
+        return LichessClient(
+            token="lip_seek_test",
+            account=LichessAccount(user_id="nork79", username="nork79"),
+            opener=opener,
+        )
+
+    def test_quick_pairing_stream_established_before_seek_and_delayed_open(self):
+        events_order = []
+        allow_stream_open = threading.Event()
+        stream_attempt_started = threading.Event()
+        seek_called = threading.Event()
+
+        class _BlockingEventStream:
+            def __init__(self):
+                self._queue = threading.Event()
+                self._closed = False
+                self._emitted = False
+
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+                if self._closed or self._emitted:
+                    raise StopIteration
+                self._queue.wait(timeout=5.0)
+                if self._closed:
+                    raise StopIteration
+                self._emitted = True
+                return (json.dumps({"type": "gameStart", "game": {"id": "delayedMatch1", "source": "lobby"}}) + "\n").encode("utf-8")
+
+            def close(self):
+                self._closed = True
+                self._queue.set()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                self.close()
+                return False
+
+        class _BlockingSeekStream:
+            def __init__(self, event_stream):
+                self._event_stream = event_stream
+                self._closed = False
+
+            def __iter__(self):
+                # Trigger gameStart once seek is actually submitted
+                self._event_stream._queue.set()
+                return iter([])
+
+            def close(self):
+                self._closed = True
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        stream_obj = _BlockingEventStream()
+
+        def fake_opener(request, timeout=10.0):
+            if request.full_url.endswith("/api/stream/event"):
+                events_order.append("stream_open_start")
+                stream_attempt_started.set()
+                allow_stream_open.wait(timeout=5.0)
+                events_order.append("stream_open_ready")
+                return stream_obj
+            if request.full_url.endswith("/api/board/seek"):
+                events_order.append("seek_submitted")
+                seek_called.set()
+                return _BlockingSeekStream(stream_obj)
+            raise AssertionError(f"Unexpected URL: {request.full_url}")
+
+        client = self._make_seek_client(fake_opener)
+        result = {}
+
+        def run_seek():
+            result["game_id"] = client.start_seek(
+                LichessChallengeOptions(mode="seek", preset="Rapid 10+0", rated=False, color="random"),
+                timeout=5.0,
+            )
+
+        t = threading.Thread(target=run_seek, daemon=True)
+        t.start()
+        self.assertTrue(stream_attempt_started.wait(timeout=2.0))
+        # Seek must NOT be submitted while event stream establishment is delayed
+        self.assertFalse(seek_called.is_set())
+        allow_stream_open.set()
+        t.join(timeout=5.0)
+        self.assertFalse(t.is_alive())
+        self.assertEqual(result.get("game_id"), "delayedMatch1")
+        self.assertEqual(events_order, ["stream_open_start", "stream_open_ready", "seek_submitted"])
+
+    def test_quick_pairing_direct_response_and_immediate_game_start(self):
+        class _Stream:
+            def __init__(self, lines):
+                self._lines = [line.encode("utf-8") for line in lines]
+
+            def __iter__(self):
+                return iter(self._lines)
+
+            def close(self):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        # Case A: direct JSON id from /api/board/seek
+        def direct_opener(request, timeout=10.0):
+            if request.full_url.endswith("/api/stream/event"):
+                return _Stream([])
+            if request.full_url.endswith("/api/board/seek"):
+                return _Stream([json.dumps({"id": "directSeek99"}) + "\n"])
+            raise AssertionError(request.full_url)
+
+        client = self._make_seek_client(direct_opener)
+        self.assertEqual(
+            client.start_seek(LichessChallengeOptions(mode="seek", preset="Rapid 10+0")),
+            "directSeek99",
+        )
+
+        # Case B: gameStart arrives immediately upon stream connection
+        def immediate_opener(request, timeout=10.0):
+            if request.full_url.endswith("/api/stream/event"):
+                return _Stream([
+                    json.dumps({"type": "gameStart", "game": {"gameId": "immediateGame77", "source": "lobby"}}) + "\n"
+                ])
+            if request.full_url.endswith("/api/board/seek"):
+                return _Stream(["\n"])
+            raise AssertionError(request.full_url)
+
+        client._opener = immediate_opener
+        self.assertEqual(
+            client.start_seek(LichessChallengeOptions(mode="seek", preset="Rapid 10+0")),
+            "immediateGame77",
+        )
+
+    def test_quick_pairing_event_stream_connection_failure_propagates(self):
+        seek_submitted = False
+
+        def failing_stream_opener(request, timeout=10.0):
+            nonlocal seek_submitted
+            if request.full_url.endswith("/api/stream/event"):
+                raise urllib.error.URLError("event stream unreachable")
+            if request.full_url.endswith("/api/board/seek"):
+                seek_submitted = True
+                raise AssertionError("Seek should not be submitted when event stream fails to connect.")
+            raise AssertionError(request.full_url)
+
+        client = self._make_seek_client(failing_stream_opener)
+        with self.assertRaisesRegex(ValueError, "event stream"):
+            client.start_seek(LichessChallengeOptions(mode="seek", preset="Rapid 10+0"), timeout=5.0)
+        self.assertFalse(seek_submitted)
+
+    def test_quick_pairing_cancellation_closes_responses_and_stops_worker(self):
+        seek_opened = threading.Event()
+        stream_closed = threading.Event()
+        seek_closed = threading.Event()
+
+        class _CancellableStream:
+            def __init__(self, closed_event):
+                self._gate = threading.Event()
+                self._closed_event = closed_event
+
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+                self._gate.wait(timeout=5.0)
+                raise StopIteration
+
+            def close(self):
+                self._closed_event.set()
+                self._gate.set()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                self.close()
+                return False
+
+        def cancelling_opener(request, timeout=10.0):
+            if request.full_url.endswith("/api/stream/event"):
+                return _CancellableStream(stream_closed)
+            if request.full_url.endswith("/api/board/seek"):
+                seek_opened.set()
+                return _CancellableStream(seek_closed)
+            raise AssertionError(request.full_url)
+
+        client = self._make_seek_client(cancelling_opener)
+        result = {}
+
+        def run_seek():
+            result["value"] = client.start_seek(
+                LichessChallengeOptions(mode="seek", preset="Rapid 10+0"),
+                timeout=5.0,
+            )
+
+        t = threading.Thread(target=run_seek, daemon=True)
+        t.start()
+        self.assertTrue(seek_opened.wait(timeout=2.0))
+        client.cancel_seek()
+        t.join(timeout=3.0)
+        self.assertFalse(t.is_alive())
+        self.assertIsNone(result.get("value"))
+        self.assertTrue(stream_closed.is_set())
+        self.assertTrue(seek_closed.is_set())
+
+    def test_quick_pairing_timeout_and_unexpected_stream_termination(self):
+        class _IdleStream:
+            def __init__(self):
+                self._gate = threading.Event()
+
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+                self._gate.wait(timeout=5.0)
+                raise StopIteration
+
+            def close(self):
+                self._gate.set()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                self.close()
+                return False
+
+        # Case A: Timeout without matched opponent
+        def timeout_opener(request, timeout=10.0):
+            if request.full_url.endswith("/api/stream/event"):
+                return _IdleStream()
+            if request.full_url.endswith("/api/board/seek"):
+                raise TimeoutError("timed out")
+            raise AssertionError(request.full_url)
+
+        client = self._make_seek_client(timeout_opener)
+        with self.assertRaisesRegex(ValueError, "timed out"):
+            client.start_seek(LichessChallengeOptions(mode="seek", preset="Rapid 10+0"), timeout=5.0)
+
+        # Case B: Event stream terminates unexpectedly mid-seek with an error
+        seek_entered = threading.Event()
+        seek_closed = threading.Event()
+
+        class _FailingMidStream:
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+                seek_entered.wait(timeout=5.0)
+                raise urllib.error.URLError("stream dropped mid-seek")
+
+            def close(self):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        class _WaitingSeekStream(_IdleStream):
+            def close(self):
+                seek_closed.set()
+                super().close()
+
+        def midstream_fail_opener(request, timeout=10.0):
+            if request.full_url.endswith("/api/stream/event"):
+                return _FailingMidStream()
+            if request.full_url.endswith("/api/board/seek"):
+                seek_entered.set()
+                return _WaitingSeekStream()
+            raise AssertionError(request.full_url)
+
+        client._opener = midstream_fail_opener
+        with self.assertRaisesRegex(ValueError, "event stream interrupted"):
+            client.start_seek(LichessChallengeOptions(mode="seek", preset="Rapid 10+0"), timeout=5.0)
+        self.assertTrue(seek_closed.is_set())
+
+    def test_quick_pairing_repeated_attempts_no_stale_state_and_unrelated_events_ignored(self):
+        attempt = 0
+
+        class _LineStream:
+            def __init__(self, lines):
+                self._lines = [l.encode("utf-8") for l in lines]
+
+            def __iter__(self):
+                return iter(self._lines)
+
+            def close(self):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        def repeated_opener(request, timeout=10.0):
+            if request.full_url.endswith("/api/stream/event"):
+                if attempt == 1:
+                    return _LineStream([
+                        # Unrelated friend challenge + mismatched variant must be ignored
+                        json.dumps({"type": "gameStart", "game": {"id": "friendGame0", "source": "friend"}}) + "\n",
+                        json.dumps({"type": "gameStart", "game": {"id": "variantGame0", "source": "lobby", "variant": {"key": "crazyhouse"}}}) + "\n",
+                        json.dumps({"type": "gameStart", "game": {"id": "validMatch1", "source": "lobby", "variant": {"key": "standard"}, "rated": False}}) + "\n",
+                    ])
+                return _LineStream([
+                    json.dumps({"type": "gameStart", "game": {"id": "validMatch2", "source": "lobby", "rated": True}}) + "\n",
+                ])
+            if request.full_url.endswith("/api/board/seek"):
+                return _LineStream(["\n"])
+            raise AssertionError(request.full_url)
+
+        client = self._make_seek_client(repeated_opener)
+        attempt = 1
+        g1 = client.start_seek(LichessChallengeOptions(mode="seek", preset="Rapid 10+0", rated=False))
+        self.assertEqual(g1, "validMatch1")
+
+        attempt = 2
+        g2 = client.start_seek(LichessChallengeOptions(mode="seek", preset="Rapid 10+0", rated=True))
+        self.assertEqual(g2, "validMatch2")
+
+    def test_quick_pairing_http_406_and_accept_header(self):
+        captured_headers = {}
+
+        def opener_406(request, timeout=10.0):
+            if request.full_url.endswith("/api/stream/event"):
+                class _Empty:
+                    def __iter__(self):
+                        return iter([])
+                    def close(self):
+                        pass
+                    def __enter__(self):
+                        return self
+                    def __exit__(self, *args):
+                        return False
+                return _Empty()
+            if request.full_url.endswith("/api/board/seek"):
+                captured_headers["Accept"] = request.get_header("Accept") or ""
+                raise urllib.error.HTTPError(
+                    request.full_url,
+                    406,
+                    "Not Acceptable",
+                    {},
+                    io.BytesIO(json.dumps({"error": "Not Acceptable"}).encode("utf-8")),
+                )
+            raise AssertionError(request.full_url)
+
+        client = self._make_seek_client(opener_406)
+        with self.assertRaisesRegex(ValueError, r"Lichess seek error \(406\)"):
+            client.start_seek(LichessChallengeOptions(mode="seek", preset="Rapid 10+0"))
+        self.assertIn("text/plain", captured_headers["Accept"])
+        self.assertIn("application/json", captured_headers["Accept"])
+        self.assertIn("application/x-ndjson", captured_headers["Accept"])
+        self.assertIn("*/*", captured_headers["Accept"])
+
+    def test_secure_credential_storage_migration_failure_and_logout(self):
+        class _FakeProtector(CredentialProtector):
+            scheme = "fake-enc"
+
+            def __init__(self, fail_encrypt=False, fail_decrypt=False):
+                self.fail_encrypt = fail_encrypt
+                self.fail_decrypt = fail_decrypt
+
+            def protect(self, plaintext: str) -> str:
+                if self.fail_encrypt:
+                    raise CredentialProtectionError("simulated encryption failure")
+                return "ENC:" + plaintext[::-1]
+
+            def unprotect(self, protected: str) -> str:
+                if self.fail_decrypt or not protected.startswith("ENC:"):
+                    raise CredentialProtectionError("simulated decryption failure")
+                return protected[4:][::-1]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            auth_path = Path(tmp) / "lichess_auth.json"
+            secret = "lip_super_secret_token_xyz"
+            acct = LichessAccount(user_id="nork79", username="Nork79", perfs={"rapid": 1800})
+            ok_protector = _FakeProtector()
+
+            # 1. Encrypted save must not store plaintext token on disk
+            self.assertTrue(save_stored_auth(secret, account=acct, path=auth_path, protector=ok_protector))
+            raw_on_disk = auth_path.read_text(encoding="utf-8")
+            self.assertNotIn(secret, raw_on_disk)
+            parsed = json.loads(raw_on_disk)
+            self.assertEqual(parsed["version"], 2)
+            self.assertEqual(parsed["token_scheme"], "fake-enc")
+
+            loaded = load_stored_auth(auth_path, protector=ok_protector)
+            self.assertIsNotNone(loaded)
+            self.assertEqual(loaded["token"], secret)
+            self.assertEqual(loaded["account"]["username"], "Nork79")
+
+            # 2. Failed encryption must NOT overwrite or delete existing valid credentials
+            failing_protector = _FakeProtector(fail_encrypt=True)
+            self.assertFalse(save_stored_auth("lip_new_token", account=acct, path=auth_path, protector=failing_protector))
+            self.assertEqual(auth_path.read_text(encoding="utf-8"), raw_on_disk)
+
+            # 3. Migration from legacy v1 plaintext file
+            legacy_payload = {
+                "version": 1,
+                "token": secret,
+                "server_url": "https://lichess.org",
+                "client_id": "otbmaster3d",
+                "account": acct.to_dict(),
+            }
+            auth_path.write_text(json.dumps(legacy_payload), encoding="utf-8")
+            # Migration failure preserves original file
+            loaded_no_mig = load_stored_auth(auth_path, protector=failing_protector)
+            self.assertEqual(loaded_no_mig["token"], secret)
+            self.assertIn(secret, auth_path.read_text(encoding="utf-8"))
+            # Successful migration rewrites to v2 encrypted format
+            loaded_mig = load_stored_auth(auth_path, protector=ok_protector)
+            self.assertEqual(loaded_mig["token"], secret)
+            self.assertNotIn(secret, auth_path.read_text(encoding="utf-8"))
+            self.assertEqual(json.loads(auth_path.read_text(encoding="utf-8"))["version"], 2)
+
+            # 4. Corrupted storage & decryption errors never log secrets and return None
+            log_stream = io.StringIO()
+            handler = logging.StreamHandler(log_stream)
+            lichess_logger = logging.getLogger("otb_chess.services.lichess")
+            lichess_logger.addHandler(handler)
+            try:
+                self.assertIsNone(load_stored_auth(auth_path, protector=_FakeProtector(fail_decrypt=True)))
+                auth_path.write_text("{corrupt json", encoding="utf-8")
+                self.assertIsNone(load_stored_auth(auth_path, protector=ok_protector))
+            finally:
+                lichess_logger.removeHandler(handler)
+            self.assertNotIn(secret, log_stream.getvalue())
+
+            # 5. Logout removes stored credentials
+            self.assertTrue(save_stored_auth(secret, account=acct, path=auth_path, protector=ok_protector))
+            client = LichessClient(token=secret, account=acct)
+            client.logout(revoke_remote=False, path=auth_path)
+            self.assertFalse(auth_path.exists())
+            self.assertFalse(client.is_authenticated)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows DPAPI test requires Windows")
+    def test_windows_dpapi_protector_round_trip(self):
+        protector = WindowsDPAPIProtector()
+        secret = "lip_dpapi_roundtrip_12345"
+        protected = protector.protect(secret)
+        self.assertNotIn(secret, protected)
+        self.assertEqual(protector.unprotect(protected), secret)
+        with self.assertRaises(CredentialProtectionError):
+            protector.unprotect("not-valid-dpapi!!!")
+
+    def test_game_history_service_edge_cases(self):
+        class _Resp:
+            def __init__(self, text: str):
+                self._bytes = text.encode("utf-8")
+            def read(self):
+                return self._bytes
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+
+        # 1. Empty history
+        client = LichessClient(opener=lambda req, timeout=10.0: _Resp(""))
+        self.assertEqual(client.fetch_user_games("nork79"), [])
+
+        # 2. Empty username
+        with self.assertRaisesRegex(ValueError, "Enter a Lichess username"):
+            client.fetch_user_games("")
+
+        # 3. Invalid username (404)
+        def opener_404(req, timeout=10.0):
+            raise urllib.error.HTTPError(req.full_url, 404, "Not Found", {}, None)
+
+        client._opener = opener_404
+        with self.assertRaisesRegex(ValueError, "was not found"):
+            client.fetch_user_games("nonexistent_user_xyz")
+
+        # 4. API connection failure
+        def opener_conn_err(req, timeout=10.0):
+            raise urllib.error.URLError("network down")
+
+        client._opener = opener_conn_err
+        with self.assertRaisesRegex(ValueError, "Could not connect"):
+            client.fetch_user_games("nork79")
+
+        # 5. Missing metadata, variant identification, and move counts (moves vs PGN fallback)
+        ndjson = "\n".join([
+            json.dumps({"id": "gMissingMeta"}),
+            json.dumps({
+                "id": "gVariant960",
+                "variant": {"key": "chess960"},
+                "moves": "e4 e5 Nf3 Nc6 Bb5",
+                "players": {"white": {"user": {"name": "Alice"}}, "black": {"user": {"name": "Bob"}}},
+            }),
+            json.dumps({
+                "id": "gPgnOnly",
+                "variant": "crazyhouse",
+                "pgn": '[Event "Test"]\n\n1. e4 e5 2. Nf3 Nc6 1-0\n',
+            }),
+        ])
+        client._opener = lambda req, timeout=10.0: _Resp(ndjson)
+        games = client.fetch_user_games("nork79")
+        self.assertEqual(len(games), 3)
+        self.assertEqual(games[0].date_label, "Unknown")
+        self.assertEqual(games[0].white_name, "White")
+        self.assertEqual(games[0].opening_label, "—")
+        self.assertEqual(games[0].move_count, 0)
+        self.assertTrue(games[0].is_supported_variant)
+
+        self.assertEqual(games[1].variant, "chess960")
+        self.assertFalse(games[1].is_supported_variant)
+        self.assertEqual(games[1].ply_count, 5)
+        self.assertEqual(games[1].move_count, 3)
+
+        self.assertEqual(games[2].variant, "crazyhouse")
+        self.assertFalse(games[2].is_supported_variant)
+        self.assertEqual(games[2].move_count, 2)
+
 
 
 class LichessUITests(unittest.TestCase):
@@ -1214,7 +1747,8 @@ class LichessUITests(unittest.TestCase):
         self.assertEqual(table.item(0, 2).text(), "nork79 (1750)")
         self.assertEqual(table.item(0, 3).text(), "OpponentTwo (1720)")
         self.assertEqual(table.item(0, 4).text(), "1-0")
-        self.assertEqual(table.item(0, 5).text(), "C70 Ruy Lopez: Morphy Defense")
+        self.assertEqual(table.item(0, 5).text(), "3")
+        self.assertEqual(table.item(0, 6).text(), "C70 Ruy Lopez: Morphy Defense")
 
         table.selectRow(0)
         QTest.mouseClick(dialog.load_button, Qt.MouseButton.LeftButton)
@@ -1224,6 +1758,128 @@ class LichessUITests(unittest.TestCase):
         self.assertEqual([w.game.position.uci(m) for m in w.game.position.moves], ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6"])
         self.assertEqual(w.game._pgn_document.headers.get("White"), "nork79")
         self.assertEqual(w.game._pgn_document.headers.get("Black"), "OpponentTwo")
+        dialog.deleteLater()
+
+    def test_lichess_game_history_pgn_fallback_error_handling_and_variant_rejection(self):
+        w = self.window
+        w.lichess = LichessClient(
+            token="lip_hist_ui",
+            account=LichessAccount(user_id="nork79", username="nork79"),
+        )
+        exported_pgn = '[Event "Exported"]\n[White "nork79"]\n[Black "BotFriend"]\n\n1. d4 d5 2. c4 *\n'
+
+        class _TextResponse:
+            def __init__(self, text: str):
+                self._bytes = text.encode("utf-8")
+
+            def read(self):
+                return self._bytes
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        mode = "ok"
+
+        def fake_opener(req, timeout=10.0):
+            if mode == "fail_list":
+                raise urllib.error.URLError("list failed")
+            if "/api/games/user/" in req.full_url:
+                return _TextResponse("\n".join([
+                    json.dumps({
+                        "id": "noPgnFallback",
+                        "variant": "standard",
+                        "moves": "d4 d5 c4",
+                        "players": {"white": {"user": {"name": "nork79"}}, "black": {"user": {"name": "BotFriend"}}},
+                    }),
+                    json.dumps({
+                        "id": "crazyVariantGame",
+                        "variant": "crazyhouse",
+                        "moves": "e4 e5",
+                        "pgn": '[Event "Crazy"]\n\n1. e4 e5 *\n',
+                        "players": {"white": {"user": {"name": "nork79"}}, "black": {"user": {"name": "VariantBot"}}},
+                    }),
+                    json.dumps({
+                        "id": "emptyPgnGame",
+                        "variant": "standard",
+                        "players": {"white": {"user": {"name": "nork79"}}, "black": {"user": {"name": "EmptyBot"}}},
+                    }),
+                ]))
+            if "/game/export/noPgnFallback" in req.full_url:
+                if mode == "fail_pgn":
+                    raise urllib.error.URLError("export failed")
+                return _TextResponse(exported_pgn)
+            if "/game/export/emptyPgnGame" in req.full_url:
+                return _TextResponse("")
+            raise AssertionError(req.full_url)
+
+        w.lichess._opener = fake_opener
+
+        # 1. API failure on initial fetch updates status label and keeps controls enabled
+        mode = "fail_list"
+        dialog = LichessHistoryDialog(w)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, True)
+        dialog.show()
+        deadline = 100
+        while dialog._busy and deadline > 0:
+            QTest.qWait(10)
+            self.qt.processEvents()
+            deadline -= 1
+        self.assertIn("Could not connect", dialog.status_label.text())
+        self.assertTrue(dialog.fetch_button.isEnabled())
+
+        # 2. Successful fetch populates table
+        mode = "ok"
+        dialog.fetch_games()
+        table = dialog.findChild(QTableWidget, "lichessHistoryTable")
+        deadline = 100
+        while (dialog._busy or table.rowCount() < 3) and deadline > 0:
+            QTest.qWait(10)
+            self.qt.processEvents()
+            deadline -= 1
+        self.assertEqual(table.rowCount(), 3)
+
+        # 3. Unsupported variant is rejected with warning and does not replace board
+        table.selectRow(1)
+        with patch.object(QMessageBox, "warning") as warn_mock:
+            dialog.load_selected_game()
+            warn_mock.assert_called_once()
+            self.assertIn("Unsupported Variant", warn_mock.call_args.args[1])
+
+        # 4. Missing/empty PGN shows warning
+        table.selectRow(2)
+        with patch.object(QMessageBox, "warning") as warn_mock:
+            dialog.load_selected_game()
+            deadline = 100
+            while dialog._busy and deadline > 0:
+                QTest.qWait(10)
+                self.qt.processEvents()
+                deadline -= 1
+            warn_mock.assert_called_once()
+
+        # 5. PGN export failure shows status error
+        mode = "fail_pgn"
+        table.selectRow(0)
+        dialog.load_selected_game()
+        deadline = 100
+        while dialog._busy and deadline > 0:
+            QTest.qWait(10)
+            self.qt.processEvents()
+            deadline -= 1
+        self.assertIn("Could not connect", dialog.status_label.text())
+
+        # 6. PGN fallback succeeds when export returns valid PGN
+        mode = "ok"
+        dialog.load_selected_game()
+        deadline = 100
+        while dialog._busy and deadline > 0:
+            QTest.qWait(10)
+            self.qt.processEvents()
+            deadline -= 1
+        self.assertEqual(dialog.loaded_game_id, "noPgnFallback")
+        self.assertEqual([w.game.position.uci(m) for m in w.game.position.moves], ["d2d4", "d7d5", "c2c4"])
         dialog.deleteLater()
 
 

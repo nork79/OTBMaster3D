@@ -1232,9 +1232,9 @@ class LichessHistoryDialog(QDialog):
         filter_row.addWidget(self.fetch_button)
         layout.addLayout(filter_row)
 
-        self.table = QTableWidget(0, 7)
+        self.table = QTableWidget(0, 8)
         self.table.setObjectName("lichessHistoryTable")
-        self.table.setHorizontalHeaderLabels(["Date", "Speed", "White", "Black", "Result", "Opening", "Type"])
+        self.table.setHorizontalHeaderLabels(["Date", "Speed", "White", "Black", "Result", "Moves", "Opening", "Type"])
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -1246,8 +1246,9 @@ class LichessHistoryDialog(QDialog):
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.ResizeToContents)
         self.table.itemSelectionChanged.connect(self._update_buttons)
         self.table.itemDoubleClicked.connect(lambda _item: self.load_selected_game())
         layout.addWidget(self.table, 1)
@@ -1343,12 +1344,13 @@ class LichessHistoryDialog(QDialog):
                 summary.side_label(True),
                 summary.side_label(False),
                 summary.result_label,
+                str(summary.move_count) if summary.move_count > 0 else "—",
                 summary.opening_label,
                 "Rated" if summary.rated else "Casual",
             )
             for col, text in enumerate(values):
                 item = QTableWidgetItem(text)
-                if col in (1, 4, 6):
+                if col in (1, 4, 5, 7):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(row, col, item)
         if self._games:
@@ -1367,6 +1369,9 @@ class LichessHistoryDialog(QDialog):
     def load_selected_game(self):
         summary = self._selected_game()
         if summary is None:
+            return
+        if not summary.is_supported_variant:
+            self.owner.load_lichess_history_game(summary, "")
             return
         if summary.pgn:
             self._finish_load(summary, summary.pgn)

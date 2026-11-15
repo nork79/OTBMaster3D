@@ -281,11 +281,21 @@ and restored when that game ends.
 
 ### Game history
 
-Select **Lichess > Game History…** (`Ctrl+Shift+H`) to browse your recent
-Lichess games with date, variant/speed, opponent, result, opening, and move
-count. Select any game and click **Load into Board** (or double-click a row) to
-import its PGN into the local 3D board for replay and analysis, or open it on
-Lichess in your browser.
+Select **Lichess > Game History…** (`Ctrl+Shift+H`) to browse a user's recent
+Lichess games with date, speed, players, result, move count, opening, and
+rated/casual type. You can filter by **Username**, **Speed** (All, Bullet,
+Blitz, Rapid, Classical), **Type** (All, Rated, Casual), and **Max** games
+(5–100). Select any standard chess game and click **Load Game on Board** (or
+double-click a row) to import its PGN into the local 3D board for replay and
+analysis (falling back to `/game/export/{gameId}` if inline PGN is omitted), or
+click **View on Lichess…** to open it in your browser. Non-standard variants
+(such as Chess960 or Crazyhouse) are listed in history but cannot be loaded onto
+the local board.
+
+Saved Lichess access tokens are encrypted at rest on Windows via Windows DPAPI
+(`CurrentUser` scope) in `lichess_auth.json`. Legacy plaintext credential files
+are automatically migrated to encrypted storage on load, and **Log Out** deletes
+the stored credential file.
 
 ### Troubleshooting and limits
 

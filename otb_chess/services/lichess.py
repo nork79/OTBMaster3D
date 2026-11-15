@@ -6,12 +6,14 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import hashlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import io
 import json
 import logging
 import os
 from pathlib import Path
 import re
 import secrets
+import sys
 import tempfile
 import threading
 import urllib.error
@@ -505,29 +507,225 @@ def generate_pkce_pair() -> tuple[str, str]:
     return verifier, challenge
 
 
-def load_stored_auth(path: Path | None = None) -> dict | None:
+class CredentialProtectionError(ValueError):
+    """Raised when Lichess credential encryption or decryption fails."""
+
+
+class CredentialProtector:
+    """Abstract interface for encrypting and decrypting stored Lichess tokens."""
+
+    scheme: str = "abstract"
+
+    def protect(self, plaintext: str) -> str:
+        raise NotImplementedError
+
+    def unprotect(self, protected: str) -> str:
+        raise NotImplementedError
+
+
+class WindowsDPAPIProtector(CredentialProtector):
+    """Protect Lichess tokens at rest using Windows DPAPI (CurrentUser context)."""
+
+    scheme = "dpapi"
+    _ENTROPY = b"OTBMaster3D.LichessToken.v1"
+
+    @staticmethod
+    def _dpapi_call(data_bytes: bytes, *, encrypt: bool) -> bytes:
+        if sys.platform != "win32":
+            raise CredentialProtectionError("Windows DPAPI is only available on Windows.")
+        import ctypes
+        from ctypes import wintypes
+
+        class _DATA_BLOB(ctypes.Structure):
+            _fields_ = [
+                ("cbData", wintypes.DWORD),
+                ("pbData", ctypes.POINTER(ctypes.c_ubyte)),
+            ]
+
+        crypt32 = ctypes.windll.crypt32
+        kernel32 = ctypes.windll.kernel32
+        crypt32.CryptProtectData.argtypes = [
+            ctypes.POINTER(_DATA_BLOB),
+            wintypes.LPCWSTR,
+            ctypes.POINTER(_DATA_BLOB),
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            wintypes.DWORD,
+            ctypes.POINTER(_DATA_BLOB),
+        ]
+        crypt32.CryptProtectData.restype = wintypes.BOOL
+        crypt32.CryptUnprotectData.argtypes = [
+            ctypes.POINTER(_DATA_BLOB),
+            ctypes.POINTER(wintypes.LPWSTR),
+            ctypes.POINTER(_DATA_BLOB),
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            wintypes.DWORD,
+            ctypes.POINTER(_DATA_BLOB),
+        ]
+        crypt32.CryptUnprotectData.restype = wintypes.BOOL
+        kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+        kernel32.LocalFree.restype = ctypes.c_void_p
+
+        in_buf = ctypes.create_string_buffer(data_bytes, len(data_bytes))
+        in_blob = _DATA_BLOB(len(data_bytes), ctypes.cast(in_buf, ctypes.POINTER(ctypes.c_ubyte)))
+        entropy_buf = ctypes.create_string_buffer(WindowsDPAPIProtector._ENTROPY, len(WindowsDPAPIProtector._ENTROPY))
+        entropy_blob = _DATA_BLOB(
+            len(WindowsDPAPIProtector._ENTROPY),
+            ctypes.cast(entropy_buf, ctypes.POINTER(ctypes.c_ubyte)),
+        )
+        out_blob = _DATA_BLOB()
+
+        if encrypt:
+            ok = crypt32.CryptProtectData(
+                ctypes.byref(in_blob),
+                "OTBMaster3D Lichess Token",
+                ctypes.byref(entropy_blob),
+                None,
+                None,
+                0,
+                ctypes.byref(out_blob),
+            )
+        else:
+            ok = crypt32.CryptUnprotectData(
+                ctypes.byref(in_blob),
+                None,
+                ctypes.byref(entropy_blob),
+                None,
+                None,
+                0,
+                ctypes.byref(out_blob),
+            )
+
+        if not ok:
+            err = ctypes.GetLastError()
+            action = "encryption" if encrypt else "decryption"
+            raise CredentialProtectionError(f"Windows DPAPI {action} failed (code {err}).")
+
+        try:
+            return ctypes.string_at(out_blob.pbData, out_blob.cbData)
+        finally:
+            if out_blob.pbData:
+                kernel32.LocalFree(out_blob.pbData)
+
+    def protect(self, plaintext: str) -> str:
+        raw = (plaintext or "").encode("utf-8")
+        if not raw:
+            raise CredentialProtectionError("Cannot encrypt an empty Lichess token.")
+        encrypted = self._dpapi_call(raw, encrypt=True)
+        return base64.b64encode(encrypted).decode("ascii")
+
+    def unprotect(self, protected: str) -> str:
+        if not isinstance(protected, str) or not protected.strip():
+            raise CredentialProtectionError("Encrypted Lichess token payload is missing.")
+        try:
+            encrypted = base64.b64decode(protected.strip().encode("ascii"), validate=True)
+        except Exception as exc:
+            raise CredentialProtectionError("Encrypted Lichess token payload is malformed.") from exc
+        decrypted = self._dpapi_call(encrypted, encrypt=False)
+        try:
+            return decrypted.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise CredentialProtectionError("Decrypted Lichess token is not valid UTF-8.") from exc
+
+
+class _UnavailableCredentialProtector(CredentialProtector):
+    """Fail-closed protector used when no platform encryption backend is available."""
+
+    scheme = "unavailable"
+
+    def protect(self, plaintext: str) -> str:
+        raise CredentialProtectionError("No secure credential storage backend is available on this platform.")
+
+    def unprotect(self, protected: str) -> str:
+        raise CredentialProtectionError("No secure credential storage backend is available on this platform.")
+
+
+def get_default_credential_protector() -> CredentialProtector:
+    """Return the default credential protector for the current platform."""
+    if sys.platform == "win32":
+        return WindowsDPAPIProtector()
+    return _UnavailableCredentialProtector()
+
+
+def load_stored_auth(path: Path | None = None, *, protector: CredentialProtector | None = None) -> dict | None:
     auth_path = path or settings.LICHESS_AUTH_PATH
     if not auth_path.exists():
         return None
     try:
-        data = json.loads(auth_path.read_text(encoding="utf-8"))
-        if not isinstance(data, dict) or not isinstance(data.get("token"), str) or not data["token"].strip():
-            return None
-        return data
-    except Exception:
+        raw_text = auth_path.read_text(encoding="utf-8")
+        data = json.loads(raw_text)
+    except (OSError, UnicodeDecodeError, ValueError):
+        log.warning("Stored Lichess credentials file could not be read or parsed.")
         return None
+    if not isinstance(data, dict):
+        log.warning("Stored Lichess credentials file has an invalid format.")
+        return None
+
+    active_protector = protector or get_default_credential_protector()
+    if "encrypted_token" in data or data.get("version") == 2:
+        scheme = str(data.get("token_scheme") or "").strip()
+        encrypted_token = data.get("encrypted_token")
+        if scheme != active_protector.scheme or not isinstance(encrypted_token, str) or not encrypted_token.strip():
+            log.warning("Stored Lichess credentials have an incompatible or missing protection scheme.")
+            return None
+        try:
+            token = active_protector.unprotect(encrypted_token).strip()
+        except CredentialProtectionError as exc:
+            log.warning("Stored Lichess credentials could not be decrypted: %s", exc)
+            return None
+        if not token:
+            log.warning("Stored Lichess credentials decrypted to an empty token.")
+            return None
+        resolved = dict(data)
+        resolved["token"] = token
+        return resolved
+
+    legacy_token = data.get("token")
+    if not isinstance(legacy_token, str) or not legacy_token.strip():
+        return None
+    token = legacy_token.strip()
+    account_obj = None
+    account_data = data.get("account")
+    if isinstance(account_data, dict) and account_data.get("username"):
+        try:
+            account_obj = LichessAccount.from_dict(account_data)
+        except Exception:
+            account_obj = None
+    migrated = save_stored_auth(
+        token,
+        account=account_obj,
+        server_url=str(data.get("server_url") or settings.DEFAULT_LICHESS_URL),
+        client_id=str(data.get("client_id") or settings.DEFAULT_LICHESS_CLIENT_ID),
+        path=auth_path,
+        protector=active_protector,
+    )
+    if not migrated:
+        log.warning("Legacy Lichess credentials could not be migrated to encrypted storage; existing file preserved.")
+    resolved = dict(data)
+    resolved["token"] = token
+    return resolved
 
 
 def save_stored_auth(token: str, account: LichessAccount | None = None,
                      server_url: str = settings.DEFAULT_LICHESS_URL,
                      client_id: str = settings.DEFAULT_LICHESS_CLIENT_ID,
-                     path: Path | None = None) -> bool:
+                     path: Path | None = None,
+                     *,
+                     protector: CredentialProtector | None = None) -> bool:
     auth_path = path or settings.LICHESS_AUTH_PATH
+    clean_token = (token or "").strip()
+    if not clean_token:
+        log.warning("Lichess credentials could not be saved: access token is empty.")
+        return False
+    active_protector = protector or get_default_credential_protector()
     temporary = None
     try:
+        encrypted_token = active_protector.protect(clean_token)
         payload = json.dumps({
-            "version": 1,
-            "token": token.strip(),
+            "version": 2,
+            "token_scheme": active_protector.scheme,
+            "encrypted_token": encrypted_token,
             "server_url": server_url.rstrip("/"),
             "client_id": client_id.strip(),
             "account": account.to_dict() if account is not None else None,
@@ -541,7 +739,7 @@ def save_stored_auth(token: str, account: LichessAccount | None = None,
             os.fsync(stream.fileno())
         os.replace(temporary, auth_path)
         return True
-    except (OSError, ValueError, TypeError) as exc:
+    except (CredentialProtectionError, OSError, ValueError, TypeError) as exc:
         log.warning("Lichess credentials could not be saved: %s", exc)
         return False
     finally:
@@ -636,6 +834,8 @@ class LichessClient:
         self._oauth_server: _OAuthCallbackServer | None = None
         self._active_seek_response = None
         self._seek_cancelled = threading.Event()
+        self._seek_state = None
+        self._seek_seq = 0
         self._event_stream_response = None
         self._game_stream_response = None
         self._game_stream_cancelled = threading.Event()
@@ -797,8 +997,9 @@ class LichessClient:
         finally:
             self.cancel_oauth()
 
-    def restore_saved_session(self, path: Path | None = None) -> LichessAccount | None:
-        stored = load_stored_auth(path)
+    def restore_saved_session(self, path: Path | None = None, *,
+                              protector: CredentialProtector | None = None) -> LichessAccount | None:
+        stored = load_stored_auth(path, protector=protector)
         if not stored:
             return None
         self.server_url = str(stored.get("server_url") or self.server_url).rstrip("/")
@@ -958,11 +1159,40 @@ class LichessClient:
             data={"reason": reason},
         )
 
+    @staticmethod
+    def _matches_seek_event(game_obj: dict, options: LichessChallengeOptions) -> bool:
+        """Return True unless Lichess metadata marks the gameStart as unrelated to this seek."""
+        if not isinstance(game_obj, dict):
+            return False
+        compat = game_obj.get("compat")
+        if isinstance(compat, dict) and compat.get("board") is False:
+            return False
+        source = str(game_obj.get("source") or "").strip().lower()
+        if source and source not in ("lobby", "pool"):
+            return False
+        variant_raw = game_obj.get("variant")
+        if isinstance(variant_raw, dict):
+            variant_key = str(variant_raw.get("key") or "").strip().lower()
+        else:
+            variant_key = str(variant_raw or "").strip().lower()
+        expected_variant = str(getattr(options, "variant", "standard") or "standard").strip().lower()
+        if variant_key and variant_key != expected_variant:
+            return False
+        rated_val = game_obj.get("rated")
+        if isinstance(rated_val, bool) and rated_val != bool(options.rated):
+            return False
+        return True
+
     def cancel_seek(self) -> None:
         self._seek_cancelled.set()
         with self._lock:
+            state = self._seek_state
             resp = self._active_seek_response
             self._active_seek_response = None
+        if state is not None:
+            state.cancelled.set()
+            state.stream_ready.set()
+            state.wake_event.set()
         if resp is not None:
             try:
                 resp.close()
@@ -979,53 +1209,89 @@ class LichessClient:
         self.cancel_seek()
         self._seek_cancelled.clear()
 
-        matched_event = threading.Event()
-        matched_game_id = ""
+        class _SeekState:
+            def __init__(self, seq: int):
+                self.seq = seq
+                self.stream_ready = threading.Event()
+                self.stream_ended = threading.Event()
+                self.matched_event = threading.Event()
+                self.cancelled = threading.Event()
+                self.wake_event = threading.Event()
+                self.stream_error: BaseException | None = None
+                self.matched_game_id: str = ""
+
+        with self._lock:
+            self._seek_seq += 1
+            state = _SeekState(self._seek_seq)
+            self._seek_state = state
+
+        def _close_active_seek_response():
+            with self._lock:
+                active_resp = self._active_seek_response
+            if active_resp is not None:
+                try:
+                    active_resp.close()
+                except Exception:
+                    pass
 
         def _watch_event_stream():
-            nonlocal matched_game_id
             try:
-                for event in self.iter_incoming_events(timeout=timeout):
-                    if self._seek_cancelled.is_set() or matched_event.is_set():
+                for event in self.iter_incoming_events(timeout=timeout, ready_event=state.stream_ready):
+                    if state.cancelled.is_set() or self._seek_cancelled.is_set() or state.matched_event.is_set():
                         return
                     if event.get("type") == "gameStart":
                         game_obj = event.get("game") or {}
                         gid = str(game_obj.get("gameId") or game_obj.get("id") or "").strip()
-                        if gid:
-                            matched_game_id = gid
-                            matched_event.set()
-                            with self._lock:
-                                active_resp = self._active_seek_response
-                            if active_resp is not None:
-                                try:
-                                    active_resp.close()
-                                except Exception:
-                                    pass
+                        if gid and self._matches_seek_event(game_obj, options):
+                            state.matched_game_id = gid
+                            state.matched_event.set()
+                            state.wake_event.set()
+                            _close_active_seek_response()
                             return
-            except Exception:
-                return
+            except Exception as exc:
+                if not state.cancelled.is_set() and not self._seek_cancelled.is_set() and not state.matched_event.is_set():
+                    state.stream_error = exc
+                    _close_active_seek_response()
+            finally:
+                state.stream_ended.set()
+                state.stream_ready.set()
+                state.wake_event.set()
 
         watcher = threading.Thread(target=_watch_event_stream, daemon=True)
         watcher.start()
 
-        url = f"{self.server_url}/api/board/seek"
-        headers = {
-            "Accept": "text/plain, application/json, application/x-ndjson, */*",
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": self.user_agent,
-        }
-        body = urllib.parse.urlencode(payload).encode("utf-8")
-        request = urllib.request.Request(url, data=body, headers=headers, method="POST")
         try:
+            if not state.stream_ready.wait(timeout=timeout):
+                state.cancelled.set()
+                self.stop_event_stream()
+                raise ValueError("Timed out connecting to Lichess event stream.")
+            if state.cancelled.is_set() or self._seek_cancelled.is_set():
+                return None
+            if state.stream_error is not None:
+                raise ValueError(f"Could not connect to Lichess event stream ({state.stream_error}).")
+            if state.matched_event.is_set() and state.matched_game_id:
+                return state.matched_game_id
+
+            url = f"{self.server_url}/api/board/seek"
+            headers = {
+                "Accept": "text/plain, application/json, application/x-ndjson, */*",
+                "Authorization": f"Bearer {self.token}",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": self.user_agent,
+            }
+            body = urllib.parse.urlencode(payload).encode("utf-8")
+            request = urllib.request.Request(url, data=body, headers=headers, method="POST")
+
             with self._opener(request, timeout=timeout) as response:
                 with self._lock:
                     self._active_seek_response = response
                 for raw_line in response:
-                    if self._seek_cancelled.is_set():
+                    if state.cancelled.is_set() or self._seek_cancelled.is_set():
                         return None
-                    if matched_event.is_set() and matched_game_id:
-                        return matched_game_id
+                    if state.matched_event.is_set() and state.matched_game_id:
+                        return state.matched_game_id
+                    if state.stream_error is not None:
+                        raise ValueError(f"Lichess event stream interrupted ({state.stream_error}).")
                     line = raw_line.decode("utf-8", errors="replace").strip() if isinstance(raw_line, bytes) else str(raw_line).strip()
                     if not line:
                         continue
@@ -1035,10 +1301,21 @@ class LichessClient:
                         continue
                     if isinstance(event, dict) and event.get("id"):
                         return str(event["id"])
-            if not self._seek_cancelled.is_set():
-                matched_event.wait(timeout=2.0)
-                if matched_game_id:
-                    return matched_game_id
+
+            if state.cancelled.is_set() or self._seek_cancelled.is_set():
+                return None
+            if state.matched_event.is_set() and state.matched_game_id:
+                return state.matched_game_id
+            if state.stream_error is not None:
+                raise ValueError(f"Lichess event stream interrupted ({state.stream_error}).")
+            if not state.stream_ended.is_set():
+                state.wake_event.wait(timeout=min(timeout, 2.0))
+            if state.cancelled.is_set() or self._seek_cancelled.is_set():
+                return None
+            if state.matched_event.is_set() and state.matched_game_id:
+                return state.matched_game_id
+            if state.stream_error is not None:
+                raise ValueError(f"Lichess event stream interrupted ({state.stream_error}).")
             return None
         except urllib.error.HTTPError as exc:
             detail = ""
@@ -1049,16 +1326,27 @@ class LichessClient:
             except Exception:
                 pass
             raise ValueError(f"Lichess seek error ({exc.code})" + (f": {detail}" if detail else ".")) from None
+        except ValueError:
+            raise
         except Exception as exc:
-            if self._seek_cancelled.is_set():
+            if state.cancelled.is_set() or self._seek_cancelled.is_set():
                 return None
-            if matched_event.is_set() and matched_game_id:
-                return matched_game_id
+            if state.matched_event.is_set() and state.matched_game_id:
+                return state.matched_game_id
+            if state.stream_error is not None:
+                raise ValueError(f"Lichess event stream interrupted ({state.stream_error}).") from None
+            if isinstance(exc, TimeoutError) or isinstance(getattr(exc, "reason", None), TimeoutError):
+                raise ValueError("Quick pairing timed out without a matched opponent.") from None
             raise ValueError(f"Seek connection interrupted ({exc}).") from None
         finally:
+            state.cancelled.set()
+            state.wake_event.set()
             with self._lock:
                 self._active_seek_response = None
+                if self._seek_state is state:
+                    self._seek_state = None
             self.stop_event_stream()
+            watcher.join(timeout=1.0)
 
     def stop_event_stream(self) -> None:
         with self._lock:
@@ -1070,7 +1358,8 @@ class LichessClient:
             except Exception:
                 pass
 
-    def iter_incoming_events(self, *, timeout: float = 60.0):
+    def iter_incoming_events(self, *, timeout: float = 60.0,
+                             ready_event: threading.Event | None = None):
         """Yield parsed JSON events from GET /api/stream/event until closed."""
         self._require_auth()
         self.stop_event_stream()
@@ -1085,6 +1374,8 @@ class LichessClient:
             with self._opener(request, timeout=timeout) as response:
                 with self._lock:
                     self._event_stream_response = response
+                if ready_event is not None:
+                    ready_event.set()
                 for raw_line in response:
                     line = raw_line.decode("utf-8", errors="replace").strip() if isinstance(raw_line, bytes) else str(raw_line).strip()
                     if not line:
@@ -1096,6 +1387,8 @@ class LichessClient:
                     if isinstance(event, dict):
                         yield event
         finally:
+            if ready_event is not None:
+                ready_event.set()
             with self._lock:
                 self._event_stream_response = None
 
@@ -1374,6 +1667,9 @@ class LichessClient:
             raise ValueError(f"Could not connect to Lichess ({exc.reason}).") from None
 
 
+SUPPORTED_HISTORY_VARIANTS = frozenset({"standard", "fromposition"})
+
+
 @dataclass
 class LichessGameSummary:
     """Summary of a completed or exported Lichess game from /api/games/user/{username}."""
@@ -1394,6 +1690,41 @@ class LichessGameSummary:
     moves: str = ""
     pgn: str = ""
     variant: str = "standard"
+
+    @property
+    def ply_count(self) -> int:
+        if self.moves.strip():
+            return len(self.moves.split())
+        if self.pgn.strip():
+            text = re.sub(r"\[[^\]]*\]", " ", self.pgn)
+            text = re.sub(r"\{[^}]*\}", " ", text)
+            text = re.sub(r";[^\n]*", " ", text)
+            # Strip parenthesized variations iteratively
+            while "(" in text:
+                updated = re.sub(r"\([^()]*\)", " ", text)
+                if updated == text:
+                    break
+                text = updated
+            count = 0
+            for token in text.split():
+                if token in ("1-0", "0-1", "1/2-1/2", "*"):
+                    continue
+                if token.startswith("$") or re.fullmatch(r"\d+\.+", token):
+                    continue
+                cleaned = re.sub(r"^\d+\.+", "", token)
+                if cleaned:
+                    count += 1
+            return count
+        return 0
+
+    @property
+    def move_count(self) -> int:
+        plies = self.ply_count
+        return (plies + 1) // 2 if plies > 0 else 0
+
+    @property
+    def is_supported_variant(self) -> bool:
+        return (self.variant or "standard").strip().lower() in SUPPORTED_HISTORY_VARIANTS
 
     @property
     def date_label(self) -> str:

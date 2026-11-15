@@ -64,9 +64,13 @@ and [migration status](chess-backend-migration.md).
   coordinates background move and analysis requests. Production presets use
   Stockfish and Fairy-Stockfish; Rodent IV supplies personality opponents.
 - **Lichess:** `services/lichess.py` handles OAuth2 PKCE or personal access token
-  authentication, online bot data, direct challenges, Quick Pairing seeks, and
-  Board API game streams. `ui/lichess_dialog.py` provides login, challenge, and
-  bot-profile UI; `desktop_ui.py` applies live events to the game controller.
+  authentication, DPAPI-encrypted token persistence (`WindowsDPAPIProtector` via
+  `CredentialProtector`), online bot data, direct challenges, synchronized Quick
+  Pairing seeks (confirming `/api/stream/event` readiness before submitting
+  `/api/board/seek`), game history retrieval/PGN export, and Board API game
+  streams. `ui/lichess_dialog.py` provides login, challenge, bot-profile, and
+  game-history UI; `desktop_ui.py` applies live events to the game controller
+  and enforces standard-variant limits when loading historical games.
   A live Lichess game disables local engine play and analysis.
 
 Network work and engine searches run on worker threads. Results are handed back
@@ -85,7 +89,9 @@ engine binaries.
 The Windows Actions workflow uses Python 3.13 and has two jobs:
 
 - `test` installs `requirements.txt`, compiles the application and test modules,
-  then runs tests selected to work without a graphics context.
+  runs tests selected to work without a graphics context, and runs
+  `tests.test_lichess` under `QT_QPA_PLATFORM=offscreen` and
+  `QT_OPENGL=software`.
 - `engine-integration` installs Stockfish and Fairy-Stockfish and runs the live
   UCI integration classes. Rodent tests run when its separately built resources
   are present.

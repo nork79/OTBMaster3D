@@ -1,6 +1,6 @@
 # OTBMaster3D
 
-**Current project version: 1.8.4**
+**Current project version: 1.8.5**
 
 OTBMaster3D is an open-source Windows chess application for playing, analysing,
 and organizing chess positions. It combines a Qt desktop interface, interactive
@@ -42,7 +42,7 @@ For a prebuilt application, use the [GitHub Releases page](https://github.com/no
 Choose an installer and its matching source, dependency-source, and checksum
 files from the same release. Check the version shown in **Help > About** against
 the version in the release assets. The source and packaging metadata in this
-checkout identify version 1.8.4.
+checkout identify version 1.8.5.
 
 The packaged application includes Python, Qt, assets, opening books, and the
 supported engine resources. Setup requires Microsoft Visual C++ x64
@@ -101,12 +101,19 @@ the Lichess website or client to accept or decline them.
 Bot profile details and images depend on data and assets Lichess makes available.
 If a bot is offline by the time a challenge is sent, or the connection fails,
 the server may reject the request. A live game uses Lichess as the authoritative
-source for moves and clocks. See [Lichess instructions and troubleshooting](docs/user-guide.md#lichess-online-play).
+source for moves and clocks. **Game History** (`Lichess > Game History…`)
+supports filtering by username, speed (All, Bullet, Blitz, Rapid, Classical),
+type (All, Rated, Casual), and result count, and loads standard chess games onto
+the local board; non-standard Lichess variants are not supported on the local
+board. Stored Lichess access tokens are encrypted at rest on Windows using DPAPI
+(`CurrentUser` scope). See [Lichess instructions and troubleshooting](docs/user-guide.md#lichess-online-play).
 
 ## Tests and CI
 
-Windows CI is configured for Python 3.13. One job runs syntax checks and tests
-that do not need a graphics context; another installs Stockfish and
+Windows CI is configured for Python 3.13. One job runs syntax checks, tests
+that do not need a graphics context, and the Lichess service/UI regression
+suite (`tests.test_lichess` under `QT_QPA_PLATFORM=offscreen` and
+`QT_OPENGL=software`); another installs Stockfish and
 Fairy-Stockfish and runs live engine integration tests. The full local suite also
 contains native Qt/OpenGL and Tk tests, which need a suitable Windows desktop.
 To create the dedicated test environment and run discovery:

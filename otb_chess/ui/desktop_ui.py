@@ -1354,6 +1354,15 @@ class MainWindow(DocumentActions, QMainWindow):
                 "Finish or resign the active Lichess game before loading a historical game.",
             )
             return False
+        variant_key = str(getattr(summary, "variant", "standard") or "standard").strip()
+        is_supported = getattr(summary, "is_supported_variant", variant_key.lower() in ("standard", "fromposition"))
+        if not is_supported:
+            QMessageBox.warning(
+                self,
+                "Unsupported Variant",
+                f"Lichess variant '{variant_key}' is not supported on the local board. Only standard chess games can be loaded.",
+            )
+            return False
         text = (pgn_text or "").strip()
         if not text:
             QMessageBox.warning(self, "Lichess Game History", "Selected game has no PGN data available.")

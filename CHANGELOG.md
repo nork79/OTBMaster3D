@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.8.5 - 2026-11-15
+
+- Harden Lichess Quick Pairing (`LichessClient.start_seek`) with explicit
+  `/api/stream/event` readiness synchronization before submitting
+  `/api/board/seek`, error propagation on stream failure, per-seek state
+  isolation, unrelated `gameStart` filtering, and clean cancellation/thread
+  termination.
+- Encrypt stored Lichess access tokens at rest on Windows using DPAPI
+  (`WindowsDPAPIProtector` via `CredentialProtector`) with automatic migration
+  from legacy plaintext `lichess_auth.json` files and fail-closed error
+  handling.
+- Add `Moves` column and accurate ply/move-count calculation to `Lichess > Game History…`,
+  and reject unsupported non-standard variants when loading onto the local board.
+- Expand `tests/test_lichess.py` with deterministic Quick Pairing, credential
+  storage, and Game History regression tests, and run `tests.test_lichess` in
+  Windows CI under `QT_QPA_PLATFORM=offscreen` and `QT_OPENGL=software`.
+
 ## 1.8.4 - 2026-11-15
 
 - Fix HTTP 406 (Not Acceptable) error on Lichess Quick Pairing (`POST /api/board/seek`)
