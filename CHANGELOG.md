@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.8.6 - 2026-11-16
+
+- Add **Puzzle Trainer** (`Puzzles > Puzzle Trainer…`, `Ctrl+Shift+P`) with a
+  dedicated modeless control window (`otb_chess/ui/puzzle_panel.py`) supporting
+  **Mate in 1**, **Mate in 2**, **Mate in 3**, **Combinations & Exchanges**, and
+  **Endgame Studies**.
+- Add local SQLite puzzle storage (`assets/puzzles/puzzles.db`) via
+  `otb_chess/services/puzzles.py` (`PuzzleRepository`, `PuzzleSession`,
+  `PuzzleProgressStore`) pre-populated with 500 verified puzzles (100 per
+  category from curated studies and the CC0 Lichess puzzle dataset) plus
+  `tools/build_puzzle_db.py` for rebuilding or importing additional CC0 CSV,
+  `.csv.zst`, or HuggingFace `Lichess/chess-puzzles` rows.
+- Add a direct puzzle selector dropdown below the category selector displaying
+  solved markers, puzzle names, and difficulty ratings so players can jump to
+  any puzzle immediately.
+- Add visual board hint highlights (`hint_squares` in `otb_chess/core/game.py`
+  and `otb_chess/graphics/rendering.py`) highlighting both the piece to move and
+  target square in 2D and 3D views (fixing the `draw()` `hint_squares`
+  `NameError` on startup), and animate **Solution** playback step-by-step on
+  the board.
+- Persist solved puzzle progress in `puzzles_progress.json` and add offline/Qt
+  service and UI regression tests in `tests/test_puzzles.py`.
+
 ## 1.8.5 - 2026-11-15
 
 - Harden Lichess Quick Pairing (`LichessClient.start_seek`) with explicit

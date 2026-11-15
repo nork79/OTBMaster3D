@@ -118,6 +118,7 @@ class BoardRendering:
         premove_squares = set()
         if getattr(self, "premove", None) is not None and getattr(self, "preview_board", None) is None:
             premove_squares = {self.premove[0], self.premove[1]}
+        hint_squares = set(getattr(self, "hint_squares", ()) or ())
         is_premoving = bool(getattr(self, "human_can_premove", lambda: False)())
         active_select_color = PREMOVE if is_premoving else SELECT
         if self.board_type != "classic":
@@ -136,6 +137,9 @@ class BoardRendering:
                 if sq in premove_squares:
                     col = tuple(base * 0.35 + tint * 0.65
                                 for base, tint in zip(col, PREMOVE))
+                if sq in hint_squares:
+                    col = tuple(base * 0.25 + tint * 0.75
+                                for base, tint in zip(col, (0.20, 0.85, 0.85)))
                 if self.selected is not None and sq == getattr(self, "hover_square", None):
                     col = tuple(base * 0.4 + tint * 0.6
                                 for base, tint in zip(col, active_select_color))
@@ -248,6 +252,7 @@ class BoardRendering:
         if checked_king is not None:
             x, z = positions.get(checked_king, (3.5-chess.square_file(checked_king), chess.square_rank(checked_king)-3.5))
             draw_check_halo(x, z)
+        hint_squares = set(getattr(self, "hint_squares", ()) or ())
         for sq, p in self.rendered_piece_map(board).items():
             if self.drag_piece == sq and self.was_drag and self.drag_world:
                 continue
@@ -256,7 +261,7 @@ class BoardRendering:
                 p,
                 x,
                 z,
-                sq == self.selected,
+                sq == self.selected or sq in hint_squares,
             )
         if self.drag_piece is not None and self.was_drag and self.drag_world:
             p = self.board.piece_at(self.drag_piece)

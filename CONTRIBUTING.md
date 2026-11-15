@@ -16,8 +16,8 @@ Windows CI has two jobs, both using Python 3.13:
 
 - `test` installs only Python dependencies, compiles the application, owned chess
   core, tests and tools, runs the headless suite, and executes the complete
-  `tests.test_lichess` service and UI suite with `QT_QPA_PLATFORM=offscreen` and
-  `QT_OPENGL=software`. It selects
+  `tests.test_lichess` and `tests.test_puzzles` service and UI suites with
+  `QT_QPA_PLATFORM=offscreen` and `QT_OPENGL=software`. It selects
   `tests.test_difficulty.DifficultyTests` and
   `tests.test_engine_features.EngineFeatureTests` for engine contracts without
   launching downloaded executables.

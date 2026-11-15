@@ -47,6 +47,7 @@ Python 3.14 development environment; `build-info.json` identifies an actual buil
 | Firi, James Faure (jfaure) | CC-BY-4.0; [full text](assets/pieces_2d/firi/LICENSE). Standard SVGs rasterised; attribution and modification notice retained. |
 | ambientCG, Marble012 / Wood049 / Fabric030 | CC0-1.0; [source URLs and hashes](assets/boards/sources.json), [CC0 text](assets/pieces/scifi/LICENSE). |
 | Lichess opening data contributors | CC0; [notice](books/sources/COPYING.txt); original TSV data and conversion script included. |
+| Lichess puzzle data (`Lichess/chess-puzzles`) | CC0-1.0; [Lichess Open Database](https://database.lichess.org/#puzzles); verified subsets stored in `assets/puzzles/puzzles.db`. |
 | PyInstaller and Inno Setup authors | Build tools; PyInstaller bootloader is distributed with its GPL exception. Full installed PyInstaller notices are copied to licenses/build/pyinstaller; [Inno Setup licence](licenses/InnoSetup/LICENSE.txt) retained; preserve its existing notices. |
 
 No fonts are bundled in the tracked asset tree. UI fonts come from Windows.

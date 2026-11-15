@@ -31,6 +31,7 @@ SOUND_DIR = USER_DATA_DIR / "sounds"
 
 
 PIECE_DIR = APP_DIR / "assets" / "pieces"
+PUZZLE_DB_PATH = APP_DIR / "assets" / "puzzles" / "puzzles.db"
 
 
 WIDTH, HEIGHT = 1180, 800

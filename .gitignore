@@ -20,6 +20,8 @@ session.backup.json
 session.tmp
 bookmarks.json
 bookmarks.json.*.tmp
+puzzles_progress.json
+puzzles_progress.json.*.tmp
 
 # User-provided engines and opening books
 engines/*.exe

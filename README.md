@@ -1,6 +1,6 @@
 # OTBMaster3D
 
-**Current project version: 1.8.5**
+**Current project version: 1.8.6**
 
 OTBMaster3D is an open-source Windows chess application for playing, analysing,
 and organizing chess positions. It combines a Qt desktop interface, interactive
@@ -25,6 +25,12 @@ online play through Lichess.
   offline opening recognition.
 - Automatic and over-the-board clocks, PGN/FEN import and export, move review,
   session recovery, and nested position bookmarks.
+- **Puzzle Trainer** (`Puzzles > Puzzle Trainer…`, `Ctrl+Shift+P`) with 500
+  verified local tactical puzzles (100 each across **Mate in 1**, **Mate in 2**,
+  **Mate in 3**, **Combinations & Exchanges**, and **Endgame Studies**) stored in
+  `assets/puzzles/puzzles.db`, featuring category and direct puzzle/rating
+  dropdowns, board-highlighted piece/square hints, and step-by-step animated
+  solution playback.
 - Lichess sign-in with browser OAuth or a personal access token; direct player
   and bot challenges; bot discovery and profiles; Quick Pairing; live games;
   and **Game History** (`Lichess > Game History…`) to browse and load past
@@ -42,7 +48,7 @@ For a prebuilt application, use the [GitHub Releases page](https://github.com/no
 Choose an installer and its matching source, dependency-source, and checksum
 files from the same release. Check the version shown in **Help > About** against
 the version in the release assets. The source and packaging metadata in this
-checkout identify version 1.8.5.
+checkout identify version 1.8.6.
 
 The packaged application includes Python, Qt, assets, opening books, and the
 supported engine resources. Setup requires Microsoft Visual C++ x64
@@ -82,7 +88,9 @@ switch board modes, flip the board, or reset the current view. Configure board,
 piece, clock, sound, and interface preferences in **Settings**. Use **File** to
 open or save PGN games and FEN positions. Add and organize saved positions with
 the **Bookmarks** menu; bookmarks preserve position history when valid and do
-not replace the current engine or clock settings when opened.
+not replace the current engine or clock settings when opened. Open **Puzzles >
+Puzzle Trainer…** (`Ctrl+Shift+P`) to practice Mate in 1–3, Combinations &
+Exchanges, or Endgame Studies directly on the 3D or 2D board.
 
 See the [user guide](docs/user-guide.md) for controls, clocks, engines, bookmarks,
 Lichess, setup, and troubleshooting.
@@ -111,9 +119,9 @@ board. Stored Lichess access tokens are encrypted at rest on Windows using DPAPI
 ## Tests and CI
 
 Windows CI is configured for Python 3.13. One job runs syntax checks, tests
-that do not need a graphics context, and the Lichess service/UI regression
-suite (`tests.test_lichess` under `QT_QPA_PLATFORM=offscreen` and
-`QT_OPENGL=software`); another installs Stockfish and
+that do not need a graphics context, and the Lichess and Puzzle Trainer
+service/UI regression suites (`tests.test_lichess` and `tests.test_puzzles`
+under `QT_QPA_PLATFORM=offscreen` and `QT_OPENGL=software`); another installs Stockfish and
 Fairy-Stockfish and runs live engine integration tests. The full local suite also
 contains native Qt/OpenGL and Tk tests, which need a suitable Windows desktop.
 To create the dedicated test environment and run discovery:

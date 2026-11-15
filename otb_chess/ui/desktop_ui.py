@@ -156,8 +156,11 @@ class DesktopGame(VariationPreview, Chess3D):
     def try_move(self, fr, to, is_engine=False, promotion=None, is_remote=False, silent_illegal=False):
         moved = super().try_move(fr, to, is_engine, promotion=promotion, is_remote=is_remote, silent_illegal=silent_illegal)
         if moved:
+            self.hint_squares = ()
             if not is_engine and not is_remote and self.online_session is not None and self.online_session.active:
                 self.owner.submit_lichess_move(self.last_local_uci_move)
+            elif not is_engine and not is_remote and getattr(self.owner, "puzzle_session", None) is not None:
+                self.owner.on_puzzle_move(self.last_local_uci_move)
             self.owner.sync_engine_output()
             self.owner.session.save(self,force=True)
         return moved
@@ -503,6 +506,9 @@ class MainWindow(DocumentActions, QMainWindow):
         self.bookmark_panel = None
         self.bookmark_pending = None
         self.last_selected_bookmark = None
+        self.puzzle_panel = None
+        self.puzzle_session = None
+        self._puzzle_solution_seq = 0
         if lichess_params is not None:
             self.apply_lichess_login_parameters(lichess_params)
         remembered = self.game.engine_var.get()
@@ -765,6 +771,8 @@ class MainWindow(DocumentActions, QMainWindow):
         self.fullscreen_action = self.action(view,"Fullscreen",self.set_fullscreen,"F11",True)
         from otb_chess.ui.bookmark_panel import BookmarkMenu
         self.bookmarks_menu = BookmarkMenu(self)
+        from otb_chess.ui.puzzle_panel import PuzzleMenu
+        self.puzzles_menu = PuzzleMenu(self)
         engine = self.menuBar().addMenu("Engine")
         from otb_chess.services.difficulty import DIFFICULTIES
         difficulty = engine.addMenu("Difficulty")
@@ -1314,6 +1322,143 @@ class MainWindow(DocumentActions, QMainWindow):
             self.get_bookmark_panel().show_panel()
         elif self.bookmark_panel is not None:
             self.bookmark_panel.hide()
+
+    def get_puzzle_panel(self):
+        if self.puzzle_panel is None:
+            from otb_chess.ui.puzzle_panel import PuzzlePanel
+            self.puzzle_panel = PuzzlePanel(self)
+        return self.puzzle_panel
+
+    def toggle_puzzles(self, visible):
+        if visible:
+            panel = self.get_puzzle_panel()
+            panel.show_panel()
+            if self.puzzle_session is None:
+                panel.load_current()
+        else:
+            self.puzzle_session = None
+            if self.puzzle_panel is not None:
+                self.puzzle_panel.hide()
+
+    def open_puzzle_category(self, category: str):
+        self.puzzles_action.setChecked(True)
+        panel = self.get_puzzle_panel()
+        panel.show_panel()
+        panel.set_category(category)
+
+    def load_puzzle(self, puzzle) -> bool:
+        if self.game.online_session is not None and self.game.online_session.active:
+            QMessageBox.information(
+                self,
+                "Online Game Active",
+                "Finish or resign the active Lichess game before starting a puzzle.",
+            )
+            return False
+        if self.game.engine_enabled:
+            self.game.engine_enabled = False
+        from otb_chess.core.documents import read_fen
+        from otb_chess.services.puzzles import PuzzleSession
+        self._puzzle_solution_seq += 1
+        self.game.hint_squares = ()
+        board = read_fen(puzzle.fen)
+        self.game.load_document(board, None)
+        self.game.paused = True
+        self.puzzle_session = PuzzleSession(puzzle)
+        self.game.result_text = f"Puzzle: {puzzle.title}"
+        self.statusBar().showMessage(puzzle.prompt_text)
+        self.board_widget.update()
+        return True
+
+    def show_puzzle_hint(self) -> bool:
+        session = self.puzzle_session
+        if session is None or session.solved:
+            return False
+        expected = session.expected_uci
+        if not expected:
+            return False
+        try:
+            mv = self.game.position.parse_uci(expected)
+        except ValueError:
+            return False
+        session.hint_used = True
+        self.game.hint_squares = (mv.from_square, mv.to_square)
+        self.board_widget.update()
+        return True
+
+    def play_puzzle_solution(self) -> bool:
+        session = self.puzzle_session
+        if session is None:
+            return False
+        remaining = list(session.puzzle.solution_uci[session.ply_index:])
+        if not remaining:
+            return False
+        self._puzzle_solution_seq += 1
+        seq = self._puzzle_solution_seq
+        self.game.hint_squares = ()
+        session.solved = True
+        self._step_puzzle_solution(remaining, seq, session)
+        return True
+
+    def _step_puzzle_solution(self, moves_left: list[str], seq: int, session):
+        if self.closing or seq != self._puzzle_solution_seq or self.puzzle_session is not session:
+            return
+        if not moves_left:
+            return
+        uci = moves_left[0]
+        try:
+            mv = self.game.position.parse_uci(uci)
+        except ValueError:
+            return
+        self.game.try_move(mv.from_square, mv.to_square, is_remote=True, promotion=mv.promotion)
+        session.ply_index += 1
+        self.board_widget.update()
+        if len(moves_left) > 1:
+            QTimer.singleShot(600, lambda: self._step_puzzle_solution(moves_left[1:], seq, session))
+
+    def on_puzzle_move(self, uci_move: str | None):
+        session = self.puzzle_session
+        if session is None or not uci_move:
+            return
+        status, reply_uci = session.evaluate_player_move(self.game.position, uci_move)
+        if status == "solved":
+            if self.puzzle_panel is not None:
+                self.puzzle_panel.notify_solved(session.puzzle)
+            self.statusBar().showMessage(f"Solved: {session.puzzle.title}")
+            return
+        if status == "continue" and reply_uci:
+            if self.puzzle_panel is not None:
+                self.puzzle_panel.set_status("Good move! Opponent replying…", color="#80bfab")
+            QTimer.singleShot(250, lambda r=reply_uci, s=session: self._play_puzzle_reply(r, s))
+            return
+        if self.puzzle_panel is not None:
+            self.puzzle_panel.set_status("Not the winning move — try again.", color="#e36d65")
+        QTimer.singleShot(250, lambda s=session: self._undo_wrong_puzzle_move(s))
+
+    def _play_puzzle_reply(self, reply_uci: str, session):
+        if self.puzzle_session is not session or self.closing:
+            return
+        try:
+            mv = self.game.position.parse_uci(reply_uci)
+        except ValueError:
+            return
+        self.game.try_move(mv.from_square, mv.to_square, is_remote=True, promotion=mv.promotion)
+        if self.puzzle_panel is not None:
+            self.puzzle_panel.set_status("Your turn — find the next move.", color="#9ba8b8")
+        self.board_widget.update()
+
+    def _undo_wrong_puzzle_move(self, session):
+        if self.puzzle_session is not session or self.closing:
+            return
+        self.game.undo()
+        self.board_widget.update()
+
+    def on_puzzle_panel_closed(self):
+        self._puzzle_solution_seq += 1
+        self.game.hint_squares = ()
+        self.puzzle_session = None
+        if hasattr(self, "puzzles_action"):
+            self.puzzles_action.setChecked(False)
+        self.board_widget.update()
 
     def open_lichess_login(self):
         from otb_chess.ui.lichess_dialog import LichessLoginDialog

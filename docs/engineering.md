@@ -1,7 +1,7 @@
 # Engineering overview
 
-This overview describes the current **1.8.0** source tree. OTBMaster3D is a
-Windows desktop chess application built with Python, PySide6, and OpenGL. The
+This overview describes the **1.8.6** source tree (see [CHANGELOG.md](../CHANGELOG.md)).
+OTBMaster3D is a Windows desktop chess application built with Python, PySide6, and OpenGL. The
 normal application host is Qt; the retained Tk/GLFW host is used by legacy
 regression coverage, not as the standard launch path.
 
@@ -27,14 +27,14 @@ mutable game state rather than maintaining parallel copies.
 
 | Area | Main responsibilities |
 | --- | --- |
-| `otb_chess/ui/` | Qt desktop window, menus, dialogs, analysis, bookmarks, Lichess, and position setup |
+| `otb_chess/ui/` | Qt desktop window, menus, dialogs, analysis, bookmarks, Lichess, puzzles, and position setup |
 | `otb_chess/core/` | Game lifecycle, clocks, input, documents, evaluation, and appearance state |
 | `otb_chess/graphics/` | Board and piece rendering, board materials, 2D view, and picking support |
-| `otb_chess/services/` | Engine processes, settings, session recovery, bookmarks, audio, and Lichess API access |
+| `otb_chess/services/` | Engine processes, settings, session recovery, bookmarks, puzzles, audio, and Lichess API access |
 | `otb_chess/chess_backend/` | Production rules, notation, UCI, opening-book, position, and opening adapters |
 | `otb_chess/bookmarks.py` and `document_state.py` | UI-independent bookmark data and application-owned document/history records |
 | `otb_chess_core/` | Separate experimental cozy-chess-backed rules adapter; not used as the production rules provider |
-| `assets/`, `books/`, `engines/` | Piece/board/audio resources, Polyglot books, and external UCI engine resources |
+| `assets/`, `books/`, `engines/` | Piece/board/audio resources, `assets/puzzles/puzzles.db`, Polyglot books, and external UCI engine resources |
 
 Production chess rules, PGN notation, UCI transport, and Polyglot reading still
 use python-chess through `otb_chess/chess_backend`. The boundary reduces direct
@@ -57,6 +57,15 @@ and [migration status](chess-backend-migration.md).
   in `bookmarks.json`; `services/bookmark_actions.py` validates and applies
   transactional UI edits. Opening a bookmark keeps the current engine and clock
   settings and pauses clocks.
+- **Puzzle Trainer:** `services/puzzles.py` manages `assets/puzzles/puzzles.db`
+  (SQLite indexed by category and rating), step-by-step move/mate verification
+  (`PuzzleSession`), solved-ID persistence in `puzzles_progress.json`
+  (`PuzzleProgressStore`), and CC0 Lichess importers (`import_lichess_csv`,
+  `import_lichess_zst_stream`, and `import_lichess_hf_api`); `tools/build_puzzle_db.py`
+  seeds and verifies the database. `ui/puzzle_panel.py` provides `PuzzleMenu` and
+  `PuzzlePanel`, while `core/game.py`, `graphics/rendering.py`, and
+  `ui/desktop_ui.py` handle board `hint_squares` highlighting and animated
+  solution playback.
 - **Chess documents:** PGN/FEN parsing and export are routed through
   `core/documents.py`, `document_state.py`, and the notation adapter. PGN preserves
   move history and annotations; FEN represents only one position.
@@ -90,8 +99,8 @@ The Windows Actions workflow uses Python 3.13 and has two jobs:
 
 - `test` installs `requirements.txt`, compiles the application and test modules,
   runs tests selected to work without a graphics context, and runs
-  `tests.test_lichess` under `QT_QPA_PLATFORM=offscreen` and
-  `QT_OPENGL=software`.
+  `tests.test_lichess` and `tests.test_puzzles` under `QT_QPA_PLATFORM=offscreen`
+  and `QT_OPENGL=software`.
 - `engine-integration` installs Stockfish and Fairy-Stockfish and runs the live
   UCI integration classes. Rodent tests run when its separately built resources
   are present.

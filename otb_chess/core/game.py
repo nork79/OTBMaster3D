@@ -120,6 +120,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.pan_z = float(self.cfg.get("camera_pan_z", 0.0))
         self.target_y = 0.25
         self.selected = self.drag_piece = self.drag_world = self.left_down_pos = None
+        self.hint_squares = ()
         self.was_drag = False
         self.right_drag = False
         self.ctrl_left_rotate = False

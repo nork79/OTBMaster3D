@@ -317,6 +317,31 @@ Lichess integration is separate from the local **Online** clock mode described
 below. That clock-mode label means the app switches clocks automatically after
 a move; it does not mean a game is connected to the internet.
 
+## Puzzle Trainer
+
+Select **Puzzles → Puzzle Trainer…** (`Ctrl+Shift+P`) to open the modeless
+Puzzle Trainer window alongside the 3D or 2D board. Five categories are built
+into `assets/puzzles/puzzles.db` (500 verified puzzles total, 100 per category):
+**Mate in 1**, **Mate in 2**, **Mate in 3**, **Combinations & Exchanges**, and
+**Endgame Studies**.
+
+- **Choose or jump to a puzzle:** Use the **Category** dropdown to filter by
+  category (or view **All Categories**), then use the **Puzzle** dropdown
+  directly below it to jump to any puzzle by name and difficulty rating. Solved
+  puzzles show a checkmark prefix and update the `Solved:` counter.
+- **Visual hints & animated solutions:** Click **Hint** to highlight the piece
+  to move and its destination square directly on the 3D/2D board. Click
+  **Solution** to animate the remaining solution moves step-by-step on the
+  board, or **Retry** to reset the current puzzle.
+- **Play & opponent replies:** Drag or click your move on the board; in
+  multi-move puzzles the opponent automatically replies on the board after a
+  short pause, while incorrect moves automatically undo so you can try again.
+  In mate-in-N puzzles, any legal immediate checkmate is accepted as solved.
+- **Expanding the local database:** Progress is saved in
+  `puzzles_progress.json`. Source users can expand `assets/puzzles/puzzles.db`
+  via `tools/build_puzzle_db.py --fetch-lichess --target-per-category N` or
+  `--lichess-csv path/to/lichess_db_puzzle.csv`.
+
 ## Clocks
 
 Use **File** to open PGN games or FEN positions, save PGN/FEN, copy either format,
