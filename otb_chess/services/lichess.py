@@ -29,17 +29,9 @@ log = logging.getLogger(__name__)
 LICHESS_SCOPES = "board:play challenge:read challenge:write"
 
 # Common time controls from settings.TIME_CONTROLS.
-# Direct challenges (/api/challenge/*) accept Hyperbullet, Bullet, Blitz, Rapid, and Classical.
+# Direct challenges (/api/challenge/*) accept Blitz, Rapid, and Classical (Bullet/Hyperbullet are not supported).
 # Lobby seeks (/api/board/seek) on the Lichess Board API only accept Rapid and Classical (>= 480s estimated).
 LICHESS_CHALLENGE_PRESETS = (
-    "Hyperbullet 15+0",
-    "Hyperbullet 20+0",
-    "Hyperbullet 30+0",
-    "Hyperbullet 30+1",
-    "Bullet 1+0",
-    "Bullet 1+1",
-    "Bullet 2+0",
-    "Bullet 2+1",
     "Blitz 3+0",
     "Blitz 3+2",
     "Blitz 5+0",
@@ -84,19 +76,21 @@ class LichessChallengeOptions:
         """Return (limit_seconds, increment_seconds) and validate against Lichess API rules."""
         if self.preset != "Custom":
             tc = settings.TIME_CONTROLS.get(self.preset)
-            if tc is None or tc.initial_seconds <= 0:
+            if self.preset not in LICHESS_CHALLENGE_PRESETS or tc is None or tc.initial_seconds <= 0:
                 raise ValueError(f"Unsupported time control preset: {self.preset}")
             limit_sec = int(round(tc.initial_seconds))
             inc_sec = int(round(tc.increment_seconds))
         else:
-            if self.custom_minutes < 1 or self.custom_minutes > 180:
-                raise ValueError("Custom initial time must be between 1 and 180 minutes.")
+            if self.custom_minutes < 3 or self.custom_minutes > 180:
+                raise ValueError("Custom initial time must be between 3 and 180 minutes.")
             if self.custom_increment < 0 or self.custom_increment > 180:
                 raise ValueError("Custom increment must be between 0 and 180 seconds.")
             limit_sec = int(self.custom_minutes) * 60
             inc_sec = int(self.custom_increment)
 
         estimated = limit_sec + 40 * inc_sec
+        if estimated < 180:
+            raise ValueError("Bullet and Hyperbullet time controls are not supported for Lichess challenges.")
         if self.mode == "seek" and (estimated < 480 or limit_sec < 60):
             raise ValueError(
                 "Lichess Quick Pairing (Lobby Seek) only accepts Rapid or Classical time controls "
@@ -136,19 +130,19 @@ class LichessChallengeOptions:
         raise ValueError(f"Unknown challenge mode: {self.mode}")
 
 
-def _format_player_info(side_data: dict) -> tuple[str, str, int | None]:
-    """Return (user_id, display_name, rating) from Lichess gameFull white/black object."""
+def _format_player_info(side_data: dict) -> tuple[str, str, int | None, str]:
+    """Return (user_id, display_name, rating, title) from Lichess gameFull white/black object."""
     if not isinstance(side_data, dict):
-        return "", "Anonymous", None
+        return "", "Anonymous", None, ""
     if side_data.get("aiLevel"):
         level = int(side_data["aiLevel"])
-        return f"ai_{level}", f"Stockfish Level {level}", None
+        return f"ai_{level}", f"Stockfish Level {level}", None, "AI"
     user_id = str(side_data.get("id") or side_data.get("name") or "").strip().lower()
     name = str(side_data.get("name") or side_data.get("id") or "Anonymous").strip()
     title = str(side_data.get("title") or "").strip()
     display = f"{title} {name}".strip() if title else name
     rating = side_data.get("rating")
-    return user_id, display, int(rating) if isinstance(rating, int) else None
+    return user_id, display, int(rating) if isinstance(rating, int) else None, title
 
 
 @dataclass
@@ -159,6 +153,8 @@ class LichessGameSession:
     black_id: str = ""
     white_name: str = "White"
     black_name: str = "Black"
+    white_title: str = ""
+    black_title: str = ""
     white_rating: int | None = None
     black_rating: int | None = None
     white_rating_diff: int | None = None
@@ -178,6 +174,43 @@ class LichessGameSession:
     @property
     def active(self) -> bool:
         return self.status in ("created", "started")
+
+    @property
+    def opponent_id(self) -> str:
+        if self.my_color is True:
+            return self.black_id
+        if self.my_color is False:
+            return self.white_id
+        return ""
+
+    @property
+    def opponent_name(self) -> str:
+        if self.my_color is True:
+            return self.black_name
+        if self.my_color is False:
+            return self.white_name
+        return ""
+
+    @property
+    def opponent_title(self) -> str:
+        if self.my_color is True:
+            return self.black_title
+        if self.my_color is False:
+            return self.white_title
+        return ""
+
+    @property
+    def opponent_is_bot(self) -> bool:
+        opp_id = (self.opponent_id or "").strip().lower()
+        opp_title = (self.opponent_title or "").strip().upper()
+        opp_name = (self.opponent_name or "").strip().upper()
+        return opp_id.startswith("ai_") or opp_title in ("BOT", "AI") or opp_name.startswith("BOT ")
+
+    @property
+    def opponent_is_human(self) -> bool:
+        if self.my_color is None:
+            return False
+        return (bool(self.opponent_id) or bool(self.opponent_name)) and not self.opponent_is_bot
 
     @property
     def opponent_offered_draw(self) -> bool:
@@ -205,8 +238,8 @@ class LichessGameSession:
     @classmethod
     def from_game_full(cls, event: dict, my_username: str = "") -> "LichessGameSession":
         game_id = str(event.get("id") or "").strip()
-        white_id, white_name, white_rating = _format_player_info(event.get("white") or {})
-        black_id, black_name, black_rating = _format_player_info(event.get("black") or {})
+        white_id, white_name, white_rating, white_title = _format_player_info(event.get("white") or {})
+        black_id, black_name, black_rating, black_title = _format_player_info(event.get("black") or {})
         me = (my_username or "").strip().lower()
         my_color: bool | None = None
         if me and white_id == me:
@@ -227,6 +260,8 @@ class LichessGameSession:
             black_id=black_id,
             white_name=white_name,
             black_name=black_name,
+            white_title=white_title,
+            black_title=black_title,
             white_rating=white_rating,
             black_rating=black_rating,
             rated=bool(event.get("rated", False)),
@@ -899,6 +934,25 @@ class LichessClient:
             self.account = account
         return account
 
+    def refresh_account(self, *, expected_token: str | None = None,
+                        persist: bool = True) -> LichessAccount | None:
+        """Fetch live profile and rating stats for the active token without overwriting newer sessions."""
+        with self._lock:
+            candidate = (self.token if expected_token is None else expected_token).strip()
+            server_url = self.server_url
+            client_id = self.client_id
+        if not candidate:
+            raise ValueError("Enter a Lichess personal access token or sign in with OAuth.")
+        payload = self._request_json("GET", "/api/account", token=candidate)
+        account = LichessAccount.from_api(payload)
+        with self._lock:
+            if self.token.strip() != candidate:
+                return None
+            self.account = account
+        if persist:
+            save_stored_auth(candidate, account, server_url, client_id)
+        return account
+
     def login_with_parameters(self, params: LichessLoginParameters, *, persist: bool = True) -> LichessAccount:
         """Validate login parameters and authenticate against the Lichess account API."""
         self.server_url = params.normalized_url()
@@ -1479,6 +1533,22 @@ class LichessClient:
         gid = urllib.parse.quote((game_id or "").strip(), safe="")
         flag = "yes" if accept else "no"
         return self._request_json("POST", f"/api/board/game/{gid}/takeback/{flag}", data={})
+
+    def send_chat_message(self, game_id: str, text: str, *, room: str = "player") -> dict:
+        """Send a chat message in an active Lichess Board API game."""
+        self._require_auth()
+        gid = urllib.parse.quote((game_id or "").strip(), safe="")
+        if not gid:
+            raise ValueError("Game ID is required to send chat.")
+        clean_text = (text or "").strip()
+        if not clean_text:
+            raise ValueError("Chat message cannot be empty.")
+        clean_room = room if room in ("player", "spectator") else "player"
+        return self._request_json(
+            "POST",
+            f"/api/board/game/{gid}/chat",
+            data={"room": clean_room, "text": clean_text[:140]},
+        )
 
     def fetch_post_game_ratings(self, game_id: str, session: LichessGameSession | None = None) -> dict:
         """Fetch updated player and account ratings immediately after a rated Lichess game finishes."""

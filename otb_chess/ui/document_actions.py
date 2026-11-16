@@ -120,4 +120,6 @@ class DocumentActions:
         ply = item.data(256) if item else None
         if ply is not None:
             self.game.navigate_to_ply(ply)
+            self.refresh_position_evaluation()
+            self.refresh_navigation()
             self.board_widget.update()

@@ -1,4 +1,4 @@
-"""A lightweight, clickable static-evaluation history chart."""
+"""A lightweight, clickable Stockfish evaluation history chart."""
 import math
 
 from PySide6.QtCore import Qt, QPointF, QRectF, QTimer, Signal
@@ -8,6 +8,19 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QWidget
 from otb_chess.core.evaluation import evaluate_position
 from otb_chess.chess_backend import rules as chess
 from otb_chess.chess_backend import notation
+from otb_chess.chess_backend.position import ChessPosition
+
+
+def _format_score(score):
+    if score.mate is not None:
+        return f"Mate {score.mate:+d}"
+    return f"{score.centipawns / 100:+.2f}"
+
+
+def _score_pawns(score):
+    if score.centipawns is not None:
+        return score.centipawns / 100
+    return math.inf if score.mate > 0 else -math.inf
 
 
 class EvaluationChart(QWidget):
@@ -19,7 +32,7 @@ class EvaluationChart(QWidget):
         self.current = 0
         self.setMinimumSize(320, 180)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setAccessibleName('Static evaluation by move; click to review a position')
+        self.setAccessibleName('Stockfish evaluation by move; click to review a position')
 
     def plot_rect(self):
         return QRectF(52, 20, max(1, self.width()-72), max(1, self.height()-58))
@@ -75,11 +88,12 @@ class EvaluationGraph(QDialog):
         super().__init__(owner)
         self.owner = owner
         self.signature = None
+        self._scores_version = -1
         self.labels = []
         self.setWindowTitle('Evaluation Graph')
         self.resize(580,300)
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel('Static evaluation · pawns · positive favours White'))
+        layout.addWidget(QLabel('Stockfish evaluation · pawns · positive favours White'))
         self.chart = EvaluationChart(self)
         layout.addWidget(self.chart,1)
         self.position_label = QLabel()
@@ -103,22 +117,47 @@ class EvaluationGraph(QDialog):
 
     def refresh(self):
         history = self.owner.game.history_board()
-        signature = (history.root().fen(),tuple(move.uci() for move in history.move_stack))
-        if signature != self.signature:
-            board = history.root()
-            values,labels = [],[]
+        root_fen = history.root().fen()
+        signature = (root_fen, tuple(move.uci() for move in history.move_stack))
+        scores_cache = getattr(self.owner, "_stockfish_scores", {})
+        scores_version = getattr(self.owner, "_stockfish_scores_version", 0)
+        if signature != self.signature or scores_version != self._scores_version:
+            pos = ChessPosition(root_fen)
+            values, labels = [], []
             move_label = 'Starting position'
-            for index in range(len(history.move_stack)+1):
-                evaluation = evaluate_position(board)
-                values.append(evaluation.centipawns/100 if evaluation.centipawns is not None
-                              else (-math.inf if board.turn == chess.WHITE else math.inf))
-                labels.append(f'{move_label}  ·  {evaluation.text}')
+            has_uncached = False
+            for index in range(len(history.move_stack) + 1):
+                board = pos.legacy_board
+                static_eval = evaluate_position(board)
+                key = (root_fen, pos.moves)
+                cached = scores_cache.get(key)
+                if static_eval.result:
+                    values.append(
+                        static_eval.centipawns / 100
+                        if static_eval.centipawns is not None
+                        else (-math.inf if board.turn == chess.WHITE else math.inf)
+                    )
+                    score_text = static_eval.text
+                elif cached is not None:
+                    score = cached[0]
+                    values.append(_score_pawns(score))
+                    score_text = _format_score(score)
+                else:
+                    has_uncached = True
+                    values.append(static_eval.centipawns / 100)
+                    score_text = static_eval.text
+                labels.append(f'{move_label}  ·  {score_text}')
                 if index < len(history.move_stack):
                     move = history.move_stack[index]
-                    move_label = f'{board.fullmove_number}{"." if board.turn == chess.WHITE else "..."} {notation.san(board.fen(),chess.owned_move(move))}'
-                    board.push(move)
-            self.chart.values,self.labels = values,labels
+                    move_label = f'{board.fullmove_number}{"." if board.turn == chess.WHITE else "..."} {notation.san(board.fen(), chess.owned_move(move))}'
+                    pos.apply(chess.owned_move(move))
+            self.chart.values, self.labels = values, labels
             self.signature = signature
+            self._scores_version = scores_version
+            if has_uncached:
+                request_fn = getattr(self.owner, "request_game_evaluation", None)
+                if callable(request_fn):
+                    request_fn()
         self.chart.current = len(self.owner.game.board.move_stack)
         self.position_label.setText(self.labels[self.chart.current])
         self.chart.update()

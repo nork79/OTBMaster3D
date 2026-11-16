@@ -149,6 +149,73 @@ class EngineAnalysisTests(unittest.TestCase):
         self.window.show_engine_info(self.game.board.fen(), info)
         self.assertEqual(self.window.move_list_evaluation.text(), expected)
 
+    def test_end_of_game_review_and_move_list_match_evaluation_graph(self):
+        w, g = self.window, self.game
+        # Play 3 moves then resign (non-terminal checkmate) so final position is evaluated by Stockfish too
+        g.start_game()
+        with patch.object(g, 'play_game_sound'):
+            for move in ('e2e4', 'e7e5', 'g1f3'):
+                g.board.push_uci(move)
+            g.game_over = True
+        w.refresh_moves()
+
+        # Collect histories for plies 0..3
+        from otb_chess.chess_backend.position import ChessPosition
+        root_fen = g.history_board().root().fen()
+        pos = ChessPosition(root_fen)
+        histories = [pos.history()]
+        for mv in g.history_board().move_stack:
+            pos.apply(rules.owned_move(mv))
+            histories.append(pos.history())
+
+        stockfish_results = [
+            EngineScore(centipawns=32),
+            EngineScore(centipawns=45),
+            EngineScore(centipawns=18),
+            EngineScore(centipawns=67),
+        ]
+        expected_texts = ['+0.32', '+0.45', '+0.18', '+0.67']
+
+        with patch.object(g.game_review_evaluator, 'request_game') as req_game, \
+                patch.object(g.game_review_evaluator, 'poll_all') as poll_all:
+            poll_all.return_value = []
+            w.poll_position_evaluation()
+            req_game.assert_called_once()
+            sig, items = req_game.call_args.args
+            self.assertEqual(len(items), 4)
+
+            # Simulate GameReviewEvaluator finishing all 4 plies
+            poll_all.return_value = [
+                (sig, key, EngineEvaluation(hist.final_fen, score, 14), None)
+                for (key, hist), score in zip(items, stockfish_results)
+            ]
+            g.position_evaluator.request.reset_mock()
+            w.poll_position_evaluation()
+
+            # Current final ply immediately displays Stockfish graph score
+            self.assertEqual(w.move_list_evaluation.text(), '+0.67')
+            self.assertEqual(w.static_evaluation.text(), '+0.67')
+
+            # EvaluationGraph plots and labels exact same Stockfish scores
+            w.open_evaluation_graph()
+            graph = w.evaluation_graph
+            self.assertEqual(graph.chart.values, [0.32, 0.45, 0.18, 0.67])
+            for ply, expected_text in enumerate(expected_texts):
+                self.assertIn(expected_text, graph.labels[ply])
+
+            # Stepping through MOVE LIST via navigate_move, navigate_history, and graph click
+            # immediately displays the exact Evaluation Graph Stockfish scores without re-searching
+            for ply, expected_text in enumerate(expected_texts):
+                if ply == 0:
+                    graph.select_ply(0)
+                else:
+                    w.navigate_move((ply - 1) // 2, 1 if ply % 2 == 1 else 2)
+                self.assertEqual(w.move_list_evaluation.text(), expected_text)
+                self.assertEqual(w.static_evaluation.text(), expected_text)
+
+            g.position_evaluator.request.assert_not_called()
+            graph.close()
+
     def test_option_arrows_receive_clicks_and_save_values(self):
         panel = self.present()
         self.qt.processEvents()

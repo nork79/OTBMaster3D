@@ -4,7 +4,7 @@ import base64
 import html
 import threading
 import webbrowser
-from PySide6.QtCore import QBuffer, QIODevice, QPointF, Qt, Signal
+from PySide6.QtCore import QBuffer, QIODevice, QPoint, QPointF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPalette, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
     QAbstractItemView, QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QFrame,
@@ -53,12 +53,21 @@ class LichessMenu(QMenu):
         self.takeback_online_action = owner.action(
             self, "Request / Accept Takeback", lambda: owner.lichess_game_action("takeback")
         )
+        self.chat_online_action = owner.action(
+            self, "Game Chat…", owner.open_lichess_chat_window
+        )
         self.addSeparator()
         self.login_action = owner.action(self, "Login / Account Settings…", owner.open_lichess_login)
         self.verify_action = owner.action(self, "Verify Connection", owner.verify_lichess_session)
         self.logout_action = owner.action(self, "Logout", owner.logout_lichess)
-        self.aboutToShow.connect(self.refresh)
+        self.aboutToShow.connect(self._on_about_to_show)
         self.refresh()
+
+    def _on_about_to_show(self):
+        self.refresh()
+        refresh_fn = getattr(self.owner, "refresh_lichess_account", None)
+        if callable(refresh_fn):
+            refresh_fn(silent=True, min_interval=15.0)
 
     def refresh(self):
         client = getattr(self.owner, "lichess", None)
@@ -72,7 +81,7 @@ class LichessMenu(QMenu):
                 ("rapid", "Rapid"),
                 ("classical", "Classical"),
             ):
-                if key in account.perfs:
+                if key in account.perfs and account.perf_games.get(key, 1) > 0:
                     ratings.append(f"{label} {account.perfs[key]}")
             suffix = f" ({', '.join(ratings)})" if ratings else ""
             self.status_action.setText(f"Signed in as {account.display_name}{suffix}")
@@ -100,6 +109,9 @@ class LichessMenu(QMenu):
         self.draw_online_action.setEnabled(online_active)
         self.takeback_online_action.setEnabled(
             online_active and bool(game is not None and game.history_board().move_stack)
+        )
+        self.chat_online_action.setEnabled(
+            bool(online is not None and online.opponent_is_human)
         )
         self.verify_action.setEnabled(bool(client and client.token))
         self.logout_action.setEnabled(bool(client and (client.token or client.is_authenticated)))
@@ -1005,7 +1017,7 @@ class LichessChallengeDialog(QDialog):
         mode = self.mode_combo.currentData()
         current_preset = self.preset_combo.currentText()
         self._populate_presets(current_preset)
-        self.custom_minutes_spin.setRange(8 if mode == "seek" else 1, 180)
+        self.custom_minutes_spin.setRange(8 if mode == "seek" else 3, 180)
         is_player_mode = mode == "player"
         self.form.setRowVisible(self.online_bot_row, is_player_mode)
         self.form.setRowVisible(self.opponent_edit, is_player_mode)
@@ -1013,7 +1025,7 @@ class LichessChallengeDialog(QDialog):
         if is_player_mode:
             self.submit_button.setText("Send Challenge")
             self.rule_note.setText(
-                "Send a direct challenge to a Lichess user or select an online bot (Bullet, Blitz, Rapid, or Classical)."
+                "Send a direct challenge to a Lichess user or select an online bot (Blitz, Rapid, or Classical)."
             )
             if not self._bots_loaded_once:
                 self.refresh_online_bots()
@@ -1181,6 +1193,8 @@ class LichessHistoryDialog(QDialog):
         self.game = owner.game
         self._busy = False
         self._games: list[LichessGameSummary] = []
+        self._last_loaded_query: tuple[str, str, object, int] | None = None
+        self._pending_query: tuple[str, str, object, int] | None = None
         self.loaded_game_id = ""
         self.setObjectName("lichessHistoryDialog")
         self.setWindowTitle("Lichess Game History")
@@ -1199,6 +1213,7 @@ class LichessHistoryDialog(QDialog):
         self.username_edit.setObjectName("lichessHistoryUsername")
         self.username_edit.setPlaceholderText("Lichess username")
         self.username_edit.returnPressed.connect(self.fetch_games)
+        self.username_edit.editingFinished.connect(self._on_filter_changed)
         filter_row.addWidget(self.username_edit, 2)
 
         filter_row.addWidget(QLabel("Speed:"))
@@ -1209,6 +1224,7 @@ class LichessHistoryDialog(QDialog):
         self.perf_combo.addItem("Blitz", "blitz")
         self.perf_combo.addItem("Rapid", "rapid")
         self.perf_combo.addItem("Classical", "classical")
+        self.perf_combo.currentIndexChanged.connect(self._on_filter_changed)
         filter_row.addWidget(self.perf_combo)
 
         filter_row.addWidget(QLabel("Type:"))
@@ -1217,6 +1233,7 @@ class LichessHistoryDialog(QDialog):
         self.rated_combo.addItem("All", None)
         self.rated_combo.addItem("Rated", True)
         self.rated_combo.addItem("Casual", False)
+        self.rated_combo.currentIndexChanged.connect(self._on_filter_changed)
         filter_row.addWidget(self.rated_combo)
 
         filter_row.addWidget(QLabel("Max:"))
@@ -1224,12 +1241,8 @@ class LichessHistoryDialog(QDialog):
         self.max_spin.setObjectName("lichessHistoryMax")
         self.max_spin.setRange(5, 100)
         self.max_spin.setValue(30)
+        self.max_spin.valueChanged.connect(self._on_filter_changed)
         filter_row.addWidget(self.max_spin)
-
-        self.fetch_button = QPushButton("Fetch Games")
-        self.fetch_button.setObjectName("primary")
-        self.fetch_button.clicked.connect(self.fetch_games)
-        filter_row.addWidget(self.fetch_button)
         layout.addLayout(filter_row)
 
         self.table = QTableWidget(0, 8)
@@ -1253,7 +1266,7 @@ class LichessHistoryDialog(QDialog):
         self.table.itemDoubleClicked.connect(lambda _item: self.load_selected_game())
         layout.addWidget(self.table, 1)
 
-        self.status_label = QLabel("Enter a Lichess username and click Fetch Games.")
+        self.status_label = QLabel("Enter a Lichess username and press Enter to load games.")
         self.status_label.setObjectName("lichessHistoryStatus")
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
@@ -1294,7 +1307,22 @@ class LichessHistoryDialog(QDialog):
         has_sel = self._selected_game() is not None
         self.load_button.setEnabled(not self._busy and has_sel)
         self.open_web_button.setEnabled(not self._busy and has_sel)
-        self.fetch_button.setEnabled(not self._busy)
+
+    def _current_query_key(self) -> tuple[str, str, object, int]:
+        return (
+            self.username_edit.text().strip().lower(),
+            str(self.perf_combo.currentData() or ""),
+            self.rated_combo.currentData(),
+            self.max_spin.value(),
+        )
+
+    def _on_filter_changed(self):
+        if self._busy:
+            return
+        query_key = self._current_query_key()
+        if not query_key[0] or query_key == self._last_loaded_query:
+            return
+        self.fetch_games()
 
     def _set_busy(self, busy: bool, status_text: str = ""):
         self._busy = busy
@@ -1313,6 +1341,7 @@ class LichessHistoryDialog(QDialog):
         perf = str(self.perf_combo.currentData() or "")
         rated = self.rated_combo.currentData()
         max_games = self.max_spin.value()
+        self._pending_query = self._current_query_key()
         self._set_busy(True, f"Fetching recent games for {username}…")
 
         def worker():
@@ -1332,9 +1361,11 @@ class LichessHistoryDialog(QDialog):
     def _on_games_loaded(self, ok: bool, games, message: str):
         self._set_busy(False)
         if not ok:
+            self._last_loaded_query = None
             self.status_label.setText(message)
             self.status_label.setStyleSheet("color: #e36d65;")
             return
+        self._last_loaded_query = self._pending_query
         self._games = list(games or [])
         self.table.setRowCount(len(self._games))
         for row, summary in enumerate(self._games):
@@ -1400,3 +1431,152 @@ class LichessHistoryDialog(QDialog):
         if self.owner.load_lichess_history_game(summary, pgn_text):
             self.loaded_game_id = summary.game_id
             self.accept()
+
+
+class LichessChatDialog(QDialog):
+    """Compact modeless game chat popup anchored at the top right of the main window."""
+
+    def __init__(self, owner):
+        super().__init__(owner, Qt.WindowType.Tool)
+        self.owner = owner
+        if owner is not None and owner.testAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen):
+            self.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, True)
+        self._game_id = ""
+        self._opponent_name = "Opponent"
+        self._my_username = ""
+        self._pending_self_texts: list[str] = []
+
+        self.setObjectName("lichessChatPopup")
+        self.setWindowTitle("Lichess Game Chat")
+        self.setMinimumSize(300, 240)
+        self.resize(320, 280)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(6)
+
+        self.header_label = QLabel("Game Chat")
+        self.header_label.setObjectName("lichessChatHeader")
+        self.header_label.setStyleSheet("font-weight: 600;")
+        layout.addWidget(self.header_label)
+
+        self.messages_view = QTextBrowser()
+        self.messages_view.setObjectName("lichessChatLog")
+        self.messages_view.setOpenLinks(False)
+        self.messages_view.setStyleSheet(
+            "QTextBrowser { background: #0f1318; color: #e8eaf0; border: 1px solid #353f4d; border-radius: 4px; padding: 4px; }"
+        )
+        layout.addWidget(self.messages_view, 1)
+
+        input_row = QHBoxLayout()
+        input_row.setSpacing(6)
+        self.input_edit = QLineEdit()
+        self.input_edit.setObjectName("lichessChatInput")
+        self.input_edit.setMaxLength(140)
+        self.input_edit.setPlaceholderText("Send a message…")
+        self.input_edit.returnPressed.connect(self.submit_message)
+        input_row.addWidget(self.input_edit, 1)
+
+        self.send_button = QPushButton("Send")
+        self.send_button.setObjectName("lichessChatSendButton")
+        self.send_button.clicked.connect(self.submit_message)
+        input_row.addWidget(self.send_button)
+        layout.addLayout(input_row)
+
+        self.status_label = QLabel("")
+        self.status_label.setObjectName("lichessChatStatus")
+        self.status_label.setWordWrap(True)
+        self.status_label.setStyleSheet("color: #9ba8b8; font-size: 11px;")
+        self.status_label.hide()
+        layout.addWidget(self.status_label)
+
+    def position_top_right(self):
+        if self.owner is None:
+            return
+        top_left = self.owner.mapToGlobal(QPoint(0, 0))
+        right_edge = top_left.x() + self.owner.width()
+        menu_bar = self.owner.menuBar() if hasattr(self.owner, "menuBar") else None
+        menu_offset = menu_bar.height() if menu_bar is not None else 0
+        target_x = right_edge - self.width() - 16
+        target_y = top_left.y() + menu_offset + 12
+        screen = self.owner.screen()
+        if screen is not None:
+            avail = screen.availableGeometry()
+            target_x = max(avail.left(), min(target_x, avail.right() - self.width()))
+            target_y = max(avail.top(), min(target_y, avail.bottom() - self.height()))
+        self.move(target_x, target_y)
+
+    def show_for_game(self, game_id: str, opponent_name: str, my_username: str = ""):
+        gid = (game_id or "").strip()
+        opp = (opponent_name or "Opponent").strip() or "Opponent"
+        self._my_username = (my_username or "").strip()
+        if gid != self._game_id:
+            self._game_id = gid
+            self._pending_self_texts.clear()
+            self.messages_view.clear()
+            self.status_label.clear()
+            self.status_label.hide()
+        self._opponent_name = opp
+        self.setWindowTitle(f"Chat — {opp}")
+        self.header_label.setText(f"Chat with {opp}")
+        if self.owner is not None and self.owner.styleSheet():
+            self.setStyleSheet(self.owner.styleSheet())
+        self.position_top_right()
+        self.show()
+        self.raise_()
+
+    def _append_html_line(self, sender: str, text: str):
+        clean_sender = (sender or "").strip() or "Lichess"
+        low = clean_sender.lower()
+        if low == "lichess":
+            color = "#9ba8b8"
+        elif self._my_username and low == self._my_username.lower():
+            color = "#80bfab"
+        else:
+            color = "#d5944a"
+        line = (
+            f"<div style='margin-bottom:3px;'>"
+            f"<span style='color:{color}; font-weight:600;'>{html.escape(clean_sender)}:</span> "
+            f"<span>{html.escape(text)}</span>"
+            f"</div>"
+        )
+        self.messages_view.append(line)
+        bar = self.messages_view.verticalScrollBar()
+        if bar is not None:
+            bar.setValue(bar.maximum())
+
+    def append_stream_message(self, username: str, text: str):
+        clean_text = (text or "").strip()
+        if not clean_text:
+            return
+        sender = (username or "").strip() or "Lichess"
+        if (
+            self._my_username
+            and sender.lower() == self._my_username.lower()
+            and self._pending_self_texts
+            and self._pending_self_texts[0] == clean_text
+        ):
+            self._pending_self_texts.pop(0)
+            return
+        self._append_html_line(sender, clean_text)
+
+    def submit_message(self):
+        text = self.input_edit.text().strip()
+        if not text or not self._game_id:
+            return
+        self.input_edit.clear()
+        self.status_label.clear()
+        self.status_label.hide()
+        sender = self._my_username or "You"
+        if self._my_username:
+            self._pending_self_texts.append(text)
+        self._append_html_line(sender, text)
+        self.owner.send_lichess_chat_message(self._game_id, text)
+
+    def set_error(self, message: str):
+        msg = (message or "").strip()
+        if not msg:
+            return
+        self.status_label.setText(msg)
+        self.status_label.setStyleSheet("color: #e36d65; font-size: 11px;")
+        self.status_label.show()

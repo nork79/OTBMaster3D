@@ -187,11 +187,21 @@ class LichessServiceTests(unittest.TestCase):
         self.assertIsNone(load_stored_auth())
 
     def test_time_control_mapping_and_board_api_validation(self):
-        # Bullet presets (1+0, 1+1, 2+0, 2+1) and Hyperbullet presets are in LICHESS_CHALLENGE_PRESETS,
-        # but excluded from LICHESS_SEEK_PRESETS (since /api/board/seek only accepts Rapid & Classical).
-        for fast_preset in ("Bullet 1+0", "Bullet 1+1", "Bullet 2+0", "Bullet 2+1", "Hyperbullet 30+0", "Blitz 3+0"):
-            self.assertIn(fast_preset, LICHESS_CHALLENGE_PRESETS)
-            self.assertNotIn(fast_preset, LICHESS_SEEK_PRESETS)
+        # Bullet and Hyperbullet presets are unsupported for Lichess challenges and seeks.
+        for unsupported in ("Hyperbullet 15+0", "Hyperbullet 30+0", "Bullet 1+0", "Bullet 1+1", "Bullet 2+0", "Bullet 2+1"):
+            self.assertNotIn(unsupported, LICHESS_CHALLENGE_PRESETS)
+            self.assertNotIn(unsupported, LICHESS_SEEK_PRESETS)
+            with self.assertRaisesRegex(ValueError, "Unsupported time control preset"):
+                LichessChallengeOptions(mode="player", preset=unsupported, opponent_username="Friend").to_challenge_payload()
+
+        # Custom bullet durations (< 3 minutes) are also rejected.
+        with self.assertRaisesRegex(ValueError, "between 3 and 180 minutes"):
+            LichessChallengeOptions(mode="player", preset="Custom", custom_minutes=2, custom_increment=0, opponent_username="Friend").to_challenge_payload()
+
+        # Blitz is accepted for direct challenges, excluded from Quick Pairing (seek).
+        for blitz_preset in ("Blitz 3+0", "Blitz 5+3"):
+            self.assertIn(blitz_preset, LICHESS_CHALLENGE_PRESETS)
+            self.assertNotIn(blitz_preset, LICHESS_SEEK_PRESETS)
 
         # All challenge presets map cleanly
         for preset in LICHESS_CHALLENGE_PRESETS:
@@ -217,28 +227,10 @@ class LichessServiceTests(unittest.TestCase):
             self.assertEqual(payload["increment"], str(int(tc.increment_seconds)))
             self.assertEqual(payload["rated"], "true")
 
-        # Bullet and Blitz are rejected for Quick Pairing (seek) per Lichess Board API rules
-        for invalid_seek in ("Bullet 1+0", "Bullet 2+1", "Blitz 3+0", "Blitz 5+3"):
+        # Blitz and Bullet are rejected for Quick Pairing (seek) per Lichess Board API rules
+        for invalid_seek in ("Blitz 3+0", "Blitz 5+3"):
             with self.assertRaisesRegex(ValueError, "Quick Pairing.*only accepts Rapid or Classical"):
                 LichessChallengeOptions(mode="seek", preset=invalid_seek).to_challenge_payload()
-
-        # Specific check for Bullet 1+0, 1+1, 2+0, 2+1 on direct challenges
-        self.assertEqual(
-            LichessChallengeOptions(mode="player", preset="Bullet 1+0", opponent_username="Friend").to_challenge_payload()["clock.limit"],
-            "60",
-        )
-        self.assertEqual(
-            LichessChallengeOptions(mode="player", preset="Bullet 1+1", opponent_username="Friend").to_challenge_payload(),
-            {"rated": "false", "clock.limit": "60", "clock.increment": "1", "color": "random", "variant": "standard"},
-        )
-        self.assertEqual(
-            LichessChallengeOptions(mode="player", preset="Bullet 2+1", opponent_username="Friend").to_challenge_payload(),
-            {"rated": "false", "clock.limit": "120", "clock.increment": "1", "color": "random", "variant": "standard"},
-        )
-        self.assertEqual(
-            LichessChallengeOptions(mode="player", preset="Bullet 2+0", opponent_username="Friend").to_challenge_payload(),
-            {"rated": "false", "clock.limit": "120", "clock.increment": "0", "color": "random", "variant": "standard"},
-        )
 
         # Infinite time control is rejected
         with self.assertRaisesRegex(ValueError, "Unsupported time control"):
@@ -354,6 +346,34 @@ class LichessServiceTests(unittest.TestCase):
         self.assertFalse(session.opponent_proposed_takeback)
         self.assertEqual(session.clock_label(True), "Lichess · Alice (1820)")
         self.assertEqual(session.clock_label(False), "Lichess · nork79 (1795)")
+        self.assertTrue(session.opponent_is_human)
+        self.assertFalse(session.opponent_is_bot)
+
+        bot_session = LichessGameSession.from_game_full(
+            {
+                "id": "botGame002",
+                "type": "gameFull",
+                "white": {"id": "nork79", "name": "nork79", "rating": 1795},
+                "black": {"id": "maia1", "name": "maia1", "title": "BOT", "rating": 1500},
+                "state": {"status": "started"},
+            },
+            my_username="nork79",
+        )
+        self.assertTrue(bot_session.opponent_is_bot)
+        self.assertFalse(bot_session.opponent_is_human)
+
+        ai_session = LichessGameSession.from_game_full(
+            {
+                "id": "aiGame003",
+                "type": "gameFull",
+                "white": {"id": "nork79", "name": "nork79", "rating": 1795},
+                "black": {"aiLevel": 3},
+                "state": {"status": "started"},
+            },
+            my_username="nork79",
+        )
+        self.assertTrue(ai_session.opponent_is_bot)
+        self.assertFalse(ai_session.opponent_is_human)
 
         self.assertEqual(format_lichess_termination("mate", "white"), ("Checkmate - White wins", "1-0"))
         self.assertEqual(format_lichess_termination("resign", "black"), ("White resigned - Black wins", "0-1"))
@@ -362,9 +382,11 @@ class LichessServiceTests(unittest.TestCase):
         self.assertEqual(format_lichess_termination("aborted", None), ("Game aborted on Lichess", "*"))
 
         calls = []
+        bodies = []
 
         def fake_opener(request, timeout=10.0):
             calls.append((request.get_method(), request.full_url))
+            bodies.append(request.data.decode("utf-8") if request.data else "")
             return _FakeHTTPResponse({"ok": True})
 
         client = LichessClient(
@@ -377,6 +399,7 @@ class LichessServiceTests(unittest.TestCase):
         client.abort_game("liveGame001")
         client.handle_draw_offer("liveGame001", True)
         client.handle_takeback_offer("liveGame001", False)
+        client.send_chat_message("liveGame001", "Good game!")
         self.assertEqual(
             [url.split("lichess.org")[-1] for _, url in calls],
             [
@@ -385,8 +408,11 @@ class LichessServiceTests(unittest.TestCase):
                 "/api/board/game/liveGame001/abort",
                 "/api/board/game/liveGame001/draw/yes",
                 "/api/board/game/liveGame001/takeback/no",
+                "/api/board/game/liveGame001/chat",
             ],
         )
+        self.assertIn("room=player", bodies[-1])
+        self.assertIn("text=Good+game%21", bodies[-1])
 
     def _make_seek_client(self, opener):
         return LichessClient(
@@ -946,6 +972,9 @@ class LichessUITests(unittest.TestCase):
         self.window.timer.stop()
 
     def tearDown(self):
+        if getattr(self.window, "lichess_chat_dialog", None) is not None and shiboken6.isValid(self.window.lichess_chat_dialog):
+            self.window.lichess_chat_dialog.close()
+            self.window.lichess_chat_dialog.deleteLater()
         if shiboken6.isValid(self.window):
             self.window.close()
             self.window.deleteLater()
@@ -1828,17 +1857,29 @@ class LichessUITests(unittest.TestCase):
             self.qt.processEvents()
             deadline -= 1
         self.assertIn("Could not connect", dialog.status_label.text())
-        self.assertTrue(dialog.fetch_button.isEnabled())
+        self.assertFalse(hasattr(dialog, "fetch_button"))
+        self.assertTrue(dialog.perf_combo.isEnabled())
+        self.assertTrue(dialog.rated_combo.isEnabled())
 
-        # 2. Successful fetch populates table
+        # 2. Changing Speed or Type automatically reloads the list when needed
         mode = "ok"
-        dialog.fetch_games()
+        dialog.perf_combo.setCurrentIndex(dialog.perf_combo.findData("rapid"))
         table = dialog.findChild(QTableWidget, "lichessHistoryTable")
         deadline = 100
         while (dialog._busy or table.rowCount() < 3) and deadline > 0:
             QTest.qWait(10)
             self.qt.processEvents()
             deadline -= 1
+        self.assertEqual(table.rowCount(), 3)
+
+        # Changing Type triggers a reload too
+        dialog.rated_combo.setCurrentIndex(dialog.rated_combo.findData(True))
+        deadline = 100
+        while dialog._busy and deadline > 0:
+            QTest.qWait(10)
+            self.qt.processEvents()
+            deadline -= 1
+        self.assertEqual(table.rowCount(), 3)
         self.assertEqual(table.rowCount(), 3)
 
         # 3. Unsupported variant is rejected with warning and does not replace board
@@ -1881,6 +1922,205 @@ class LichessUITests(unittest.TestCase):
         self.assertEqual(dialog.loaded_game_id, "noPgnFallback")
         self.assertEqual([w.game.position.uci(m) for m in w.game.position.moves], ["d2d4", "d7d5", "c2c4"])
         dialog.deleteLater()
+
+    def test_live_human_game_opens_top_right_chat_popup_and_skips_bots(self):
+        w = self.window
+        w.lichess.token = "lip_chat_token"
+        w.lichess.account = LichessAccount(user_id="nork79", username="nork79")
+        w.lichess_active_game_id = "humanChat1"
+
+        posted = []
+
+        def fake_opener(req, timeout=10.0):
+            posted.append((req.full_url, req.data.decode("utf-8") if req.data else ""))
+            return _FakeHTTPResponse({"ok": True})
+
+        w.lichess._opener = fake_opener
+
+        # 1. Start live game against non-bot human opponent
+        w.lichess_events.put((
+            "stream_event",
+            "humanChat1",
+            {
+                "id": "humanChat1",
+                "type": "gameFull",
+                "rated": True,
+                "speed": "rapid",
+                "initialFen": "startpos",
+                "clock": {"initial": 600000, "increment": 0},
+                "white": {"id": "nork79", "name": "nork79", "rating": 1700},
+                "black": {"id": "alice", "name": "Alice", "rating": 1680},
+                "state": {"type": "gameState", "moves": "", "wtime": 600000, "btime": 600000, "status": "started"},
+            },
+        ))
+        w.tick()
+        self.qt.processEvents()
+
+        chat = w.lichess_chat_dialog
+        self.assertIsNotNone(chat)
+        self.assertTrue(chat.isVisible())
+        self.assertIn("Alice", chat.header_label.text())
+        # Positioned near the top-right edge of the MainWindow (clamped to screen bounds)
+        top_left = w.mapToGlobal(w.rect().topLeft())
+        avail = w.screen().availableGeometry()
+        expected_x = max(avail.left(), min(top_left.x() + w.width() - chat.width() - 16, avail.right() - chat.width()))
+        self.assertEqual(chat.x(), expected_x)
+        self.assertGreater(chat.x(), min(top_left.x() + w.width(), avail.right()) // 2)
+        self.assertLessEqual(chat.y(), top_left.y() + 120)
+
+        # 2. Receive player chatLine (and ignore spectator room)
+        w.lichess_events.put((
+            "stream_event",
+            "humanChat1",
+            {"type": "chatLine", "room": "player", "username": "Alice", "text": "Good luck!"},
+        ))
+        w.lichess_events.put((
+            "stream_event",
+            "humanChat1",
+            {"type": "chatLine", "room": "spectator", "username": "Kibitzer", "text": "Ignore me"},
+        ))
+        w.tick()
+        self.assertIn("Alice: Good luck!", chat.messages_view.toPlainText())
+        self.assertNotIn("Ignore me", chat.messages_view.toPlainText())
+
+        # 3. Send reply and verify echoed chatLine does not duplicate it
+        chat.input_edit.setText("Have fun!")
+        chat.send_button.click()
+        deadline = 100
+        while not posted and deadline > 0:
+            QTest.qWait(10)
+            deadline -= 1
+        self.assertTrue(any("/api/board/game/humanChat1/chat" in url for url, _ in posted))
+        self.assertTrue(any("text=Have+fun%21" in body for _, body in posted))
+
+        w.lichess_events.put((
+            "stream_event",
+            "humanChat1",
+            {"type": "chatLine", "room": "player", "username": "nork79", "text": "Have fun!"},
+        ))
+        w.tick()
+        self.assertEqual(chat.messages_view.toPlainText().count("Have fun!"), 1)
+
+        # 4. Switching to a BOT game closes the chat popup
+        w.lichess_active_game_id = "botGame1"
+        w.lichess_events.put((
+            "stream_event",
+            "botGame1",
+            {
+                "id": "botGame1",
+                "type": "gameFull",
+                "rated": False,
+                "speed": "rapid",
+                "initialFen": "startpos",
+                "white": {"id": "nork79", "name": "nork79", "rating": 1700},
+                "black": {"id": "maia1", "name": "maia1", "title": "BOT", "rating": 1500},
+                "state": {"type": "gameState", "moves": "", "wtime": 600000, "btime": 600000, "status": "started"},
+            },
+        ))
+        w.tick()
+        self.assertFalse(chat.isVisible())
+
+    def test_lichess_menu_refreshes_stale_ratings_and_skips_unplayed_pools(self):
+        from otb_chess.services.lichess import load_stored_auth, save_stored_auth
+        w = self.window
+
+        # 1. Menu skips unplayed pools (games == 0) while displaying played pools
+        w.lichess.token = "lip_live_stats"
+        w.lichess.account = LichessAccount(
+            user_id="nork79",
+            username="nork79",
+            perfs={"bullet": 1500, "blitz": 1410, "rapid": 1480, "classical": 1500},
+            perf_games={"bullet": 0, "blitz": 12, "rapid": 45, "classical": 0},
+        )
+        w.lichess_menu.refresh()
+        text = w.lichess_menu.status_action.text()
+        self.assertIn("Signed in as nork79", text)
+        self.assertIn("Blitz 1410", text)
+        self.assertIn("Rapid 1480", text)
+        self.assertNotIn("Bullet 1500", text)
+        self.assertNotIn("Classical 1500", text)
+
+        # 2. Opening the menu triggers background refresh when stale, updating Rapid rating & stored cache
+        account_calls = []
+
+        def fake_opener(req, timeout=10.0):
+            if req.full_url.endswith("/api/account"):
+                account_calls.append(req.full_url)
+                return _FakeHTTPResponse({
+                    "id": "nork79",
+                    "username": "nork79",
+                    "perfs": {
+                        "bullet": {"rating": 1500, "games": 0},
+                        "blitz": {"rating": 1415, "games": 13},
+                        "rapid": {"rating": 1562, "games": 48},
+                        "classical": {"rating": 1500, "games": 0},
+                    },
+                })
+            return _FakeHTTPResponse({})
+
+        w.lichess._opener = fake_opener
+        w.lichess_menu._on_about_to_show()
+        deadline = 200
+        while (w._lichess_account_refreshing or len(account_calls) == 0) and deadline > 0:
+            QTest.qWait(10)
+            deadline -= 1
+        w.tick()
+
+        self.assertEqual(len(account_calls), 1)
+        updated_text = w.lichess_menu.status_action.text()
+        self.assertIn("Rapid 1562", updated_text)
+        self.assertIn("Blitz 1415", updated_text)
+        self.assertNotIn("1480", updated_text)
+        stored = load_stored_auth()
+        self.assertIsNotNone(stored)
+        self.assertEqual(stored["account"]["perfs"]["rapid"], 1562)
+
+        # Opening again immediately respects min_interval cooldown
+        w.lichess_menu._on_about_to_show()
+        QTest.qWait(20)
+        self.assertEqual(len(account_calls), 1)
+
+        # 3. Stale token check prevents overwriting newer logout/account state
+        save_stored_auth(
+            "lip_startup",
+            LichessAccount(user_id="nork79", username="nork79", perfs={"rapid": 1490}, perf_games={"rapid": 20}),
+        )
+        restored_win = MainWindow()
+        restored_win.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, True)
+        try:
+            startup_calls = []
+
+            def startup_opener(req, timeout=10.0):
+                if req.full_url.endswith("/api/account"):
+                    startup_calls.append(req.full_url)
+                    return _FakeHTTPResponse({
+                        "id": "nork79",
+                        "username": "nork79",
+                        "perfs": {"rapid": {"rating": 1599, "games": 25}},
+                    })
+                return _FakeHTTPResponse({})
+
+            restored_win.lichess._opener = startup_opener
+            self.assertEqual(restored_win.lichess.account.perfs["rapid"], 1490)
+            deadline = 200
+            while (len(startup_calls) == 0 or restored_win._lichess_account_refreshing) and deadline > 0:
+                QTest.qWait(10)
+                self.qt.processEvents()
+                deadline -= 1
+            restored_win.tick()
+            self.assertEqual(restored_win.lichess.account.perfs["rapid"], 1599)
+            self.assertIn("Rapid 1599", restored_win.lichess_menu.status_action.text())
+
+            # refresh_account returns None and does not overwrite if token changed mid-flight
+            restored_win.lichess.token = "lip_newer"
+            self.assertIsNone(restored_win.lichess.refresh_account(expected_token="lip_startup", persist=False))
+            self.assertEqual(restored_win.lichess.token, "lip_newer")
+        finally:
+            restored_win.timer.stop()
+            restored_win.close()
+            restored_win.deleteLater()
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+            self.qt.processEvents()
 
 
 if __name__ == "__main__":

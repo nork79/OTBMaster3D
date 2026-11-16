@@ -217,13 +217,13 @@ moves and ignores results belonging to an older position.
 
 **Start analysis / Stop analysis** in Engine Output also controls line calculation.
 Stopping analysis lets the current short search finish and leaves engine moves enabled.
-The separate **Position evaluation** sits inside Engine Output and hides when it is collapsed
-unless **Engine → Always show static evaluation** is enabled, which moves it beside
-the **MOVE LIST** heading. This preference is remembered. The evaluation
-updates immediately for moves, imports and history navigation. It estimates
-material, piece placement and pawn structure without searching moves or using
-Stockfish; tactical engine evaluations can differ. Both scores use pawn units,
-with positive values favouring White and negative values favouring Black.
+The separate position evaluation label sits inside Engine Output and hides when it is collapsed
+unless **Engine → Always show position evaluation** is enabled, which moves it beside
+the **MOVE LIST** heading. This preference is remembered. Stockfish evaluates reviewed
+and end-of-game positions sequentially for **Engine → Open Evaluation Graph** and shares
+those scores with the **MOVE LIST** indicator so stepping through moves displays the
+matching Stockfish analysis. Both scores use pawn units from White's perspective, with
+positive values favouring White and negative values favouring Black.
 
 ## Lichess online play
 
@@ -251,9 +251,9 @@ Choose **Lichess > New Challenge / Seek**. In **Challenge a Player by Username**
 2. Online bots are ordered from lower to higher by the average of their available
    ratings. Bots with no ratings are listed last, alphabetically.
 3. Choose a listed time control or **Custom**, a colour (random, White, or Black),
-   and Casual or Rated. Direct challenges support the listed Hyperbullet through
-   Classical controls; custom initial time is 1-180 minutes with a 0-180 second
-   increment.
+   and Casual or Rated. Direct challenges support Blitz, Rapid, and Classical
+   controls (Bullet and Hyperbullet are not supported); custom initial time is
+   3-180 minutes with a 0-180 second increment.
 4. Select **Send Challenge**. The dialog waits for the Lichess event stream. It
    reports when the opponent accepts, declines, or cancels. While waiting, use
    **Cancel** to cancel the pending outgoing challenge.
@@ -272,12 +272,15 @@ Lichess matches the seek, the app opens the live game.
 
 ### Live game controls
 
-Moves and clocks synchronize with Lichess. The menu shows the opponent and game
-state and provides **Offer / Accept Draw**, **Request / Accept Takeback**, and
-**Resign / Abort Online Game**. Resigning or aborting requires confirmation.
-Post-game ratings are refreshed for rated games when Lichess makes them
-available. Local engine play and analysis are disabled during live Lichess play
-and restored when that game ends.
+Moves and clocks synchronize with Lichess, and the **Lichess** menu refreshes your
+live account ratings in the background on startup and when opened. During live games
+against human (non-bot) opponents, a **Game Chat** popup opens near the top-right
+corner of the window (also accessible via **Lichess > Game Chat…**). The menu
+shows the opponent and game state and provides **Offer / Accept Draw**,
+**Request / Accept Takeback**, and **Resign / Abort Online Game**. Resigning or
+aborting requires confirmation. Post-game ratings are refreshed for rated games
+when Lichess makes them available. Local engine play and analysis are disabled
+during live Lichess play and restored when that game ends.
 
 ### Game history
 
@@ -285,7 +288,8 @@ Select **Lichess > Game History…** (`Ctrl+Shift+H`) to browse a user's recent
 Lichess games with date, speed, players, result, move count, opening, and
 rated/casual type. You can filter by **Username**, **Speed** (All, Bullet,
 Blitz, Rapid, Classical), **Type** (All, Rated, Casual), and **Max** games
-(5–100). Select any standard chess game and click **Load Game on Board** (or
+(5–100); pressing Enter on a username or changing any filter automatically
+reloads the list when needed. Select any standard chess game and click **Load Game on Board** (or
 double-click a row) to import its PGN into the local 3D board for replay and
 analysis (falling back to `/game/export/{gameId}` if inline PGN is omitted), or
 click **View on Lichess…** to open it in your browser. Non-standard variants

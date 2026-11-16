@@ -36,7 +36,7 @@ from otb_chess.ui.licenses_dialog import show_licenses, show_about
 from otb_chess.ui.chess_symbols import promotion_icon, flag_icon, clock_engine_label, engine_icon, reset_icon
 from otb_chess.ui.variation_preview import VariationPreview
 from otb_chess.ui.engine_analysis import EngineAnalysisWindow
-from otb_chess.services.position_evaluation import PositionEvaluator
+from otb_chess.services.position_evaluation import GameReviewEvaluator, PositionEvaluator
 
 
 STYLE = """
@@ -120,6 +120,7 @@ class DesktopGame(VariationPreview, Chess3D):
         self.analysis_stamp = 0
         self.closed = False
         self.position_evaluator = PositionEvaluator()
+        self.game_review_evaluator = GameReviewEvaluator()
 
     def choose_promotion(self, color, square):
         dialog = QDialog(self.owner)
@@ -454,9 +455,15 @@ class MainWindow(DocumentActions, QMainWindow):
         self.lichess.restore_saved_session()
         self.lichess_verify_result = None
         self.lichess_verifying = False
+        self._lichess_account_refreshing = False
+        self._lichess_account_refresh_stamp = 0.0
         self.lichess_active_game_id = None
+        self.lichess_chat_dialog = None
         self.lichess_events = queue.Queue()
         self._pre_lichess_state = None
+        self._stockfish_scores = {}
+        self._stockfish_scores_version = 0
+        self._game_review_signature = None
         self.interface_theme = cfg.get("interface_theme","Dark")
         if self.interface_theme not in THEMES:
             self.interface_theme = "Dark"
@@ -511,6 +518,8 @@ class MainWindow(DocumentActions, QMainWindow):
         self._puzzle_solution_seq = 0
         if lichess_params is not None:
             self.apply_lichess_login_parameters(lichess_params)
+        elif self.lichess.token:
+            QTimer.singleShot(0, lambda: self.refresh_lichess_account(silent=True))
         remembered = self.game.engine_var.get()
         if remembered and Path(remembered).is_file():
             QTimer.singleShot(0,lambda: self.game.load_engine_path(remembered))
@@ -947,6 +956,8 @@ class MainWindow(DocumentActions, QMainWindow):
         from otb_chess.ui.evaluation_graph import EvaluationGraph
         if not hasattr(self, "evaluation_graph"):
             self.evaluation_graph = EvaluationGraph(self)
+        else:
+            self.evaluation_graph.refresh()
         self.evaluation_graph.show()
         self.evaluation_graph.raise_()
         self.evaluation_graph.activateWindow()
@@ -956,6 +967,7 @@ class MainWindow(DocumentActions, QMainWindow):
         end = len(self.game.history_board().move_stack)
         target = {"<<":0,"<":max(0,current-1),">":min(end,current+1),">>":end}[step]
         self.game.navigate_to_ply(target)
+        self.refresh_position_evaluation()
         self.refresh_navigation()
         self.board_widget.update()
 
@@ -970,6 +982,48 @@ class MainWindow(DocumentActions, QMainWindow):
         for symbol in (">",">>"):
             self.move_navigation[symbol].setEnabled(allowed and current < end)
 
+    @staticmethod
+    def _format_engine_score(score):
+        if score.mate is not None:
+            return f"Mate {score.mate:+d}"
+        return f"{score.centipawns / 100:+.2f}"
+
+    def _record_stockfish_score(self, key, score, depth=None):
+        if score is None or (score.mate is None and score.centipawns is None):
+            return False
+        depth_val = depth or 0
+        existing = self._stockfish_scores.get(key)
+        if existing is not None and existing[1] > depth_val:
+            return False
+        if len(self._stockfish_scores) >= 2000 and key not in self._stockfish_scores:
+            self._stockfish_scores.clear()
+        self._stockfish_scores[key] = (score, depth_val)
+        self._stockfish_scores_version += 1
+        return True
+
+    def request_game_evaluation(self):
+        if self.game.online_session is not None and self.game.online_session.active:
+            return
+        history_board = self.game.history_board()
+        root_fen = history_board.root().fen()
+        move_ucis = tuple(move.uci() for move in history_board.move_stack)
+        signature = (root_fen, move_ucis)
+        if signature == self._game_review_signature:
+            return
+        self._game_review_signature = signature
+        pos = ChessPosition(root_fen)
+        items = []
+        for index in range(len(history_board.move_stack) + 1):
+            board = pos.legacy_board
+            history = pos.history()
+            key = (history.root_fen, history.moves)
+            if not evaluate_position(board).result and key not in self._stockfish_scores:
+                items.append((key, history))
+            if index < len(history_board.move_stack):
+                pos.apply(chess.owned_move(history_board.move_stack[index]))
+        if items:
+            self.game.game_review_evaluator.request_game(signature, items)
+
     def refresh_position_evaluation(self):
         if self.game.online_session is not None and self.game.online_session.active:
             self.static_evaluation.setText("")
@@ -977,16 +1031,25 @@ class MainWindow(DocumentActions, QMainWindow):
             self.static_evaluation.setToolTip("Engine evaluation is disabled during live Lichess games.")
             self.move_list_evaluation.setToolTip("Engine evaluation is disabled during live Lichess games.")
             return
+        history = self.game.position.history()
+        cache_key = (history.root_fen, history.moves)
+        cached_graph = self._stockfish_scores.get(cache_key)
+        result = evaluate_position(self.game.board).result
         token = self.game.analysis_position_token()
         if token != getattr(self, "_position_evaluation_token", None):
             self._position_evaluation_token = token
             self._position_evaluation_error = None
-            self.game.position_evaluator.request(self.game.position.history(), token)
+            if cached_graph is None and not result:
+                self.game.position_evaluator.request(history, token)
         cached = getattr(self, "_position_engine_score", None)
-        result = evaluate_position(self.game.board).result
         if result:
             text = result
             tooltip = "Result of the current position."
+        elif cached_graph is not None:
+            text = self._format_engine_score(cached_graph[0])
+            self._last_position_score = text
+            self._position_engine_score = (token, text)
+            tooltip = "Stockfish analysis of the current position. Positive values favour White."
         elif cached is not None and cached[0] == token:
             text = cached[1]
             self._last_position_score = text
@@ -1003,20 +1066,34 @@ class MainWindow(DocumentActions, QMainWindow):
     def poll_position_evaluation(self):
         if self.game.online_session is not None and self.game.online_session.active:
             return
+        graph_visible = hasattr(self, "evaluation_graph") and self.evaluation_graph.isVisible()
+        if graph_visible or (self.game.game_over and self.game.history_board().move_stack):
+            self.request_game_evaluation()
+        scores_updated = False
+        for sig, key, info, error in self.game.game_review_evaluator.poll_all():
+            if sig == self._game_review_signature and not error and info is not None and info.score is not None:
+                if self._record_stockfish_score(key, info.score, info.depth):
+                    scores_updated = True
         token = self.game.analysis_position_token()
         if token != getattr(self, "_position_evaluation_token", None):
             self.refresh_position_evaluation()
         result = self.game.position_evaluator.poll()
-        if result is None or result[0] != token:
-            return
-        _, info, error = result
-        self._position_evaluation_error = error
-        cached = getattr(self, "_position_engine_score", None)
-        if not error and (cached is None or cached[0] != token):
-            score = info.score
-            text = f"Mate {score.mate:+d}" if score.mate is not None else f"{score.centipawns/100:+.2f}"
-            self._position_engine_score = (token, text)
-        self.refresh_position_evaluation()
+        if result is not None and result[0] == token:
+            _, info, error = result
+            self._position_evaluation_error = error
+            cached = getattr(self, "_position_engine_score", None)
+            if not error and info is not None and info.score is not None:
+                history = self.game.position.history()
+                if self._record_stockfish_score((history.root_fen, history.moves), info.score, info.depth):
+                    scores_updated = True
+                if cached is None or cached[0] != token:
+                    text = self._format_engine_score(info.score)
+                    self._position_engine_score = (token, text)
+            self.refresh_position_evaluation()
+        elif scores_updated:
+            self.refresh_position_evaluation()
+        if scores_updated and graph_visible:
+            self.evaluation_graph.refresh()
 
     def refresh_moves(self):
         self.refresh_position_evaluation()
@@ -1648,9 +1725,46 @@ class MainWindow(DocumentActions, QMainWindow):
         if hasattr(self, "evaluation_graph") and self.evaluation_graph.isVisible():
             self.evaluation_graph.close()
 
+    def get_lichess_chat_dialog(self):
+        if self.lichess_chat_dialog is None:
+            from otb_chess.ui.lichess_dialog import LichessChatDialog
+            self.lichess_chat_dialog = LichessChatDialog(self)
+        return self.lichess_chat_dialog
+
+    def open_lichess_chat_window(self, session=None):
+        target = session if session is not None else self.game.online_session
+        if target is None or not getattr(target, "opponent_is_human", False):
+            return
+        my_user = (
+            self.lichess.account.username
+            if self.lichess.account is not None
+            else self.game.cfg.get("lichess_username", "")
+        )
+        dialog = self.get_lichess_chat_dialog()
+        dialog.show_for_game(target.game_id, target.opponent_name, my_username=my_user)
+
+    def close_lichess_chat(self):
+        if self.lichess_chat_dialog is not None:
+            self.lichess_chat_dialog.close()
+
+    def send_lichess_chat_message(self, game_id: str, text: str):
+        gid = (game_id or "").strip()
+        msg = (text or "").strip()
+        if not gid or not msg:
+            return
+
+        def worker():
+            try:
+                self.lichess.send_chat_message(gid, msg)
+            except Exception as exc:
+                self.lichess_events.put(("chat_failed", gid, str(exc)))
+
+        threading.Thread(target=worker, daemon=True).start()
+
     def leave_lichess_game(self):
         self.lichess.stop_game_stream()
         self.lichess_active_game_id = None
+        self.close_lichess_chat()
         if self.game.online_session is not None:
             self.game.online_session = None
         self._release_lichess_fair_play_lock()
@@ -1688,6 +1802,12 @@ class MainWindow(DocumentActions, QMainWindow):
                 kind, gid, payload = self.lichess_events.get_nowait()
             except queue.Empty:
                 break
+            if kind == "account_refreshed":
+                if payload is not None and getattr(self, "game", None) is not None:
+                    self.game.cfg["lichess_username"] = payload.username
+                if hasattr(self, "lichess_menu"):
+                    self.lichess_menu.refresh()
+                continue
             if self.lichess_active_game_id and gid != self.lichess_active_game_id:
                 continue
             if kind == "stream_event":
@@ -1718,6 +1838,8 @@ class MainWindow(DocumentActions, QMainWindow):
                         g._pgn_document = replace(g._pgn_document, headers=extra_headers)
                     self.white_clock.refresh(g)
                     self.black_clock.refresh(g)
+                if self.lichess.account is not None:
+                    self._lichess_account_refresh_stamp = time.monotonic()
                 if hasattr(self, "lichess_menu"):
                     self.lichess_menu.refresh()
             elif kind == "move_sent":
@@ -1738,6 +1860,9 @@ class MainWindow(DocumentActions, QMainWindow):
             elif kind in ("stream_error", "action_error"):
                 self.game.result_text = str(payload)
                 self.statusBar().showMessage(self.game.result_text)
+            elif kind == "chat_failed":
+                if self.lichess_chat_dialog is not None:
+                    self.lichess_chat_dialog.set_error(str(payload))
 
     def _handle_lichess_stream_event(self, event: dict):
         from datetime import date
@@ -1815,8 +1940,20 @@ class MainWindow(DocumentActions, QMainWindow):
             self.white_clock.refresh(g)
             self.black_clock.refresh(g)
             self.refresh_game_actions()
+            if session.active and session.opponent_is_human:
+                self.open_lichess_chat_window(session)
+            else:
+                self.close_lichess_chat()
         elif etype == "gameState":
             self._apply_lichess_game_state(event, initial_sync=False)
+        elif etype == "chatLine":
+            room = str(event.get("room") or "player").strip().lower()
+            session = g.online_session
+            if room == "player" and session is not None and session.opponent_is_human:
+                username = str(event.get("username") or "").strip()
+                text = str(event.get("text") or "").strip()
+                if text and self.lichess_chat_dialog is not None:
+                    self.lichess_chat_dialog.append_stream_message(username, text)
         elif etype == "opponentGone":
             if event.get("gone"):
                 secs = event.get("claimWinInSeconds")
@@ -1917,11 +2054,36 @@ class MainWindow(DocumentActions, QMainWindow):
         self.refresh_game_actions()
 
     def on_lichess_auth_changed(self, message=""):
+        if self.lichess.account is not None:
+            self._lichess_account_refresh_stamp = time.monotonic()
         if message:
             self.game.result_text = message
             self.statusBar().showMessage(message)
         if hasattr(self, "lichess_menu"):
             self.lichess_menu.refresh()
+
+    def refresh_lichess_account(self, *, silent: bool = True, min_interval: float = 0.0):
+        if not self.lichess.token or self.lichess_verifying or self._lichess_account_refreshing:
+            return
+        now = time.monotonic()
+        if min_interval > 0.0 and (now - self._lichess_account_refresh_stamp) < min_interval:
+            return
+        self._lichess_account_refreshing = True
+        self._lichess_account_refresh_stamp = now
+        expected_token = self.lichess.token
+
+        def worker():
+            try:
+                account = self.lichess.refresh_account(expected_token=expected_token, persist=True)
+                if account is not None:
+                    self.lichess_events.put(("account_refreshed", "", account))
+            except Exception as exc:
+                if not silent:
+                    self.lichess_events.put(("action_error", "", str(exc)))
+            finally:
+                self._lichess_account_refreshing = False
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def apply_lichess_login_parameters(self, params):
         try:
@@ -2550,8 +2712,12 @@ class MainWindow(DocumentActions, QMainWindow):
         self.engine_metrics.setText(f"{prefix}Engine evaluation: {score_text}   ·   Depth {info.depth if info.depth is not None else '—'}")
         token = self.game.analysis_position_token() if source == self.game.board.fen() else None
         if token is not None and info.source_fen == source and score_text != "—":
+            history = self.game.position.history()
+            updated = self._record_stockfish_score((history.root_fen, history.moves), score, info.depth)
             self._position_engine_score = (token, score_text)
             self.refresh_position_evaluation()
+            if updated and hasattr(self, "evaluation_graph") and self.evaluation_graph.isVisible():
+                self.evaluation_graph.refresh()
         self.engine_panel.present(source, evaluations, token, prefix)
 
     def show_controls(self):
@@ -2706,11 +2872,13 @@ class MainWindow(DocumentActions, QMainWindow):
         self.lichess.cancel_seek()
         self.lichess.stop_event_stream()
         self.lichess.stop_game_stream()
+        self.close_lichess_chat()
         g.end_variation(resume=False)
         self.engine_panel.remember_geometry()
         self.engine_panel.hide()
         g.closed = True
         g.position_evaluator.close()
+        g.game_review_evaluator.close()
         g.update_clock()
         self.session.save(g,force=True)
         if self.sidebar.isVisible():

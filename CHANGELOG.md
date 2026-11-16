@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.8.7 - 2026-11-16
+
+- Add live Lichess player chat popup (`LichessChatDialog`, **Lichess > Game Chat…**)
+  automatically positioned at the top-right of the main window during active games
+  against non-bot opponents, with message deduplication and spectator-room filtering.
+- Remove unsupported Bullet and Hyperbullet presets from `Lichess > New Challenge / Seek`
+  (retaining Blitz, Rapid, and Classical, with a 3-minute custom minimum).
+- Remove the **Fetch Games** button from `Lichess > Game History…` so the game
+  list reloads automatically when changing **Speed**, **Type**, **Max**, or finishing
+  a **Username** edit when parameters changed.
+- Refresh live Lichess account ratings (`LichessClient.refresh_account`) in the
+  background on startup and when opening the **Lichess** menu (with cooldown
+  throttling and unplayed `0`-game pool filtering) so menu stats stay up to date.
+- Synchronize **Evaluation Graph** (`EvaluationGraph`) and **MOVE LIST** review
+  scores using sequential Stockfish game analysis (`GameReviewEvaluator`) and a
+  shared per-ply Stockfish score cache (`_stockfish_scores`).
+- Expand automated tests across `tests/test_lichess.py`, `tests/test_position_evaluation.py`,
+  `tests/test_engine_analysis_ui.py`, and `tests/test_desktop_ui.py`.
+
 ## 1.8.6 - 2026-11-16
 
 - Add **Puzzle Trainer** (`Puzzles > Puzzle Trainer…`, `Ctrl+Shift+P`) with a
