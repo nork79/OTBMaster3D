@@ -77,7 +77,16 @@ class ClockFeedbackTests(unittest.TestCase):
         self.assertEqual(g.result_text, 'Draw - threefold repetition')
         self.assertEqual(w.game_status.text(), 'Game Drawn - threefold repetition')
         self.assertFalse(g.game_started)
-        self.assertFalse(g.try_move(chess.E2, chess.E4))
+        draw_fen = g.board.fen()
+        with patch.object(g, 'play_game_sound'):
+            # After game over, both sides can make free analysis moves without altering the finished game
+            self.assertTrue(g.try_move(chess.E2, chess.E4))
+            self.assertTrue(g.try_move(chess.E7, chess.E5))
+        self.assertTrue(g.game_over)
+        self.assertEqual(g.result_text, 'Draw - threefold repetition')
+        self.assertEqual(len(g.history_board().move_stack), len(moves))
+        g.return_to_live()
+        self.assertEqual(g.board.fen(), draw_fen)
 
     def test_clock_heading_shows_result_and_clears_for_new_game(self):
         g, w = self.game, self.window
@@ -226,6 +235,63 @@ class ClockFeedbackTests(unittest.TestCase):
                     if expected:
                         square = g.board.king(g.board.turn)
                         self.assertEqual(halo.call_args.args, (3.5-chess.square_file(square), chess.square_rank(square)-3.5))
+
+    def test_completed_game_review_updates_clock_times_for_each_move(self):
+        w, g = self.window, self.game
+        g.time_control_var.set("Blitz 5+0")
+        g.start_game()
+        # Ply 0: (300, 300)
+        with patch.object(g, "play_game_sound"):
+            g.white_time = 294
+            self.assertTrue(g.try_move(chess.E2, chess.E4))   # Ply 1: (294, 300)
+            g.black_time = 285
+            self.assertTrue(g.try_move(chess.E7, chess.E5))   # Ply 2: (294, 285)
+            g.white_time = 271
+            self.assertTrue(g.try_move(chess.G1, chess.F3))   # Ply 3: (271, 285)
+            g.resign(chess.BLACK)
+
+        expected = [(300, 300), (294, 300), (294, 285), (271, 285)]
+
+        # Step back to start and forward with navigation controls
+        w.navigate_history("<<")
+        self.assertEqual((w.white_clock.digits.text(), w.black_clock.digits.text()),
+                         (g.fmt_clock(300), g.fmt_clock(300)))
+        for ply in (1, 2, 3):
+            w.navigate_history(">")
+            exp_w, exp_b = expected[ply]
+            self.assertEqual((w.white_clock.digits.text(), w.black_clock.digits.text()),
+                             (g.fmt_clock(exp_w), g.fmt_clock(exp_b)))
+        w.navigate_history("<")
+        self.assertEqual((w.white_clock.digits.text(), w.black_clock.digits.text()),
+                         (g.fmt_clock(294), g.fmt_clock(285)))
+        w.navigate_move(0, 1)  # Ply 1 in move list
+        self.assertEqual((w.white_clock.digits.text(), w.black_clock.digits.text()),
+                         (g.fmt_clock(294), g.fmt_clock(300)))
+        w.navigate_history(">>")
+        self.assertEqual((w.white_clock.digits.text(), w.black_clock.digits.text()),
+                         (g.fmt_clock(271), g.fmt_clock(285)))
+
+        # Imported PGN with [%clk] comments also updates clock displays across plies
+        pgn_with_clocks = (
+            '[Event "Lichess Rapid"]\n'
+            '[TimeControl "600+0"]\n'
+            '[Result "1-0"]\n\n'
+            '1. e4 { [%clk 0:09:55] } 1... e5 { [%clk 0:09:42] } '
+            '2. Nf3 { [%clk 0:09:30] } 1-0\n'
+        )
+        with patch.object(w, "confirm", return_value=True):
+            self.assertTrue(w.import_notation(pgn_with_clocks, "pgn"))
+        self.assertEqual((w.white_clock.digits.text(), w.black_clock.digits.text()),
+                         (g.fmt_clock(570), g.fmt_clock(582)))
+        w.navigate_history("<<")
+        self.assertEqual((w.white_clock.digits.text(), w.black_clock.digits.text()),
+                         (g.fmt_clock(600), g.fmt_clock(600)))
+        w.navigate_history(">")
+        self.assertEqual((w.white_clock.digits.text(), w.black_clock.digits.text()),
+                         (g.fmt_clock(595), g.fmt_clock(600)))
+        w.navigate_history(">")
+        self.assertEqual((w.white_clock.digits.text(), w.black_clock.digits.text()),
+                         (g.fmt_clock(595), g.fmt_clock(582)))
 
 
 if __name__ == "__main__":

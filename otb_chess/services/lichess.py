@@ -1760,6 +1760,7 @@ class LichessGameSummary:
     moves: str = ""
     pgn: str = ""
     variant: str = "standard"
+    ply_clocks: tuple[tuple[float, float], ...] = ()
 
     @property
     def ply_count(self) -> int:
@@ -1852,6 +1853,26 @@ class LichessGameSummary:
             variant = str(variant_raw.get("key") or "standard")
         else:
             variant = str(variant_raw or "standard")
+        ply_clocks: list[tuple[float, float]] = []
+        raw_clocks = payload.get("clocks")
+        if isinstance(raw_clocks, list) and raw_clocks:
+            clock_cfg = payload.get("clock") if isinstance(payload.get("clock"), dict) else {}
+            init_sec = clock_cfg.get("initial")
+            w_cur = float(init_sec) if isinstance(init_sec, (int, float)) else max(0.0, float(raw_clocks[0]) / 100.0)
+            b_cur = (
+                float(init_sec)
+                if isinstance(init_sec, (int, float))
+                else max(0.0, float(raw_clocks[1 if len(raw_clocks) > 1 else 0]) / 100.0)
+            )
+            ply_clocks.append((w_cur, b_cur))
+            for idx, centis in enumerate(raw_clocks):
+                if isinstance(centis, (int, float)):
+                    secs = max(0.0, float(centis) / 100.0)
+                    if idx % 2 == 0:
+                        w_cur = secs
+                    else:
+                        b_cur = secs
+                ply_clocks.append((w_cur, b_cur))
         return cls(
             game_id=str(payload.get("id") or "").strip(),
             created_at_ms=int(payload.get("createdAt") or 0),
@@ -1869,4 +1890,5 @@ class LichessGameSummary:
             moves=str(payload.get("moves") or "").strip(),
             pgn=str(payload.get("pgn") or "").strip(),
             variant=variant,
+            ply_clocks=tuple(ply_clocks),
         )

@@ -216,6 +216,54 @@ class EngineAnalysisTests(unittest.TestCase):
             g.position_evaluator.request.assert_not_called()
             graph.close()
 
+    def test_vertical_evaluation_bar_visibility_scores_and_lichess_hide(self):
+        from otb_chess.services.lichess import LichessGameSession
+        w, g = self.window, self.game
+        self.assertIs(w.splitter.widget(0), w.board_pane)
+        self.assertEqual(w.eval_bar.width(), 17)
+        self.assertTrue(w.eval_bar.isVisible())
+        self.assertTrue(w.eval_bar_action.isChecked())
+
+        # Reflects Move List score across centipawn, mate, and terminal states
+        fen = g.board.fen()
+        w.show_engine_info(fen, EngineEvaluation(fen, EngineScore(centipawns=150), 16))
+        self.assertEqual(w.eval_bar.score_text, w.move_list_evaluation.text())
+        self.assertEqual(w.eval_bar.badge_text, '+1.50')
+        self.assertGreater(w.eval_bar.white_ratio, 0.5)
+
+        w.show_engine_info(fen, EngineEvaluation(fen, EngineScore(mate=-3), 18))
+        self.assertEqual(w.eval_bar.score_text, 'Mate -3')
+        self.assertEqual(w.eval_bar.badge_text, 'M3')
+        self.assertEqual(w.eval_bar.white_ratio, 0.0)
+        w.eval_bar.grab()
+
+        # Flipping the board updates eval bar orientation
+        g.flip_board()
+        w.tick()
+        self.assertEqual(w.eval_bar.facing, 'black')
+        w.eval_bar.grab()
+        g.flip_board()
+        w.tick()
+        self.assertEqual(w.eval_bar.facing, 'white')
+
+        # Menu visibility toggle persists setting
+        w.eval_bar_action.trigger()
+        self.assertFalse(w.eval_bar.isVisible())
+        self.assertFalse(settings.load_config()['show_evaluation_bar'])
+        w.eval_bar_action.trigger()
+        self.assertTrue(w.eval_bar.isVisible())
+        self.assertTrue(settings.load_config()['show_evaluation_bar'])
+
+        # Hidden during active Lichess games, restored when game ends
+        g.online_session = LichessGameSession(game_id='live1', status='started', my_color=True)
+        w._enforce_lichess_fair_play_lock()
+        self.assertFalse(w.eval_bar.isVisible())
+        self.assertFalse(w.eval_bar_action.isEnabled())
+        g.online_session.status = 'mate'
+        w._release_lichess_fair_play_lock()
+        self.assertTrue(w.eval_bar.isVisible())
+        self.assertTrue(w.eval_bar_action.isEnabled())
+
     def test_option_arrows_receive_clicks_and_save_values(self):
         panel = self.present()
         self.qt.processEvents()

@@ -1065,9 +1065,36 @@ class DesktopTests(unittest.TestCase):
         QTest.mouseClick(w.moves.viewport(),Qt.MouseButton.LeftButton,pos=w.moves.visualItemRect(item).center())
         self.assertEqual(len(g.board.move_stack),1)
         self.assertEqual(w.moves.item(0,2).text(),"e5")
-        self.assertFalse(g.human_can_move())
+        self.assertTrue(g.human_can_move())
+        # Free analysis moves for both sides while paused do not alter live game or clocks
+        g.engine_enabled = True
+        g.engine_side = chess.WHITE
+        g.engine_manager.engine = Mock()
+        with patch.object(g, "play_game_sound"):
+            self.assertTrue(g.try_move(chess.C7, chess.C5))  # Black analysis move from ply 1
+            self.assertTrue(g.try_move(chess.G1, chess.F3))  # White analysis move (even though engine_side is White)
+            self.assertTrue(g.try_move(chess.B8, chess.C6))  # Black analysis move
+        self.assertEqual(len(g.history_board().move_stack), 2)
+        self.assertEqual(w.moves.item(0,2).text(), "e5")
+        g.engine_enabled = False
+        g.engine_side = None
+        g.engine_manager.engine = None
         g.stop_clock()
         self.assertEqual(g.board.fen(),live)
+        self.assertFalse(g.clock_paused)
+        # Pausing directly at the live position also snapshots _review_live and ignores analysis checkmate
+        g.stop_clock()
+        self.assertIsNone(g._review_live)
+        with patch.object(g, "play_game_sound"):
+            for src, dst in ((chess.F1, chess.C4), (chess.B8, chess.C6), (chess.D1, chess.H5), (chess.G8, chess.F6), (chess.H5, chess.F7)):
+                self.assertTrue(g.try_move(src, dst))
+        self.assertIsNotNone(g._review_live)
+        self.assertFalse(g.game_over)
+        self.assertTrue(g.game_started)
+        self.assertEqual(len(g.history_board().move_stack), 2)
+        g.stop_clock()
+        self.assertIsNone(g._review_live)
+        self.assertEqual(g.board.fen(), live)
         self.assertFalse(g.clock_paused)
 
     def test_open_save_notation_and_black_to_move_numbering(self):

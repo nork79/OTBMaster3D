@@ -17,6 +17,62 @@ class ClockControls:
 
     clocks_disabled = False
 
+    def _record_ply_clock(self):
+        if getattr(self, "_review_live", None) is not None:
+            return
+        ply = len(self.board.move_stack)
+        ply_clocks = getattr(self, "ply_clocks", None)
+        if not isinstance(ply_clocks, list):
+            ply_clocks = []
+            self.ply_clocks = ply_clocks
+        if not ply_clocks:
+            hist = getattr(self, "clock_history", None)
+            if hist:
+                w0, b0, _ = hist[0]
+                ply_clocks.append((float(w0), float(b0)))
+            else:
+                ply_clocks.append((float(self.white_time), float(self.black_time)))
+        while len(ply_clocks) <= ply:
+            ply_clocks.append((float(self.white_time), float(self.black_time)))
+        ply_clocks[ply] = (float(self.white_time), float(self.black_time))
+        del ply_clocks[ply + 1:]
+
+    def _truncate_ply_clocks(self):
+        ply_clocks = getattr(self, "ply_clocks", None)
+        if not isinstance(ply_clocks, list) or not ply_clocks:
+            return
+        ply = len(self.board.move_stack)
+        del ply_clocks[ply + 1:]
+        if len(ply_clocks) == ply + 1:
+            ply_clocks[ply] = (float(self.white_time), float(self.black_time))
+
+    def clock_times_at_ply(self, ply: int) -> tuple[float, float]:
+        ply_clocks = getattr(self, "ply_clocks", None)
+        if isinstance(ply_clocks, (list, tuple)) and 0 <= ply < len(ply_clocks):
+            w_val, b_val = ply_clocks[ply]
+            return float(w_val), float(b_val)
+        hist = getattr(self, "clock_history", None) or []
+        if hist:
+            if ply <= 0:
+                return float(hist[0][0]), float(hist[0][1])
+            if ply < len(hist):
+                turn_at_ply = hist[ply][2]
+                if turn_at_ply == chess.BLACK:
+                    return float(hist[ply][0]), float(hist[ply - 1][1])
+                return float(hist[ply - 1][0]), float(hist[ply][1])
+        return float(self.white_time), float(self.black_time)
+
+    def displayed_clock_time(self, color: bool) -> float:
+        if getattr(self, "_review_live", None) is not None:
+            hist_moves = self.history_position().moves
+            cur_moves = self.position.moves
+            common = 0
+            while common < len(cur_moves) and common < len(hist_moves) and cur_moves[common] == hist_moves[common]:
+                common += 1
+            w_time, b_time = self.clock_times_at_ply(common)
+            return w_time if color else b_time
+        return float(self.white_time if color else self.black_time)
+
     def clocks_editable(self):
         online = getattr(self, "online_session", None)
         if online is not None and online.active:
@@ -50,6 +106,7 @@ class ClockControls:
         self.awaiting_clock_color = None
         self.active_clock_color = self.board.turn
         self.last_clock_tick = time.perf_counter()
+        self._record_ply_clock()
         self.result_text = "Clock hit"
         self.maybe_request_engine_move()
 
@@ -103,6 +160,7 @@ class ClockControls:
         self.awaiting_clock_press = False
         self.awaiting_clock_color = None
         self.last_clock_tick = time.perf_counter()
+        self.ply_clocks = [(float(self.white_time), float(self.black_time))]
         self.result_text = f"Clock reset - {time_control.name}"
         if hasattr(self, "stop_btn"):
             self.stop_btn.config(text="Stop Clock")
@@ -123,6 +181,7 @@ class ClockControls:
             if self.white_time <= 0 and not online_active:
                 self.game_started = False
                 self.game_over = True
+                self._record_ply_clock()
                 ending = ChessPosition.from_board(self.board).loss_outcome(chess.WHITE, on_time=True)
                 self.result_text, self._declared_result = ending.reason, ending.result
                 self.play_game_sound(self.sound_game_end)
@@ -131,6 +190,7 @@ class ClockControls:
             if self.black_time <= 0 and not online_active:
                 self.game_started = False
                 self.game_over = True
+                self._record_ply_clock()
                 ending = ChessPosition.from_board(self.board).loss_outcome(chess.BLACK, on_time=True)
                 self.result_text, self._declared_result = ending.reason, ending.result
                 self.play_game_sound(self.sound_game_end)

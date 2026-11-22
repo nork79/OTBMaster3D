@@ -1,6 +1,6 @@
 # Engineering overview
 
-This overview describes the **1.8.7** source tree (see [CHANGELOG.md](../CHANGELOG.md)).
+This overview describes the **1.8.8** source tree (see [CHANGELOG.md](../CHANGELOG.md)).
 OTBMaster3D is a Windows desktop chess application built with Python, PySide6, and OpenGL. The
 normal application host is Qt; the retained Tk/GLFW host is used by legacy
 regression coverage, not as the standard launch path.

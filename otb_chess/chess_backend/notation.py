@@ -60,3 +60,59 @@ def export_pgn(history: History, original: Document | None = None, result=None):
 
 def san(fen: str, move: Move) -> str:
     return _chess.Board(fen).san(_native_move(move))
+
+
+def _parse_time_control_initial(header_value: str) -> float | None:
+    raw = (header_value or "").strip()
+    if not raw or raw in ("-", "?"):
+        return None
+    first_stage = raw.split(":", 1)[0].strip()
+    if "/" in first_stage:
+        first_stage = first_stage.split("/", 1)[1].strip()
+    base_str = first_stage.split("+", 1)[0].strip()
+    try:
+        val = float(base_str)
+        return val if val >= 0 else None
+    except ValueError:
+        return None
+
+
+def extract_ply_clocks(document: Document | None) -> list[tuple[float, float]]:
+    """Extract (white_seconds, black_seconds) per ply from PGN [%clk] comments and TimeControl."""
+    if document is None or not document.annotated_pgn:
+        return []
+    game = _pgn.read_game(io.StringIO(document.annotated_pgn))
+    if game is None:
+        return []
+    initial = _parse_time_control_initial(document.headers.get("TimeControl", ""))
+    board = game.board()
+    node = game
+    raw_entries: list[tuple[bool, float | None]] = []
+    first_white: float | None = None
+    first_black: float | None = None
+    while node.variations:
+        next_node = node.variation(0)
+        mover = board.turn
+        clk = next_node.clock()
+        if clk is not None:
+            clk = max(0.0, float(clk))
+            if mover == _chess.WHITE and first_white is None:
+                first_white = clk
+            elif mover == _chess.BLACK and first_black is None:
+                first_black = clk
+        raw_entries.append((mover, clk))
+        board.push(next_node.move)
+        node = next_node
+    if first_white is None and first_black is None:
+        return []
+    w_cur = initial if initial is not None else (first_white if first_white is not None else (first_black or 0.0))
+    b_cur = initial if initial is not None else (first_black if first_black is not None else (first_white or 0.0))
+    ply_clocks: list[tuple[float, float]] = [(w_cur, b_cur)]
+    for mover, clk in raw_entries:
+        if clk is not None:
+            if mover == _chess.WHITE:
+                w_cur = clk
+            else:
+                b_cur = clk
+        ply_clocks.append((w_cur, b_cur))
+    return ply_clocks

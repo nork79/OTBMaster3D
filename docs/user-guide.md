@@ -219,7 +219,10 @@ moves and ignores results belonging to an older position.
 Stopping analysis lets the current short search finish and leaves engine moves enabled.
 The separate position evaluation label sits inside Engine Output and hides when it is collapsed
 unless **Engine → Always show position evaluation** is enabled, which moves it beside
-the **MOVE LIST** heading. This preference is remembered. Stockfish evaluates reviewed
+the **MOVE LIST** heading. This preference is remembered. You can also toggle the slim
+vertical evaluation bar beside the chessboard via **View → Show evaluation bar** (or
+in the **Engine** menu); it mirrors the **MOVE LIST** evaluation, flips with the board,
+and hides automatically during active Lichess games. Stockfish evaluates reviewed
 and end-of-game positions sequentially for **Engine → Open Evaluation Graph** and shares
 those scores with the **MOVE LIST** indicator so stepping through moves displays the
 matching Stockfish analysis. Both scores use pawn units from White's perspective, with
@@ -354,10 +357,13 @@ Unchanged imported PGNs retain headers, comments and variations when saved;
 the move list displays the main line. PGN saves the full game, while FEN saves
 the position currently displayed.
 
-When clocks are paused or inactive, click a move to view its position. Browsing
-preserves the full game and does not change the clocks. Use **Game → Go to starting
-position** or **Return to latest move** to navigate. Resuming an active game's clock
-returns to its latest position automatically. Earlier positions are read-only.
+When clocks are paused or a game is over, click a move or use navigation controls to
+view its position; both clocks update to show the recorded remaining times at each move
+(including imported PGN `[%clk]` timestamps and Lichess games). While paused or after
+game over, you can make legal moves freely for both sides on the board to explore your
+own analysis without affecting the game clocks or move list. Use **Game → Go to
+starting position**, **Return to latest move**, or **Resume clock** to return to the
+game automatically.
 
 Open **Settings → Time control and clock** to choose a preset from hyperbullet
 through classical, or a custom initial time and increment in seconds. Saved

@@ -150,7 +150,7 @@ class AppearanceSettings:
             {
                 "player_name": self.cfg.get("player_name", ""),
                 **{key: self.cfg.get(key, default_config()[key]) for key in
-                   ("lichess_url", "lichess_client_id", "lichess_username", "lichess_challenge_mode", "lichess_time_control", "lichess_custom_minutes", "lichess_custom_increment", "lichess_color", "lichess_rated", "lichess_ai_level", "lichess_opponent", "window_size", "bookmark_panel_geometry", "sidebar_width", "sidebar_visible", "focus_mode", "engine_panel_open", "analysis_enabled", "analysis_options", "always_show_static_evaluation", "interface_theme", "engine_elo", "engine_rating", "engine_style", "engine_min_thinking_seconds", "engine_defaults_applied", "engine_difficulty", "engine_personality", "engine_book_mode")},
+                   ("lichess_url", "lichess_client_id", "lichess_username", "lichess_challenge_mode", "lichess_time_control", "lichess_custom_minutes", "lichess_custom_increment", "lichess_color", "lichess_rated", "lichess_ai_level", "lichess_opponent", "window_size", "bookmark_panel_geometry", "sidebar_width", "sidebar_visible", "focus_mode", "engine_panel_open", "analysis_enabled", "analysis_options", "always_show_static_evaluation", "show_evaluation_bar", "interface_theme", "engine_elo", "engine_rating", "engine_style", "engine_min_thinking_seconds", "engine_defaults_applied", "engine_difficulty", "engine_personality", "engine_book_mode")},
                 "light_square": list(self.light_square),
                 "dark_square": list(self.dark_square),
                 "frame_color": list(self.frame_color),

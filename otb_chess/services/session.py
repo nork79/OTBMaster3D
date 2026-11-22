@@ -30,7 +30,7 @@ class SessionStore:
         try:
             data = {'version':1,'pgn':game.export_pgn(),
                     'clocks_disabled': game.clocks_disabled,
-                    'review_ply':len(game.board.move_stack),
+                    'review_ply':self._review_ply(game),
                     'state':{key:getattr(game,key) for key in FIELDS}}
             payload = json.dumps(data,allow_nan=False)
             if payload == self.last_payload:
@@ -53,6 +53,14 @@ class SessionStore:
             self.error = None
         except (OSError,ValueError) as exc:
             self.error = 'Session could not be saved: '+str(exc)
+
+    @staticmethod
+    def _review_ply(game):
+        hist_moves = game.history_position().moves
+        cur_moves = game.position.moves
+        if len(cur_moves) <= len(hist_moves) and hist_moves[:len(cur_moves)] == cur_moves:
+            return len(cur_moves)
+        return len(hist_moves)
 
     @staticmethod
     def decode(path):

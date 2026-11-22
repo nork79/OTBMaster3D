@@ -2,7 +2,7 @@
 import math
 
 from PySide6.QtCore import Qt, QPointF, QRectF, QTimer, Signal
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QWidget
 
 from otb_chess.core.evaluation import evaluate_position
@@ -21,6 +21,119 @@ def _score_pawns(score):
     if score.centipawns is not None:
         return score.centipawns / 100
     return math.inf if score.mate > 0 else -math.inf
+
+
+def _parse_bar_evaluation(text: str) -> tuple[float, str]:
+    clean = (text or "").strip()
+    if not clean or clean == "—":
+        return 0.5, ""
+    if clean.startswith("Mate "):
+        try:
+            mate = int(clean.removeprefix("Mate ").strip())
+        except ValueError:
+            return 0.5, clean
+        return (1.0 if mate > 0 else 0.0), f"M{abs(mate)}"
+    lower = clean.lower()
+    if "white wins" in lower or clean.endswith("1-0"):
+        return 1.0, "1-0"
+    if "black wins" in lower or clean.endswith("0-1"):
+        return 0.0, "0-1"
+    if "draw" in lower or "stalemate" in lower or clean.endswith("1/2-1/2"):
+        return 0.5, "½-½"
+    try:
+        pawns = float(clean)
+    except ValueError:
+        return 0.5, clean
+    ratio = 1.0 / (1.0 + math.exp(-0.4 * pawns))
+    return max(0.03, min(0.97, ratio)), clean
+
+
+class EvaluationBar(QWidget):
+    """Lichess-style vertical evaluation bar reflecting the Move List score."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("evaluationBar")
+        self.setFixedWidth(17)
+        self.setMinimumHeight(180)
+        self.score_text = ""
+        self.badge_text = ""
+        self.white_ratio = 0.5
+        self.facing = "white"
+        self.setAccessibleName("Vertical position evaluation bar")
+        self.setToolTip("Stockfish searches each new position for two seconds. Positive values favour White.")
+
+    def set_facing(self, facing: str):
+        normalized = "black" if facing == "black" else "white"
+        if normalized != self.facing:
+            self.facing = normalized
+            self.update()
+
+    def set_evaluation(self, text: str, tooltip: str = "", *, facing: str | None = None):
+        clean_text = (text or "").strip()
+        ratio, badge = _parse_bar_evaluation(clean_text)
+        changed = (
+            clean_text != self.score_text
+            or badge != self.badge_text
+            or abs(ratio - self.white_ratio) > 1e-6
+        )
+        self.score_text = clean_text
+        self.badge_text = badge
+        self.white_ratio = ratio
+        if facing is not None:
+            norm_facing = "black" if facing == "black" else "white"
+            if norm_facing != self.facing:
+                self.facing = norm_facing
+                changed = True
+        if tooltip and tooltip != self.toolTip():
+            self.setToolTip(tooltip)
+        if changed:
+            self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        rect = QRectF(0.5, 0.5, max(1.0, self.width() - 1.0), max(1.0, self.height() - 1.0))
+        white_color = QColor("#e8e6e3")
+        black_color = QColor("#262421")
+        if self.facing == "white":
+            black_h = rect.height() * (1.0 - self.white_ratio)
+            painter.fillRect(QRectF(rect.left(), rect.top(), rect.width(), black_h), black_color)
+            painter.fillRect(
+                QRectF(rect.left(), rect.top() + black_h, rect.width(), rect.height() - black_h),
+                white_color,
+            )
+            badge_at_bottom = self.white_ratio >= 0.5
+        else:
+            white_h = rect.height() * self.white_ratio
+            painter.fillRect(QRectF(rect.left(), rect.top(), rect.width(), white_h), white_color)
+            painter.fillRect(
+                QRectF(rect.left(), rect.top() + white_h, rect.width(), rect.height() - white_h),
+                black_color,
+            )
+            badge_at_bottom = self.white_ratio < 0.5
+
+        mid_y = rect.center().y()
+        painter.setPen(QPen(QColor(180, 120, 70, 170), 1.2))
+        painter.drawLine(QPointF(rect.left(), mid_y), QPointF(rect.right(), mid_y))
+
+        if self.badge_text:
+            font = QFont(self.font())
+            font.setPointSizeF(5.5)
+            font.setBold(True)
+            painter.setFont(font)
+            white_advantage = self.white_ratio >= 0.5
+            painter.setPen(black_color if white_advantage else white_color)
+            text_rect = (
+                QRectF(rect.left(), rect.bottom() - 16, rect.width(), 14)
+                if badge_at_bottom
+                else QRectF(rect.left(), rect.top() + 2, rect.width(), 14)
+            )
+            painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, self.badge_text)
+
+        painter.setPen(QPen(QColor("#4a4744"), 1.0))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRect(rect)
 
 
 class EvaluationChart(QWidget):
@@ -158,7 +271,12 @@ class EvaluationGraph(QDialog):
                 request_fn = getattr(self.owner, "request_game_evaluation", None)
                 if callable(request_fn):
                     request_fn()
-        self.chart.current = len(self.owner.game.board.move_stack)
+        hist_moves = self.owner.game.history_position().moves
+        cur_moves = self.owner.game.position.moves
+        common = 0
+        while common < len(cur_moves) and common < len(hist_moves) and cur_moves[common] == hist_moves[common]:
+            common += 1
+        self.chart.current = min(common, max(0, len(self.labels) - 1))
         self.position_label.setText(self.labels[self.chart.current])
         self.chart.update()
 

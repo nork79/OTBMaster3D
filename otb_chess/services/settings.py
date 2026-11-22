@@ -143,6 +143,7 @@ def default_config():
         "analysis_enabled": False,
         "analysis_options": {"multipv": 3, "depth": 20, "seconds": 1.0, "threads": 1, "hash_mb": 64},
         "always_show_static_evaluation": False,
+        "show_evaluation_bar": True,
         "interface_theme": "Dark",
         "show_coordinates": True,
         "show_move_indicator": True,

@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.8.8 - 2026-11-22
+
+- Allow free moves for both sides for personal analysis whenever the clock is
+  paused or the game is over (`Chess3D.free_analysis_active` in
+  `otb_chess/core/game.py`), snapshotting the live board in `_review_live` and
+  returning cleanly to the live game when resuming the clock or clicking
+  **Return to latest move** (with safe bounds in `SessionStore`, navigation
+  controls, and `EvaluationGraph`).
+- Add a Lichess-style vertical **Evaluation Bar** (`EvaluationBar` in
+  `otb_chess/ui/evaluation_graph.py`, `17px` wide) next to the chessboard pane
+  that mirrors the **MOVE LIST** score, flips with board orientation, is
+  toggleable via **View / Engine > Show evaluation bar** (`show_evaluation_bar`),
+  and hides automatically during active Lichess games.
+- Track and replay per-ply clock times (`ply_clocks` in `ClockControls`, PGN
+  `[%clk]` parsing via `extract_ply_clocks`, and Lichess game history clocks) so
+  stepping through completed games with navigation controls, **MOVE LIST**, or
+  the **Evaluation Graph** updates both clock displays to each move's timestamp.
+- Expand automated tests in `tests/test_clock_feedback.py`, `tests/test_desktop_ui.py`,
+  and `tests/test_engine_analysis_ui.py`.
+
 ## 1.8.7 - 2026-11-16
 
 - Add live Lichess player chat popup (`LichessChatDialog`, **Lichess > Game Chat…**)

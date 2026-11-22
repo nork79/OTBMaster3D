@@ -1,6 +1,7 @@
 """Notation import/export and non-destructive move-history browsing."""
 
 from otb_chess.document_state import History
+from otb_chess.chess_backend import notation
 from otb_chess.chess_backend.position import ChessPosition
 
 
@@ -96,6 +97,11 @@ class GameDocuments:
         self.awaiting_clock_color = None
         self.active_clock_color = self.board.turn
         self.clock_history.clear()
+        extracted_clocks = notation.extract_ply_clocks(document)
+        self.ply_clocks = extracted_clocks
+        if extracted_clocks:
+            self.clocks_disabled = False
+            self.white_time, self.black_time = extracted_clocks[-1]
         self.pending_engine_move = self.pending_engine_position = None
         self.last_engine_search = None
         self.selected = self.drag_piece = self.drag_world = None

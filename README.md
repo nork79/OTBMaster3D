@@ -1,6 +1,6 @@
 # OTBMaster3D
 
-**Current project version: 1.8.7**
+**Current project version: 1.8.8**
 
 OTBMaster3D is an open-source Windows chess application for playing, analysing,
 and organizing chess positions. It combines a Qt desktop interface, interactive
@@ -21,10 +21,13 @@ online play through Lichess.
   themes, colors, sound profiles, camera controls, and move animations.
 - Play against UCI engines, including Stockfish, Fairy-Stockfish, and Rodent IV.
   Engine difficulty and style controls are approximate and vary by engine.
-- Engine analysis, move previews, Stockfish-backed **Evaluation Graph** and move-list
-  review scores, captured material, and offline opening recognition.
-- Automatic and over-the-board clocks, PGN/FEN import and export, move review,
-  session recovery, and nested position bookmarks.
+- Engine analysis, move previews, Stockfish-backed **Evaluation Graph**, vertical
+  **Evaluation Bar** next to the chessboard (mirrored from the move-list score and
+  hidden during live Lichess games), move-list review scores, captured material,
+  and offline opening recognition.
+- Automatic and over-the-board clocks, PGN/FEN import and export, free two-sided
+  analysis moves while paused or after game over, per-ply historical clock replay
+  during review, session recovery, and nested position bookmarks.
 - **Puzzle Trainer** (`Puzzles > Puzzle Trainer…`, `Ctrl+Shift+P`) with 500
   verified local tactical puzzles (100 each across **Mate in 1**, **Mate in 2**,
   **Mate in 3**, **Combinations & Exchanges**, and **Endgame Studies**) stored in
@@ -50,7 +53,7 @@ For a prebuilt application, use the [GitHub Releases page](https://github.com/no
 Choose an installer and its matching source, dependency-source, and checksum
 files from the same release. Check the version shown in **Help > About** against
 the version in the release assets. The source and packaging metadata in this
-checkout identify version 1.8.7.
+checkout identify version 1.8.8.
 
 The packaged application includes Python, Qt, assets, opening books, and the
 supported engine resources. Setup requires Microsoft Visual C++ x64

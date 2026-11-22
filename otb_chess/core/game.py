@@ -140,6 +140,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.active_clock_color = chess.WHITE
         self.last_clock_tick = time.perf_counter()
         self.clock_history = []
+        self.ply_clocks = [(float(self.white_time), float(self.black_time))]
         self.clock_paused = False
         self.clock_mode = self.cfg.get("clock_mode", "Online")
         self.clock_binding = self.cfg.get("clock_binding", "Spacebar")
@@ -180,8 +181,16 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             return self.premove_targets(self.selected)
         return self.position.legal_targets(self.selected)
 
+    def free_analysis_active(self):
+        if self.online_session is not None and self.online_session.active:
+            return False
+        owner = getattr(self, "owner", None)
+        if getattr(owner, "puzzle_session", None) is not None:
+            return False
+        return bool((self.game_started and self.clock_paused) or self.game_over)
+
     def human_premove_color(self):
-        if self._review_live is not None or self.game_over:
+        if self._review_live is not None or self.game_over or self.clock_paused:
             return None
         if self.online_session is not None and self.online_session.active:
             if self.online_session.my_color is None:
@@ -272,12 +281,16 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         return self.try_move(fr, to, is_engine=False, promotion=promo, is_remote=False, silent_illegal=True)
 
     def human_can_move(self):
-        if self._review_live is not None or self.game_over:
-            return False
         if self.online_session is not None and self.online_session.active:
+            if self._review_live is not None or self.game_over:
+                return False
             if self.online_session.my_color is None or self.online_session.move_in_flight:
                 return False
             return self.board.turn == self.online_session.my_color
+        if self.free_analysis_active():
+            return True
+        if self._review_live is not None or self.game_over:
+            return False
         engine_has_turn = (
             self.engine_enabled and self.game_started
             and self.engine_manager.engine is not None
@@ -288,9 +301,16 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         )
 
     def try_move(self, fr, to, is_engine=False, promotion=None, is_remote=False, silent_illegal=False):
-        if is_engine and (not self.engine_enabled or (self.online_session is not None and self.online_session.active)):
+        if is_engine and (
+            not self.engine_enabled
+            or self.clock_paused
+            or self.game_over
+            or self._review_live is not None
+            or (self.online_session is not None and self.online_session.active)
+        ):
             return False
-        if self.game_over:
+        analyzing = not is_engine and not is_remote and self.free_analysis_active()
+        if self.game_over and not analyzing and not is_remote:
             return False
         if fr is None or to is None or fr == to:
             return False
@@ -307,9 +327,10 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
                 return False
             if promotion is None and not is_engine and not is_remote:
                 position = self.board.fen()
+                was_over = self.game_over
                 promotion = self.choose_promotion(p.color, to)
                 # A modal chooser runs the UI timer: the clock can expire meanwhile.
-                if self.board.fen() != position or not self.human_can_move():
+                if self.board.fen() != position or self.game_over != was_over or not self.human_can_move():
                     return False
             if promotion not in choices:
                 return False
@@ -326,7 +347,9 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         mover = self.board.turn
         details = self.position.move_details(mv)
         capture, castle = details.capture, details.castling
-        if self.game_started:
+        if analyzing and self._review_live is None:
+            self._review_live = self.position.copy().legacy_board
+        if self.game_started and not analyzing:
             self.clock_history.append(
                 (self.white_time, self.black_time, self.active_clock_color)
             )
@@ -336,6 +359,19 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
             self.last_local_uci_move = self.position.uci(mv)
         self.move_animation = (self.board, self.board.fen(),time.perf_counter(),
                                self.move_animation_ms / 1000,origins) if self.move_animation_ms else None
+        if analyzing:
+            self.premove = None
+            if not self.game_over:
+                self.result_text = "Analyzing moves — resume clock to return to the game"
+            self.refresh_move_list()
+            if self.position.termination() is not None:
+                self.play_game_sound(self.sound_game_end)
+            else:
+                sound = (self.sound_promote if promotion else self.sound_castle if castle
+                         else self.sound_check if self.position.is_check()
+                         else self.sound_capture if capture else self.sound_move)
+                self.play_game_sound(sound)
+            return True
         online_active = self.online_session is not None and self.online_session.active
         if self.game_started:
             if len(self.board.move_stack) == 1:
@@ -357,6 +393,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
                         self.black_time += self.increment
                 self.active_clock_color = self.board.turn
                 self.last_clock_tick = time.perf_counter()
+        self._record_ply_clock()
         self.refresh_move_list()
         self.update_game_end()
         if not self.game_over:
@@ -430,6 +467,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self._declared_result = None
         if self.clock_history:
             self.white_time, self.black_time, self.active_clock_color = self.clock_history.pop()
+        self._truncate_ply_clocks()
         self.active_clock_color = self.board.turn
         self.game_started = True
         self.selected = None
@@ -449,6 +487,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self._review_live = self._pgn_document = None
         self.position.reset()
         self.clock_history.clear()
+        self.ply_clocks = [(float(self.white_time), float(self.black_time))]
         self.selected = None
         self.premove = None
         self.game_started = False
@@ -490,6 +529,7 @@ class Chess3D(GameDocuments, LegacyUI, BoardRendering, BoardInput, AppearanceSet
         self.white_time = time_control.initial_seconds
         self.clocks_disabled = time_control.name == 'Infinite (clocks disabled)'
         self.black_time = time_control.initial_seconds
+        self.ply_clocks = [(float(self.white_time), float(self.black_time))]
         self.increment = time_control.increment_seconds
         self.active_clock_color = self.board.turn
         self.last_clock_tick = time.perf_counter()

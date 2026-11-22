@@ -409,7 +409,7 @@ class ClockCard(QPushButton):
         self.setToolTip("In OTB mode, click the running clock after making your move.")
 
     def refresh(self, game):
-        remaining = game.white_time if self.color else game.black_time
+        remaining = game.displayed_clock_time(self.color)
         self.digits.setText('∞' if game.clocks_disabled else game.fmt_clock(remaining))
         label = clock_engine_label(game, self.color)
         self.engine_label.setToolTip(label)
@@ -470,9 +470,17 @@ class MainWindow(DocumentActions, QMainWindow):
         self.setStyleSheet(themed_stylesheet(STYLE,self.interface_theme))
         size = cfg.get("window_size",[1280,840])
         self.resize(max(760,min(3840,int(size[0]))),max(560,min(2160,int(size[1]))))
+        from otb_chess.ui.evaluation_graph import EvaluationBar
+        self.eval_bar = EvaluationBar(self)
+        self.board_pane = QWidget()
+        board_pane_layout = QHBoxLayout(self.board_pane)
+        board_pane_layout.setContentsMargins(0, 0, 0, 0)
+        board_pane_layout.setSpacing(0)
+        board_pane_layout.addWidget(self.board_widget, 1)
+        board_pane_layout.addWidget(self.eval_bar, 0)
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.splitter.setChildrenCollapsible(False)
-        self.splitter.addWidget(self.board_widget)
+        self.splitter.addWidget(self.board_pane)
         self.sidebar = QWidget()
         self.sidebar.setObjectName("sidebar")
         self.sidebar.setMinimumWidth(250)
@@ -775,6 +783,9 @@ class MainWindow(DocumentActions, QMainWindow):
         self.energetic_overlay_action.setToolTip(
             "Piece influence ignoring blockers: White yellow, Black green, both red.")
         view.addSeparator()
+        self.eval_bar_action = self.action(
+            view, "Show evaluation bar", self.toggle_evaluation_bar,
+            checkable=True, checked=bool(g.cfg.get("show_evaluation_bar", True)))
         self.sidebar_action = self.action(view,"Show sidebar",lambda _:self.apply_visibility(),"Ctrl+B",True,True)
         self.focus_action = self.action(view,"Focus mode (board and clocks)",lambda _:self.apply_visibility(),"Ctrl+Shift+F",True)
         self.fullscreen_action = self.action(view,"Fullscreen",self.set_fullscreen,"F11",True)
@@ -809,6 +820,7 @@ class MainWindow(DocumentActions, QMainWindow):
         self.static_evaluation_action = self.action(
             engine, "Always show position evaluation", self.toggle_static_evaluation,
             checkable=True, checked=bool(g.cfg.get("always_show_static_evaluation", False)))
+        engine.addAction(self.eval_bar_action)
         settings = self.menuBar().addMenu("Settings")
         self.action(settings,"Time control and clock…",self.clock_settings)
         self.action(settings,"Piece movement speed…",self.movement_settings)
@@ -932,10 +944,18 @@ class MainWindow(DocumentActions, QMainWindow):
         always_static = self.static_evaluation_action.isChecked()
         self.move_list_evaluation.setVisible(always_static)
         self.static_evaluation.setVisible(not always_static)
+        online_active = self.game.online_session is not None and self.game.online_session.active
+        if hasattr(self, "eval_bar") and hasattr(self, "eval_bar_action"):
+            self.eval_bar.setVisible(self.eval_bar_action.isChecked() and not online_active)
         self.focus_spacer.setVisible(focus)
 
     def toggle_static_evaluation(self, enabled):
         self.game.cfg["always_show_static_evaluation"] = enabled
+        self.apply_visibility()
+        self.game.persist()
+
+    def toggle_evaluation_bar(self, enabled):
+        self.game.cfg["show_evaluation_bar"] = bool(enabled)
         self.apply_visibility()
         self.game.persist()
 
@@ -963,8 +983,19 @@ class MainWindow(DocumentActions, QMainWindow):
         self.evaluation_graph.activateWindow()
 
     def navigate_history(self, step):
-        current = len(self.game.board.move_stack)
-        end = len(self.game.history_board().move_stack)
+        cur_moves = self.game.position.moves
+        hist_moves = self.game.history_position().moves
+        diverged = self.game._review_live is not None and (
+            len(cur_moves) > len(hist_moves) or hist_moves[:len(cur_moves)] != cur_moves
+        )
+        end = len(hist_moves)
+        if diverged:
+            common = 0
+            while common < len(cur_moves) and common < end and cur_moves[common] == hist_moves[common]:
+                common += 1
+            current = common
+        else:
+            current = len(cur_moves)
         target = {"<<":0,"<":max(0,current-1),">":min(end,current+1),">>":end}[step]
         self.game.navigate_to_ply(target)
         self.refresh_position_evaluation()
@@ -973,14 +1004,19 @@ class MainWindow(DocumentActions, QMainWindow):
 
     def refresh_navigation(self):
         g = self.game
-        current = len(g.board.move_stack)
-        end = len(g.history_board().move_stack)
+        cur_moves = g.position.moves
+        hist_moves = g.history_position().moves
+        diverged = g._review_live is not None and (
+            len(cur_moves) > len(hist_moves) or hist_moves[:len(cur_moves)] != cur_moves
+        )
+        current = len(cur_moves)
+        end = len(hist_moves)
         self.setup_position_action.setEnabled(not (g.engine_loading or self.new_game_pending))
         allowed = not (g.game_started and not g.game_over and not g.clock_paused and current)
         for symbol in ("<<","<"):
-            self.move_navigation[symbol].setEnabled(allowed and current > 0)
+            self.move_navigation[symbol].setEnabled(allowed and (current > 0 or diverged))
         for symbol in (">",">>"):
-            self.move_navigation[symbol].setEnabled(allowed and current < end)
+            self.move_navigation[symbol].setEnabled(allowed and (current < end or diverged))
 
     @staticmethod
     def _format_engine_score(score):
@@ -1030,6 +1066,9 @@ class MainWindow(DocumentActions, QMainWindow):
             self.move_list_evaluation.setText("")
             self.static_evaluation.setToolTip("Engine evaluation is disabled during live Lichess games.")
             self.move_list_evaluation.setToolTip("Engine evaluation is disabled during live Lichess games.")
+            if hasattr(self, "eval_bar"):
+                self.eval_bar.set_evaluation("", "Engine evaluation is disabled during live Lichess games.", facing=self.game.board_facing)
+                self.eval_bar.setVisible(False)
             return
         history = self.game.position.history()
         cache_key = (history.root_fen, history.moves)
@@ -1062,6 +1101,10 @@ class MainWindow(DocumentActions, QMainWindow):
         self.move_list_evaluation.setText(text)
         self.static_evaluation.setToolTip(tooltip)
         self.move_list_evaluation.setToolTip(tooltip)
+        if hasattr(self, "eval_bar"):
+            self.eval_bar.set_evaluation(text, tooltip, facing=self.game.board_facing)
+            if hasattr(self, "eval_bar_action"):
+                self.eval_bar.setVisible(self.eval_bar_action.isChecked())
 
     def poll_position_evaluation(self):
         if self.game.online_session is not None and self.game.online_session.active:
@@ -1098,6 +1141,9 @@ class MainWindow(DocumentActions, QMainWindow):
     def refresh_moves(self):
         self.refresh_position_evaluation()
         self.refresh_navigation()
+        if hasattr(self, "white_clock") and hasattr(self, "black_clock"):
+            self.white_clock.refresh(self.game)
+            self.black_clock.refresh(self.game)
         history = self.game.history_board()
         board = history.root()
         self.moves.setRowCount(0)
@@ -1380,6 +1426,7 @@ class MainWindow(DocumentActions, QMainWindow):
                 g.white_time = value
             else:
                 g.black_time = value
+            g._record_ply_clock()
             self.white_clock.refresh(g)
             self.black_clock.refresh(g)
         dialog.deleteLater()
@@ -1591,6 +1638,12 @@ class MainWindow(DocumentActions, QMainWindow):
             return False
         loaded = self.import_notation(text, "pgn")
         if loaded:
+            if not getattr(self.game, "ply_clocks", None) and getattr(summary, "ply_clocks", None):
+                self.game.ply_clocks = list(summary.ply_clocks)
+                self.game.clocks_disabled = False
+                self.game.white_time, self.game.black_time = self.game.ply_clocks[-1]
+            self.white_clock.refresh(self.game)
+            self.black_clock.refresh(self.game)
             msg = f"Loaded Lichess game: {summary.white_name} vs {summary.black_name} ({summary.result_label})"
             self.game.result_text = msg
             self.statusBar().showMessage(msg)
@@ -1719,6 +1772,11 @@ class MainWindow(DocumentActions, QMainWindow):
         self._last_position_score = ""
         self.static_evaluation.setText("")
         self.move_list_evaluation.setText("")
+        if hasattr(self, "eval_bar_action"):
+            self.eval_bar_action.setEnabled(False)
+        if hasattr(self, "eval_bar"):
+            self.eval_bar.set_evaluation("", "Engine evaluation is disabled during live Lichess games.", facing=g.board_facing)
+            self.eval_bar.setVisible(False)
         if self.engine_panel.isVisible():
             self.engine_panel.close()
         self.engine_toggle.setChecked(False)
@@ -1775,6 +1833,9 @@ class MainWindow(DocumentActions, QMainWindow):
         self.analysis_action.setEnabled(True)
         self.analysis_button.setEnabled(True)
         self.analysis_button.setText("Stop analysis" if self.game.analysis_enabled else "Start analysis")
+        if hasattr(self, "eval_bar_action"):
+            self.eval_bar_action.setEnabled(True)
+        self.apply_visibility()
         if saved is not None:
             self.game.engine_enabled = bool(saved.get("engine_enabled", True))
             if saved.get("analysis_enabled"):
@@ -1853,6 +1914,7 @@ class MainWindow(DocumentActions, QMainWindow):
                     g.position.undo()
                     if g.clock_history:
                         g.white_time, g.black_time, g.active_clock_color = g.clock_history.pop()
+                    g._truncate_ply_clocks()
                     g.active_clock_color = g.board.turn
                     g.refresh_move_list()
                 g.result_text = f"Lichess move rejected: {payload}"
@@ -1896,6 +1958,7 @@ class MainWindow(DocumentActions, QMainWindow):
             if isinstance(initial_ms, (int, float)):
                 g.white_time = g.black_time = float(initial_ms) / 1000.0
                 g.clocks_disabled = False
+            g.ply_clocks = [(float(g.white_time), float(g.black_time))]
             if isinstance(inc_ms, (int, float)):
                 g.increment = float(inc_ms) / 1000.0
 
@@ -1982,6 +2045,7 @@ class MainWindow(DocumentActions, QMainWindow):
             g.position.undo()
             local_moves.pop()
             g._declared_result = None
+        g._truncate_ply_clocks()
 
         # Apply any new moves from server
         new_moves = server_moves[len(local_moves):]
@@ -2014,6 +2078,7 @@ class MainWindow(DocumentActions, QMainWindow):
             g.increment = float(binc) / 1000.0
         g.active_clock_color = g.board.turn
         g.last_clock_tick = time.perf_counter()
+        g._record_ply_clock()
 
         session.wdraw = bool(state.get("wdraw", False))
         session.bdraw = bool(state.get("bdraw", False))
@@ -2277,6 +2342,7 @@ class MainWindow(DocumentActions, QMainWindow):
             g.return_to_live()
             tc = g.selected_time_control()
             g.white_time = g.black_time = tc.initial_seconds
+            g.ply_clocks = [(float(g.white_time), float(g.black_time))]
             g.clocks_disabled = tc.name == 'Infinite (clocks disabled)'
             g.increment = tc.increment_seconds
             g.clock_mode = g.clock_mode_var.get()
@@ -2857,6 +2923,8 @@ class MainWindow(DocumentActions, QMainWindow):
                 else:
                     self.show_engine_info(source,info)
         self.poll_position_evaluation()
+        if hasattr(self, "eval_bar"):
+            self.eval_bar.set_facing(g.board_facing)
         self.board_widget.update()
 
     def closeEvent(self, event):
@@ -2888,6 +2956,7 @@ class MainWindow(DocumentActions, QMainWindow):
         normal_size = self.normalGeometry().size() if self.isFullScreen() or self.isMaximized() else self.size()
         g.cfg.update(window_size=[normal_size.width(),normal_size.height()],sidebar_width=self.sidebar_width,
                      sidebar_visible=self.sidebar_action.isChecked(),focus_mode=self.focus_action.isChecked(),
+                     show_evaluation_bar=self.eval_bar_action.isChecked(),
                      engine_panel_open=self.engine_toggle.isChecked())
         g.persist()
         if g.analysis_engine is not None:
